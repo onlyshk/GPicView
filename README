@@ -1,0 +1,68 @@
+GPicView GtkImageView porting - project of Google Summer of code 2010 
+
+GPicView is the standard picture viewer of LXDE.
+GPicView features lightening fast startup and intuitive interface.
+
+Developed by 洪任諭 (Hong Jen Yee, aka PCMan) Copyright © 2007,
+Released under GNU General Public License.
+
+The image viewer is designed to be lightweight, but is has some old unresolved bugs.
+
+Now it's time for a rewrite!
+
+ - Port image viewing part to use GtkImageView library.
+This is a nice library designed specifically for building image viewers.
+It's fast and memory efficient and did a much better work than ours.
+
+ - Use GtkUIManager to create toolbars and menus.
+
+ - Load image files with gio so remote files can be loaded as well.
+
+ - Load images with multi-threading to prevent blocking of UI.
+
+ - Optional supports for preloading previous and next images in the folder.
+
+ - List image files in folder with GIO rather than GDir to support Remote filesystems. Again, this should use
+ multi-threading.
+
+ - While the directory is still being loaded, the user should be able to navigate through the list of files that are
+ already found without blocking of UI.
+
+ - Add ability to select a region of the image and crop to it.
+
+ - Support printing with Gtk+ printing APIs
+
+ - Able to call external programs to open the image file. (Use GAppInfo in glib/gio)
+
+ - Able to show EXIF information properly. (In a user friendly way)
+
+ - Add a properties dialog showing detailed info of current image. (EXIF, size, mtime, ...etc.)
+
+ - Add support for slide show.
+
+ - Optimize for comic reading if a comic book is detected.
+
+ - File alteration monitoring: update the display if the file on disk gets changed.
+
+ - Thumbnail support, can optionally have a bar containing a list of thumbnails for easy navigation.
+
+ - Add screenshot taking ability to GPicView. (gpicview --screenshot)
+
+ - A prompt dialog to let the users select some capture options:
+   -Full screen
+   -Single window
+   -Selected region
+   -Including mouse cursor
+   -Time delay (in seconds)
+
+If you have any questions, ask them to:
+
+-mail:        kuleshovmail@gmail.com
+-issue:       http://github.com/onlyshk/gpicview/issues
+-irc at irc:  irc.oftc.net on #lxde
+
+Links:
+
+ - LXDE project  - http://lxde.org/
+ - GPicView      - http://github.com/onlyshk/gpicview
+ - Blog          - http://onlyshk.wordpress.com/

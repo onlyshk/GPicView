@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=GPicView
+GenericName=GPicView
+Comment=GPicView Description
+Icon=GPicView
+Exec=gpicview
+StartupNotify=true
+Categories=GTK;
