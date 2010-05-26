@@ -46,6 +46,7 @@ int main(int argc, char** argv)
 	
 	gtk_init (&argc, &argv);
 	
+	
     /* gettext support */
 #ifdef ENABLE_NLS
     bindtextdomain ( GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR );
@@ -55,7 +56,13 @@ int main(int argc, char** argv)
 
     /* TODO: create GUI here */
 	win = (MainWin*)main_win_new();
-    gtk_widget_show(win);
+    gtk_widget_show(GTK_WIDGET(win));
+	
+    if (argc == 2)
+	{
+	   main_win_open(win,argv[1], 0);
+	}
+	
     gtk_main();
 
 	return 0;

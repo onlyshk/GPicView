@@ -71,7 +71,47 @@ GtkWidget* main_win_new()
 // End of GObject-related stuff
 void main_win_init( MainWin*mw )
 {
+	// main window color
+	GdkColor color;
+	color.red = 65535;
+	color.green = 65535;
+	color.blue = 65535;
+	
     gtk_window_set_title( (GtkWindow*)mw, "Image Viewer");
     gtk_window_set_default_size( (GtkWindow*)mw, 640, 480 );
+	gtk_window_set_position((GtkWindow*)mw, GTK_WIN_POS_CENTER);
+	gtk_widget_modify_bg((GtkWindow*)mw, GTK_STATE_NORMAL, &color);
+}
+
+gboolean main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom )
+{
+	GtkWidget* box = gtk_vbox_new( FALSE, 0 );
+	gtk_container_add((GtkContainer*)mw, box);
+	
+    GError* err = NULL;
+    GdkPixbufFormat* info;
+	
+    info = gdk_pixbuf_get_file_info( file_path, NULL, NULL );
+    char* type = ((info != NULL) ? gdk_pixbuf_format_get_name(info) : "");
+	
+    mw->view = gtk_image_view_new ();
+    GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file (file_path, NULL);
+    gtk_image_view_set_pixbuf(GTK_IMAGE_VIEW(mw->view), pixbuf, TRUE);
+    mw->scroll = gtk_image_scroll_win_new(GTK_IMAGE_VIEW(mw->view));
+	gtk_box_pack_start(GTK_BOX(box), mw->scroll, TRUE, TRUE,0);
+	
+    gtk_widget_show_all( box );
+}
+
+// error window
+void main_win_show_error( MainWin* mw, const char* message )
+{
+    GtkWidget* dlg = gtk_message_dialog_new( (GtkWindow*)mw,
+                                              GTK_DIALOG_MODAL,
+                                              GTK_MESSAGE_ERROR,
+                                              GTK_BUTTONS_OK,
+                                              "%s", message );
+    gtk_dialog_run( (GtkDialog*)dlg );
+    gtk_widget_destroy( dlg );
 }
 

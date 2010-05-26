@@ -23,6 +23,10 @@
 
 #include <gtk/gtk.h>
 #include <glib-object.h>
+#include <gtkimageview/gtkimageview.h>
+#include <gtkimageview/gtkanimview.h>
+#include <gtkimageview/gtkimagescrollwin.h>
+
 
 #define MAIN_WIN_TYPE            (main_win_get_type ())
 #define MAIN_WIN(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), MAIN_WIN_TYPE, MainWin))
@@ -47,9 +51,21 @@ typedef struct _MainWinClass
 typedef struct _MainWin
 {
     GtkWindow parent;
+	
+	GtkWidget* view;
+	GtkWidget* scroll;
+	
+	GtkAnimView* aview;
+	
+	GdkPixbuf* pix;
+    GdkPixbufAnimation* animation;
 } MainWin;
 
 GtkWidget* main_win_new();
+
+gboolean main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom );
+
+void main_win_show_error( MainWin* mw, const char* message );
 
 GType main_win_get_type(void);
 
