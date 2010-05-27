@@ -54,6 +54,7 @@ typedef struct _MainWin
 	
 	GtkWidget* view;
 	GtkWidget* scroll;
+	GtkWidget* box;
 	
 	GtkAnimView* aview;
 	
