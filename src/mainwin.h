@@ -51,13 +51,10 @@ typedef struct _MainWinClass
 typedef struct _MainWin
 {
     GtkWindow parent;
-	
 	GtkWidget* view;
 	GtkWidget* scroll;
 	GtkWidget* box;
-	
 	GtkAnimView* aview;
-	
 	GdkPixbuf* pix;
     GdkPixbufAnimation* animation;
 } MainWin;

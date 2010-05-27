@@ -97,13 +97,26 @@ gboolean main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom )
     info = gdk_pixbuf_get_file_info( file_path, NULL, NULL );
     char* type = ((info != NULL) ? gdk_pixbuf_format_get_name(info) : "");
 	
-	mw->view = gtk_image_view_new ();
-	mw->scroll = gtk_image_scroll_win_new (GTK_IMAGE_VIEW (mw->view));
-	
-    GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file (file_path, NULL);
-	gtk_box_pack_start(GTK_BOX(mw->box), mw->scroll, TRUE, TRUE,0);
-	gtk_image_view_set_pixbuf(GTK_IMAGE_VIEW(mw->view), pixbuf, TRUE);
-    gtk_widget_show_all(mw->box);
+	if(!strcmp(type,"gif"))
+    {
+      mw->animation = gdk_pixbuf_animation_new_from_file(file_path, &err);
+      mw->animation = gdk_pixbuf_animation_new_from_file(file_path,NULL);
+	  mw->aview = GTK_ANIM_VIEW (gtk_anim_view_new());
+	  gtk_anim_view_set_anim (mw->aview, mw->animation);
+	  mw->scroll = gtk_image_scroll_win_new(GTK_IMAGE_VIEW (mw->aview));
+	  gtk_box_pack_start(GTK_BOX(mw->box), mw->scroll, TRUE, TRUE,0);
+	}
+	else
+	{
+      mw->view = gtk_image_view_new ();
+	  mw->scroll = gtk_image_scroll_win_new (GTK_IMAGE_VIEW (mw->view));
+      GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file (file_path, NULL);
+	  gtk_box_pack_start(GTK_BOX(mw->box), mw->scroll, TRUE, TRUE,0);
+	  gtk_image_view_set_pixbuf(GTK_IMAGE_VIEW(mw->view), pixbuf, TRUE);
+      gtk_widget_show_all(mw->box);
+	}
+
+	gtk_widget_show_all(mw->box);
 }
 
 // error window
@@ -117,4 +130,13 @@ void main_win_show_error( MainWin* mw, const char* message )
     gtk_dialog_run( (GtkDialog*)dlg );
     gtk_widget_destroy( dlg );
 }
+
+// toolbar (GtkUIManager)
+gchar *ui_info =
+      "<ui>"
+        "<toolbar name = 'ToolBar'>"
+           "<toolitem action='Open'/>"
+        "  </toolbar>"
+      "</ui>";
+
 
