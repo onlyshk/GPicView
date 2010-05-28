@@ -46,7 +46,8 @@ binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS)
 am__objects_1 =
 am_gpicview_OBJECTS = gpicview-gpicview.$(OBJEXT) $(am__objects_1) \
-	gpicview-mainwin.$(OBJEXT)
+	gpicview-mainwin.$(OBJEXT) gpicview-ui.$(OBJEXT) \
+	gpicview-layot.$(OBJEXT)
 gpicview_OBJECTS = $(am_gpicview_OBJECTS)
 am__DEPENDENCIES_1 =
 gpicview_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
@@ -212,7 +213,11 @@ gpicview_SOURCES = \
 	gpicview.c \
 	$(NULL)   \
 	mainwin.h   \
-	mainwin.c
+	mainwin.c   \
+	ui.c   \
+	ui.h   \
+	layot.h   \
+	layot.c
 
 gpicview_CFLAGS = \
 	$(GTK_CFLAGS) \
@@ -300,7 +305,9 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpicview-gpicview.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpicview-layot.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpicview-mainwin.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpicview-ui.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xml_purge-xml-purge.Po@am__quote@
 
 .c.o:
@@ -344,6 +351,34 @@ gpicview-mainwin.obj: mainwin.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='mainwin.c' object='gpicview-mainwin.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -c -o gpicview-mainwin.obj `if test -f 'mainwin.c'; then $(CYGPATH_W) 'mainwin.c'; else $(CYGPATH_W) '$(srcdir)/mainwin.c'; fi`
+
+gpicview-ui.o: ui.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -MT gpicview-ui.o -MD -MP -MF $(DEPDIR)/gpicview-ui.Tpo -c -o gpicview-ui.o `test -f 'ui.c' || echo '$(srcdir)/'`ui.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/gpicview-ui.Tpo $(DEPDIR)/gpicview-ui.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='ui.c' object='gpicview-ui.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -c -o gpicview-ui.o `test -f 'ui.c' || echo '$(srcdir)/'`ui.c
+
+gpicview-ui.obj: ui.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -MT gpicview-ui.obj -MD -MP -MF $(DEPDIR)/gpicview-ui.Tpo -c -o gpicview-ui.obj `if test -f 'ui.c'; then $(CYGPATH_W) 'ui.c'; else $(CYGPATH_W) '$(srcdir)/ui.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/gpicview-ui.Tpo $(DEPDIR)/gpicview-ui.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='ui.c' object='gpicview-ui.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -c -o gpicview-ui.obj `if test -f 'ui.c'; then $(CYGPATH_W) 'ui.c'; else $(CYGPATH_W) '$(srcdir)/ui.c'; fi`
+
+gpicview-layot.o: layot.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -MT gpicview-layot.o -MD -MP -MF $(DEPDIR)/gpicview-layot.Tpo -c -o gpicview-layot.o `test -f 'layot.c' || echo '$(srcdir)/'`layot.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/gpicview-layot.Tpo $(DEPDIR)/gpicview-layot.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='layot.c' object='gpicview-layot.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -c -o gpicview-layot.o `test -f 'layot.c' || echo '$(srcdir)/'`layot.c
+
+gpicview-layot.obj: layot.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -MT gpicview-layot.obj -MD -MP -MF $(DEPDIR)/gpicview-layot.Tpo -c -o gpicview-layot.obj `if test -f 'layot.c'; then $(CYGPATH_W) 'layot.c'; else $(CYGPATH_W) '$(srcdir)/layot.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/gpicview-layot.Tpo $(DEPDIR)/gpicview-layot.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='layot.c' object='gpicview-layot.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -c -o gpicview-layot.obj `if test -f 'layot.c'; then $(CYGPATH_W) 'layot.c'; else $(CYGPATH_W) '$(srcdir)/layot.c'; fi`
 
 xml_purge-xml-purge.o: $(top_srcdir)/src/xml-purge.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(xml_purge_CFLAGS) $(CFLAGS) -MT xml_purge-xml-purge.o -MD -MP -MF $(DEPDIR)/xml_purge-xml-purge.Tpo -c -o xml_purge-xml-purge.o `test -f '$(top_srcdir)/src/xml-purge.c' || echo '$(srcdir)/'`$(top_srcdir)/src/xml-purge.c

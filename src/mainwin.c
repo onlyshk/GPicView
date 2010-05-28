@@ -38,7 +38,8 @@ static void main_win_finalize(GObject* obj);
 // Begin of GObject-related stuff
 G_DEFINE_TYPE( MainWin, main_win, GTK_TYPE_WINDOW)
 
-void main_win_class_init( MainWinClass* klass )
+void 
+main_win_class_init( MainWinClass* klass )
 {
     GObjectClass * obj_class;
     GtkWidgetClass *widget_class;
@@ -58,18 +59,21 @@ void main_win_class_init( MainWinClass* klass )
     // widget_class->window_state_event = on_win_state_event;
 }
 
-void main_win_finalize( GObject* obj )
+void
+main_win_finalize( GObject* obj )
 {
     gtk_main_quit();
 }
 
-GtkWidget* main_win_new()
+GtkWidget* 
+main_win_new()
 {
     return (GtkWidget*)g_object_new (MAIN_WIN_TYPE, NULL);
 }
 
 // End of GObject-related stuff
-void main_win_init( MainWin*mw )
+void
+main_win_init( MainWin*mw )
 {
 	// main window color
 	GdkColor color;
@@ -84,12 +88,12 @@ void main_win_init( MainWin*mw )
 	
 	mw->box = gtk_vbox_new(FALSE, 0);	
 	gtk_container_add((GtkContainer*)mw, mw->box);
-    gtk_widget_show(mw->box);
-	
-	
+   	
+	gtk_widget_show(mw->box);
 }
 
-gboolean main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom )
+gboolean 
+main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom )
 {	
     GError* err = NULL;
     GdkPixbufFormat* info;
@@ -108,7 +112,7 @@ gboolean main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom )
 	}
 	else
 	{
-      mw->view = gtk_image_view_new ();
+      mw->view = gtk_image_view_new();
 	  mw->scroll = gtk_image_scroll_win_new (GTK_IMAGE_VIEW (mw->view));
       GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file (file_path, NULL);
 	  gtk_box_pack_start(GTK_BOX(mw->box), mw->scroll, TRUE, TRUE,0);
@@ -120,7 +124,8 @@ gboolean main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom )
 }
 
 // error window
-void main_win_show_error( MainWin* mw, const char* message )
+void 
+main_win_show_error( MainWin* mw, const char* message )
 {
     GtkWidget* dlg = gtk_message_dialog_new( (GtkWindow*)mw,
                                               GTK_DIALOG_MODAL,
@@ -131,12 +136,5 @@ void main_win_show_error( MainWin* mw, const char* message )
     gtk_widget_destroy( dlg );
 }
 
-// toolbar (GtkUIManager)
-gchar *ui_info =
-      "<ui>"
-        "<toolbar name = 'ToolBar'>"
-           "<toolitem action='Open'/>"
-        "  </toolbar>"
-      "</ui>";
 
 

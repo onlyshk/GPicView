@@ -18,57 +18,33 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-#ifndef MAINWIN_H
-#define MAINWIN_H
+#include "ui.h"
 
-#include <gtk/gtk.h>
-#include <glib.h>
-#include <glib-object.h>
-#include <gtkimageview/gtkimageview.h>
-#include <gtkimageview/gtkanimview.h>
-#include <gtkimageview/gtkimagescrollwin.h>
+static GtkActionGroup *group = NULL;
 
-
-#define MAIN_WIN_TYPE            (main_win_get_type ())
-#define MAIN_WIN(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), MAIN_WIN_TYPE, MainWin))
-#define MAIN_WIN_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), MAIN_WIN_TYPE, MainWinClass))
-#define IS_MAIN_WIN(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), MAIN_WIN_TYPE))
-#define IS_MAIN_WIN_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), MAIN_WIN_TYPE))
-#define MAIN_WIN_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), MAIN_WIN_TYPE, MainWinClass))
-
-typedef enum
+static void 
+parse_ui (GtkUIManager *uimanager)
 {
-     ZOOM_NONE = 0,
-     ZOOM_FIT,
-     ZOOM_ORIG,
-     ZOOM_SCALE
-} ZoomMode;
+  GError *err;
+  if (!gtk_ui_manager_add_ui_from_string (uimanager, ui_info, -1, &err))
+  {
+	   g_warning ("Unable to create menus: %s", err->message);
+	   g_free (err);
+  }
+}
 
-typedef struct _MainWinClass
+static void
+add_action_groups (GtkUIManager *uimanager)
 {
-    GtkWindowClass parent_class;
-} MainWinClass;
+   group = gtk_action_group_new ("image");
+   gtk_action_group_add_actions (group,
+	                             image_actions,
+	                             G_N_ELEMENTS (image_actions),
+	                             NULL);
 
-typedef struct _MainWin
-{
-    GtkWindow parent;
-	GtkWidget* view;
-	GtkWidget* scroll;
-	GtkWidget* box;
-	GtkAnimView* aview;
-	GdkPixbuf* pix;
-    GdkPixbufAnimation* animation;
-	GtkWidget *toolbar;
-    GtkUIManager *uimanager;
-	GtkAccelGroup *accels;
-} MainWin;
+   gtk_action_group_set_sensitive (group, FALSE);
+	
+   gtk_ui_manager_insert_action_group (uimanager,group, 0);
+}
 
-GtkWidget* main_win_new();
 
-gboolean main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom );
-
-void main_win_show_error( MainWin* mw, const char* message );
-
-GType main_win_get_type(void);
-
-#endif 
