@@ -18,11 +18,19 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
+
 #include "mainwin.h"
 
-#include <glib/gi18n.h>
-#include <glib/gstdio.h>
-#include <gdk/gdkkeysyms.h>
+gchar *ui_info =
+      "<ui>"
+        "<toolbar name = 'ToolBar'>"
+           "<toolitem action='Go Back'/>"
+           "<toolitem  action='Go Forward'/>"
+             "<separator action='Sep1'/>"
+           "<toolitem  action='Zoom out'/>"
+           "<toolitem  action='Zoom in'/>"
+        "</toolbar>"
+      "</ui>";
 
 /* For drag & drop */
 static GtkTargetEntry drop_targets[] =
@@ -75,21 +83,43 @@ main_win_new()
 void
 main_win_init( MainWin*mw )
 {
-	// main window color
-	GdkColor color;
-	color.red = 65535;
-	color.green = 65535;
-	color.blue = 65535;
+	GError *error = NULL;
 	
     gtk_window_set_title( (GtkWindow*)mw, "Image Viewer");
     gtk_window_set_default_size( (GtkWindow*)mw, 640, 480 );
 	gtk_window_set_position((GtkWindow*)mw, GTK_WIN_POS_CENTER);
-	gtk_widget_modify_bg((GtkWindow*)mw, GTK_STATE_NORMAL, &color);
 	
 	mw->box = gtk_vbox_new(FALSE, 0);	
+	
+	mw->view = gtk_image_view_new ();
+	
+	
+	mw->img_box = gtk_vbox_new(FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(mw->box), mw->img_box, TRUE, TRUE,0);
+	gtk_box_pack_start(GTK_BOX(mw->img_box),mw->view,TRUE,TRUE,0);
+	gtk_box_pack_start(GTK_BOX(mw->box), gtk_hseparator_new(), FALSE, TRUE,0);
+	
+	//gtkuimanager
+	mw->actions = gtk_action_group_new ("Actions");
+	gtk_action_group_add_actions (mw->actions, entries, n_entries, NULL);
+	mw->uimanager = gtk_ui_manager_new();
+	gtk_ui_manager_insert_action_group (mw->uimanager, mw->actions, 0);
+	g_object_unref (mw->actions);
+    gtk_window_add_accel_group (GTK_WINDOW (mw), 
+				                gtk_ui_manager_get_accel_group (mw->uimanager));
+	if (!gtk_ui_manager_add_ui_from_string (mw->uimanager, ui_info, -1, &error))
+	{
+	  g_message ("building menus failed: %s", error->message);
+	  g_error_free (error);
+	}
+	gtk_box_pack_end(GTK_BOX (mw->box), gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"), FALSE, TRUE, 0);
+	gtk_toolbar_set_style(gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"), GTK_TOOLBAR_ICONS);
+	//end gtuimanager 
+	
 	gtk_container_add((GtkContainer*)mw, mw->box);
-   	
 	gtk_widget_show(mw->box);
+	gtk_widget_show_all((GtkWindow*)mw);	
+	g_object_unref(mw->uimanager);
 }
 
 gboolean 
@@ -98,28 +128,18 @@ main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom )
     GError* err = NULL;
     GdkPixbufFormat* info;
 	
+	GFileInputStream* ins;
+	GFile* gf = g_file_new_for_path(file_path);
+
+	ins = g_file_read(gf, NULL, NULL);
+    
+	mw->pix = gdk_pixbuf_new_from_stream(G_INPUT_STREAM(ins), NULL, NULL);
+    gtk_image_view_set_pixbuf (GTK_IMAGE_VIEW (mw->view), mw->pix, TRUE);
+    g_input_stream_close(G_INPUT_STREAM(ins), NULL, NULL);
+	
     info = gdk_pixbuf_get_file_info( file_path, NULL, NULL );
     char* type = ((info != NULL) ? gdk_pixbuf_format_get_name(info) : "");
 	
-	if(!strcmp(type,"gif"))
-    {
-      mw->animation = gdk_pixbuf_animation_new_from_file(file_path, &err);
-      mw->animation = gdk_pixbuf_animation_new_from_file(file_path,NULL);
-	  mw->aview = GTK_ANIM_VIEW (gtk_anim_view_new());
-	  gtk_anim_view_set_anim (mw->aview, mw->animation);
-	  mw->scroll = gtk_image_scroll_win_new(GTK_IMAGE_VIEW (mw->aview));
-	  gtk_box_pack_start(GTK_BOX(mw->box), mw->scroll, TRUE, TRUE,0);
-	}
-	else
-	{
-      mw->view = gtk_image_view_new();
-	  mw->scroll = gtk_image_scroll_win_new (GTK_IMAGE_VIEW (mw->view));
-      GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file (file_path, NULL);
-	  gtk_box_pack_start(GTK_BOX(mw->box), mw->scroll, TRUE, TRUE,0);
-	  gtk_image_view_set_pixbuf(GTK_IMAGE_VIEW(mw->view), pixbuf, TRUE);
-      gtk_widget_show_all(mw->box);
-	}
-
 	gtk_widget_show_all(mw->box);
 }
 
@@ -135,6 +155,7 @@ main_win_show_error( MainWin* mw, const char* message )
     gtk_dialog_run( (GtkDialog*)dlg );
     gtk_widget_destroy( dlg );
 }
+
 
 
 

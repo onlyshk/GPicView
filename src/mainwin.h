@@ -24,10 +24,13 @@
 #include <gtk/gtk.h>
 #include <glib.h>
 #include <glib-object.h>
+#include <gio/gio.h>
+#include <gdk-pixbuf/gdk-pixbuf.h>
 #include <gtkimageview/gtkimageview.h>
 #include <gtkimageview/gtkanimview.h>
 #include <gtkimageview/gtkimagescrollwin.h>
 
+#include "ui.h"
 
 #define MAIN_WIN_TYPE            (main_win_get_type ())
 #define MAIN_WIN(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), MAIN_WIN_TYPE, MainWin))
@@ -61,6 +64,8 @@ typedef struct _MainWin
 	GtkWidget *toolbar;
     GtkUIManager *uimanager;
 	GtkAccelGroup *accels;
+	GtkActionGroup *actions;
+	GtkWidget*  img_box;
 } MainWin;
 
 GtkWidget* main_win_new();

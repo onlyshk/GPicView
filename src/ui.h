@@ -21,29 +21,39 @@
 #ifndef UI_H
 #define UI_H
 
-#include <gtk/gtk.h>
-
-#include "mainwin.h"
-
-static void 
-parse_ui (GtkUIManager *uimanager);
-
-gchar *ui_info =
-      "<ui>"
-        "<toolbar name = 'ToolBar'>"
-           "<toolitem action='Open'/>"
-        "  </toolbar>"
-      "</ui>";
-
-static const GtkActionEntry image_actions[] = {
+static const GtkActionEntry entries[] = {
 	{
-	 "Open",
-	  GTK_STOCK_OPEN,
-	  "Open Image",
-	  "<control>O",
-	  "Open file",
+	  "Go Back",
+	  GTK_STOCK_GO_BACK,
+	  "Go Back",
+	  "<control>b",
+	  "Go Back",
 	   NULL
 	},
+	{
+	 "Go Forward",
+	 GTK_STOCK_GO_FORWARD,
+	 "Go Forward",
+	 "<control>g",
+	 "Go Forward",
+	  NULL
+	},
+	{
+	 "Zoom out",
+	 GTK_STOCK_ZOOM_OUT,
+	 "Zoom out",
+	 "<control>u",
+	 "Zoom out",
+	  NULL
+	},
+     "Zoom in",
+	 GTK_STOCK_ZOOM_IN,
+	 "Zoom in",
+	 "<control>u",
+	 "Zoom in",
+	  NULL
 };
+
+static guint n_entries = G_N_ELEMENTS (entries);
 
 #endif 
