@@ -32,6 +32,8 @@
 
 #include "ui.h"
 
+#define LOAD_BUFFER_SIZE 131072
+
 #define MAIN_WIN_TYPE            (main_win_get_type ())
 #define MAIN_WIN(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), MAIN_WIN_TYPE, MainWin))
 #define MAIN_WIN_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), MAIN_WIN_TYPE, MainWinClass))
@@ -66,11 +68,14 @@ typedef struct _MainWin
 	GtkAccelGroup *accels;
 	GtkActionGroup *actions;
 	GtkWidget*  img_box;
+	GdkPixbufLoader *loader;
 } MainWin;
 
 GtkWidget* main_win_new();
 
-gboolean main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom );
+gpointer main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom );
+
+gboolean on_open();
 
 void main_win_show_error( MainWin* mw, const char* message );
 

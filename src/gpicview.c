@@ -22,10 +22,12 @@
 #endif
 
 #include <gtk/gtk.h>
+#include <glib.h>
 #include <glib/gi18n.h>
 
 #include "mainwin.h"
 
+#define G_THREADS_ENABLED
 #define PIXMAP_DIR        PACKAGE_DATA_DIR "/gpicview/pixmaps/"
 
 static char** files = NULL;
@@ -46,6 +48,8 @@ int main(int argc, char** argv)
 	
 	gtk_init (&argc, &argv);
 	
+    if(!g_thread_supported())
+        g_thread_init(NULL);
 	
     /* gettext support */
 #ifdef ENABLE_NLS
@@ -60,7 +64,7 @@ int main(int argc, char** argv)
 	
     if (argc == 2)
 	{
-	   main_win_open(win,argv[1], 0);
+	   main_win_open(win,argv[1],ZOOM_NONE);
 	}
 	
     gtk_main();

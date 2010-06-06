@@ -32,6 +32,8 @@ gchar *ui_info =
         "</toolbar>"
       "</ui>";
 
+static GCancellable* generator_cancellable = NULL;
+
 /* For drag & drop */
 static GtkTargetEntry drop_targets[] =
 {
@@ -89,14 +91,20 @@ main_win_init( MainWin*mw )
     gtk_window_set_default_size( (GtkWindow*)mw, 640, 480 );
 	gtk_window_set_position((GtkWindow*)mw, GTK_WIN_POS_CENTER);
 	
-	mw->box = gtk_vbox_new(FALSE, 0);	
-	
-	mw->view = gtk_image_view_new ();
-	
-	
+	mw->box = gtk_vbox_new(FALSE, 0);
 	mw->img_box = gtk_vbox_new(FALSE, 0);
+	
+	mw->loader = gdk_pixbuf_loader_new();
+	
+	mw->aview =  GTK_ANIM_VIEW (gtk_anim_view_new ());
+	mw->scroll = GTK_IMAGE_SCROLL_WIN (gtk_image_scroll_win_new (mw->aview));
+	
+	//mw->view = gtk_image_view_new ();
+	//mw->scroll = GTK_IMAGE_SCROLL_WIN (gtk_image_scroll_win_new (mw->view));
+	
 	gtk_box_pack_start(GTK_BOX(mw->box), mw->img_box, TRUE, TRUE,0);
-	gtk_box_pack_start(GTK_BOX(mw->img_box),mw->view,TRUE,TRUE,0);
+	gtk_box_pack_start(GTK_BOX(mw->img_box),mw->scroll,TRUE,TRUE,0);
+	
 	gtk_box_pack_start(GTK_BOX(mw->box), gtk_hseparator_new(), FALSE, TRUE,0);
 	
 	//gtkuimanager
@@ -119,27 +127,54 @@ main_win_init( MainWin*mw )
 	gtk_container_add((GtkContainer*)mw, mw->box);
 	gtk_widget_show(mw->box);
 	gtk_widget_show_all((GtkWindow*)mw);	
+	
 	g_object_unref(mw->uimanager);
 }
 
-gboolean 
+gpointer 
 main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom )
-{	
-    GError* err = NULL;
-    GdkPixbufFormat* info;
-	
-	GFileInputStream* ins;
-	GFile* gf = g_file_new_for_path(file_path);
-
-	ins = g_file_read(gf, NULL, NULL);
+{	    
+	GError *error;
+	GInputStream* input_stream;
+	GFile *file = g_file_new_for_path(file_path);
     
-	mw->pix = gdk_pixbuf_new_from_stream(G_INPUT_STREAM(ins), NULL, NULL);
-    gtk_image_view_set_pixbuf (GTK_IMAGE_VIEW (mw->view), mw->pix, TRUE);
-    g_input_stream_close(G_INPUT_STREAM(ins), NULL, NULL);
+	gssize n_read;
+	gboolean res;
+	guchar buffer[LOAD_BUFFER_SIZE];
 	
-    info = gdk_pixbuf_get_file_info( file_path, NULL, NULL );
-    char* type = ((info != NULL) ? gdk_pixbuf_format_get_name(info) : "");
+	input_stream = g_file_read(file,generator_cancellable ,NULL);
 	
+	res = TRUE;
+	while (1){
+		n_read = g_input_stream_read(input_stream, buffer, sizeof (buffer),generator_cancellable,error);
+		
+		if (n_read < 0) {
+                        res = FALSE;
+                        error = NULL; 
+                        break;
+                }
+	
+	if (n_read == 0)
+        break;
+	
+	if (!gdk_pixbuf_loader_write(mw->loader, buffer, sizeof(buffer), error)){
+	   res = FALSE;
+       error = NULL;
+       break;
+	   }
+	}
+	
+	if (res){
+		mw->animation = gdk_pixbuf_loader_get_animation((mw->loader));
+	    gtk_anim_view_set_anim (mw->aview,mw->animation);				 
+	}
+		
+	// close gdkpixbufloader
+	if (!gdk_pixbuf_loader_close (mw->loader, error)) {
+        res = FALSE;
+        error = NULL;
+    }
+				 
 	gtk_widget_show_all(mw->box);
 }
 
