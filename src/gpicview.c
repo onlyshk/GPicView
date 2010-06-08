@@ -88,9 +88,7 @@ int main(int argc, char** argv)
 	}
 	
     /* enter the GTK main loop */
-    //gdk_threads_enter();
     gtk_main();
-    //gdk_threads_leave();
 
 	return 0;
 }
