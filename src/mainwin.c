@@ -131,8 +131,8 @@ main_win_init( MainWin*mw )
 	g_object_unref(mw->uimanager);
 }
 
-gpointer 
-main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom )
+gboolean 
+main_win_open( MainWin* mw, const char* file_path)
 {	    
 	GError *error;
 	GInputStream* input_stream;
@@ -166,15 +166,17 @@ main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom )
 	
 	if (res){
 		mw->animation = gdk_pixbuf_loader_get_animation((mw->loader));
-	    gtk_anim_view_set_anim (mw->aview,mw->animation);				 
+	    gtk_anim_view_set_anim (mw->aview,mw->animation);	
+		return TRUE;
 	}
 		
 	// close gdkpixbufloader
 	if (!gdk_pixbuf_loader_close (mw->loader, error)) {
         res = FALSE;
         error = NULL;
+		return FALSE;
     }
-				 
+		 
 	gtk_widget_show_all(mw->box);
 }
 

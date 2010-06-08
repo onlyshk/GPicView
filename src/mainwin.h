@@ -71,9 +71,15 @@ typedef struct _MainWin
 	GdkPixbufLoader *loader;
 } MainWin;
 
+typedef struct _Data
+{
+  MainWin *win;
+  char* argv;
+} Data;
+
 GtkWidget* main_win_new();
 
-gpointer main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom );
+gboolean main_win_open( MainWin* mw, const char* file_path);
 
 gboolean on_open();
 

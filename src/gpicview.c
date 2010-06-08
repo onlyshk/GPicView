@@ -41,17 +41,34 @@ static GOptionEntry opt_entries[] =
     { NULL }
 };
 
+void*
+argument_thread(void *args)
+{
+  Data *data = (Data*)args;
+ 	
+  gdk_threads_enter();
+  main_win_open (data->win,data->argv);
+  gdk_flush ();
+  gdk_threads_leave();
+}
+
 int main(int argc, char** argv)
 {
-    GError* err = NULL;
+    GError*   err;
+	GThread*  thread;
+	
+	Data data;
     MainWin *win;
-	
-	gtk_init (&argc, &argv);
-	
+
+	// init thread support
     if(!g_thread_supported())
-        g_thread_init(NULL);
-	
-    /* gettext support */
+		g_thread_init(NULL);
+        gdk_threads_init();
+		
+	// init GTK+
+	gtk_init (&argc, &argv);
+
+	/* gettext support */
 #ifdef ENABLE_NLS
     bindtextdomain ( GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR );
     bind_textdomain_codeset ( GETTEXT_PACKAGE, "UTF-8" );
@@ -61,13 +78,19 @@ int main(int argc, char** argv)
     /* TODO: create GUI here */
 	win = (MainWin*)main_win_new();
     gtk_widget_show(GTK_WIDGET(win));
+		
+	data.win = win;
+	data.argv = argv[1];
 	
     if (argc == 2)
 	{
-	   main_win_open(win,argv[1],ZOOM_NONE);
+	   thread = g_thread_create((GThreadFunc)argument_thread,&data,FALSE, &err);
 	}
 	
+    /* enter the GTK main loop */
+    //gdk_threads_enter();
     gtk_main();
+    //gdk_threads_leave();
 
 	return 0;
 }
