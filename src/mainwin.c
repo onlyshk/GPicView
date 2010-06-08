@@ -41,6 +41,9 @@ static GtkTargetEntry drop_targets[] =
     {"text/plain", 0, 1}
 };
 
+/* signal handlers */
+static gboolean on_delete_event( GtkWidget* widget, GdkEventAny* evt );
+
 /* main window initialize and finalize*/
 static void main_win_init(MainWin *mw);
 static void main_win_finalize(GObject* obj);
@@ -55,23 +58,18 @@ main_win_class_init( MainWinClass* klass )
     GtkWidgetClass *widget_class;
 
     obj_class = ( GObjectClass * ) klass;
-    
-	//obj_class->set_property = _set_property;
-    //obj_class->get_property = _get_property;
-    
 	obj_class->finalize = main_win_finalize;
 
     widget_class = GTK_WIDGET_CLASS ( klass );
     
-	//widget_class->delete_event = on_delete_event;
-    // widget_class->size_allocate = on_size_allocate;
-    // widget_class->key_press_event = on_key_press_event;
-    // widget_class->window_state_event = on_win_state_event;
+	widget_class->delete_event = on_delete_event;
 }
 
 void
 main_win_finalize( GObject* obj )
 {
+	MainWin *mw = (MainWin*)obj;
+	main_win_close(mw);
     gtk_main_quit();
 }
 
@@ -167,6 +165,21 @@ main_win_open( MainWin* mw, const char* file_path)
 	if (res){
 		mw->animation = gdk_pixbuf_loader_get_animation((mw->loader));
 	    gtk_anim_view_set_anim (mw->aview,mw->animation);	
+		
+		mw->img_list = image_list_new();
+		
+		// build file list
+		char* dir_path = g_path_get_dirname( file_path );
+		image_list_open_dir( mw->img_list, dir_path, NULL );
+		image_list_sort_by_name( mw->img_list, GTK_SORT_DESCENDING );
+        g_free( dir_path );
+		
+		char* base_name = g_path_get_basename( file_path );
+        image_list_set_current( mw->img_list, base_name );
+
+        char* disp_name = g_filename_display_name( base_name );
+        g_free( base_name );
+		
 		return TRUE;
 	}
 		
@@ -191,6 +204,23 @@ main_win_show_error( MainWin* mw, const char* message )
                                               "%s", message );
     gtk_dialog_run( (GtkDialog*)dlg );
     gtk_widget_destroy( dlg );
+}
+
+gboolean
+on_delete_event( GtkWidget* widget, GdkEventAny* evt )
+{   
+	gtk_widget_destroy( widget );
+	return TRUE;
+}
+
+void 
+main_win_close( MainWin* mw )
+{
+  if( mw->animation )
+  {
+	  g_object_unref( mw->animation );
+	  mw->animation = NULL;
+  }
 }
 
 

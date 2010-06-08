@@ -46,7 +46,7 @@ binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS)
 am__objects_1 =
 am_gpicview_OBJECTS = gpicview-gpicview.$(OBJEXT) $(am__objects_1) \
-	gpicview-mainwin.$(OBJEXT)
+	gpicview-mainwin.$(OBJEXT) gpicview-image-list.$(OBJEXT)
 gpicview_OBJECTS = $(am_gpicview_OBJECTS)
 am__DEPENDENCIES_1 =
 gpicview_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
@@ -213,7 +213,9 @@ gpicview_SOURCES = \
 	$(NULL)   \
 	mainwin.h   \
 	mainwin.c   \
-	ui.h  
+	ui.h   \
+	image-list.c   \
+	image-list.h
 
 gpicview_CFLAGS = \
 	$(GTK_CFLAGS) \
@@ -301,6 +303,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpicview-gpicview.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpicview-image-list.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpicview-mainwin.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xml_purge-xml-purge.Po@am__quote@
 
@@ -345,6 +348,20 @@ gpicview-mainwin.obj: mainwin.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='mainwin.c' object='gpicview-mainwin.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -c -o gpicview-mainwin.obj `if test -f 'mainwin.c'; then $(CYGPATH_W) 'mainwin.c'; else $(CYGPATH_W) '$(srcdir)/mainwin.c'; fi`
+
+gpicview-image-list.o: image-list.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -MT gpicview-image-list.o -MD -MP -MF $(DEPDIR)/gpicview-image-list.Tpo -c -o gpicview-image-list.o `test -f 'image-list.c' || echo '$(srcdir)/'`image-list.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/gpicview-image-list.Tpo $(DEPDIR)/gpicview-image-list.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='image-list.c' object='gpicview-image-list.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -c -o gpicview-image-list.o `test -f 'image-list.c' || echo '$(srcdir)/'`image-list.c
+
+gpicview-image-list.obj: image-list.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -MT gpicview-image-list.obj -MD -MP -MF $(DEPDIR)/gpicview-image-list.Tpo -c -o gpicview-image-list.obj `if test -f 'image-list.c'; then $(CYGPATH_W) 'image-list.c'; else $(CYGPATH_W) '$(srcdir)/image-list.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/gpicview-image-list.Tpo $(DEPDIR)/gpicview-image-list.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='image-list.c' object='gpicview-image-list.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -c -o gpicview-image-list.obj `if test -f 'image-list.c'; then $(CYGPATH_W) 'image-list.c'; else $(CYGPATH_W) '$(srcdir)/image-list.c'; fi`
 
 xml_purge-xml-purge.o: $(top_srcdir)/src/xml-purge.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(xml_purge_CFLAGS) $(CFLAGS) -MT xml_purge-xml-purge.o -MD -MP -MF $(DEPDIR)/xml_purge-xml-purge.Tpo -c -o xml_purge-xml-purge.o `test -f '$(top_srcdir)/src/xml-purge.c' || echo '$(srcdir)/'`$(top_srcdir)/src/xml-purge.c

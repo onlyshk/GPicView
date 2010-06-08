@@ -31,6 +31,7 @@
 #include <gtkimageview/gtkimagescrollwin.h>
 
 #include "ui.h"
+#include "image-list.h"
 
 #define LOAD_BUFFER_SIZE 131072
 
@@ -69,6 +70,7 @@ typedef struct _MainWin
 	GtkActionGroup *actions;
 	GtkWidget*  img_box;
 	GdkPixbufLoader *loader;
+	ImageList* img_list;
 } MainWin;
 
 typedef struct _Data
@@ -84,6 +86,8 @@ gboolean main_win_open( MainWin* mw, const char* file_path);
 gboolean on_open();
 
 void main_win_show_error( MainWin* mw, const char* message );
+
+void main_win_close( MainWin* mw );
 
 GType main_win_get_type(void);
 

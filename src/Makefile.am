@@ -13,7 +13,9 @@ gpicview_SOURCES = \
 	$(NULL)   \
 	mainwin.h   \
 	mainwin.c   \
-	ui.h  
+	ui.h   \
+	image-list.c   \
+	image-list.h
 
 gpicview_CFLAGS = \
 	$(GTK_CFLAGS) \
