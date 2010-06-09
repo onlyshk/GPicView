@@ -45,17 +45,14 @@ void*
 argument_thread(void *args)
 {
   Data *data = (Data*)args;
- 	
-  gdk_threads_enter();
   main_win_open (data->win,data->argv);
-  gdk_flush ();
-  gdk_threads_leave();
 }
 
 int main(int argc, char** argv)
 {
     GError*   err;
 	GThread*  thread;
+	GOptionContext *context;
 	
 	Data data;
     MainWin *win;
@@ -74,21 +71,43 @@ int main(int argc, char** argv)
     bind_textdomain_codeset ( GETTEXT_PACKAGE, "UTF-8" );
     textdomain ( GETTEXT_PACKAGE );
 #endif
+	
+	context = g_option_context_new ("- simple image viewer");
+    g_option_context_add_main_entries (context, opt_entries, GETTEXT_PACKAGE);
+    g_option_context_add_group (context, gtk_get_option_group (TRUE));
+    if ( !g_option_context_parse (context, &argc, &argv, &err) )
+    {
+        g_print( "option parsing failed: %s\n", err->message);
+        return 1;
+    }
+	
+	if( should_display_version )
+    {
+        printf( "gpicview %s\n", VERSION );
+        return 0;
+    }
 
     /* TODO: create GUI here */
 	win = (MainWin*)main_win_new();
     gtk_widget_show(GTK_WIDGET(win));
 		
 	data.win = win;
-	data.argv = argv[1];
+	data.argv = files[0];
 	
-    if (argc == 2)
-	{
-	   thread = g_thread_create((GThreadFunc)argument_thread,&data,FALSE, &err);
-	}
+	if(files)
+    {
+        if( G_UNLIKELY( *files[0] != '/' && strstr( files[0], "://" )) )    // This is an URI
+        {
+            char* path = g_filename_from_uri( files[0], NULL, NULL );
+            thread = g_thread_create((GThreadFunc)argument_thread,&data,FALSE, &err);
+            g_free( path );
+        }
+        else 
+            thread = g_thread_create((GThreadFunc)argument_thread,&data,FALSE, &err);
+    }
 	
     /* enter the GTK main loop */
     gtk_main();
-
+	
 	return 0;
 }

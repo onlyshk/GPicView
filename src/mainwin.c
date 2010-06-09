@@ -18,7 +18,6 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-
 #include "mainwin.h"
 
 gchar *ui_info =
@@ -32,7 +31,89 @@ gchar *ui_info =
         "</toolbar>"
       "</ui>";
 
-static GCancellable* generator_cancellable = NULL;
+void
+on_prev(MainWin* mw )
+{
+    const char* name;
+    if( image_list_is_empty( mw->img_list ) )
+        return;
+
+    name = image_list_get_prev( mw->img_list );
+
+    if(!name && image_list_has_multiple_files( mw->img_list ) )
+    {
+        // FIXME: need to ask user first?
+        name = image_list_get_last( mw->img_list );
+    }
+
+    if( name )
+    {
+        char* file_path = image_list_get_current_file_path( mw->img_list );
+        main_win_open( mw, file_path);
+        g_free( file_path );
+    }
+}
+
+void on_next(MainWin* mw )
+{
+    if( image_list_is_empty( mw->img_list ) )
+        return;
+
+    const char* name = image_list_get_next( mw->img_list );
+
+    if( ! name && image_list_has_multiple_files( mw->img_list ) )
+    {
+        // FIXME: need to ask user first?
+        name = image_list_get_first( mw->img_list );
+    }
+
+    if( name )
+    {
+        char* file_path = image_list_get_current_file_path( mw->img_list );
+        main_win_open( mw, file_path);
+        g_free( file_path );
+    }
+}
+
+static const GtkActionEntry entries[] = {
+	{
+	  "Go Back",
+	  GTK_STOCK_GO_BACK,
+	  "Go Back",
+	  "<control>b",
+	  "Go Back",
+      G_CALLBACK(on_prev)
+	},
+	{
+	 "Go Forward",
+	 GTK_STOCK_GO_FORWARD,
+	 "Go Forward",
+	 "<control>g",
+	 "Go Forward",
+	  G_CALLBACK(on_next)
+	},
+	{
+	 "Zoom out",
+	 GTK_STOCK_ZOOM_OUT,
+	 "Zoom out",
+	 "<control>u",
+	 "Zoom out",
+	  NULL
+	},
+	{
+     "Zoom in",
+	 GTK_STOCK_ZOOM_IN,
+	 "Zoom in",
+	 "<control>u",
+	 "Zoom in",
+	  NULL
+    },
+};
+
+static guint n_entries = G_N_ELEMENTS (entries);
+
+
+GCancellable* generator_cancellable = NULL;
 
 /* For drag & drop */
 static GtkTargetEntry drop_targets[] =
@@ -69,6 +150,10 @@ void
 main_win_finalize( GObject* obj )
 {
 	MainWin *mw = (MainWin*)obj;
+	    
+	if( G_LIKELY(mw->img_list) )
+        image_list_free( mw->img_list );
+	
 	main_win_close(mw);
     gtk_main_quit();
 }
@@ -97,9 +182,6 @@ main_win_init( MainWin*mw )
 	mw->aview =  GTK_ANIM_VIEW (gtk_anim_view_new ());
 	mw->scroll = GTK_IMAGE_SCROLL_WIN (gtk_image_scroll_win_new (mw->aview));
 	
-	//mw->view = gtk_image_view_new ();
-	//mw->scroll = GTK_IMAGE_SCROLL_WIN (gtk_image_scroll_win_new (mw->view));
-	
 	gtk_box_pack_start(GTK_BOX(mw->box), mw->img_box, TRUE, TRUE,0);
 	gtk_box_pack_start(GTK_BOX(mw->img_box),mw->scroll,TRUE,TRUE,0);
 	
@@ -125,6 +207,8 @@ main_win_init( MainWin*mw )
 	gtk_container_add((GtkContainer*)mw, mw->box);
 	gtk_widget_show(mw->box);
 	gtk_widget_show_all((GtkWindow*)mw);	
+	
+	mw->img_list = image_list_new();
 	
 	g_object_unref(mw->uimanager);
 }
@@ -165,9 +249,7 @@ main_win_open( MainWin* mw, const char* file_path)
 	if (res){
 		mw->animation = gdk_pixbuf_loader_get_animation((mw->loader));
 	    gtk_anim_view_set_anim (mw->aview,mw->animation);	
-		
-		mw->img_list = image_list_new();
-		
+				
 		// build file list
 		char* dir_path = g_path_get_dirname( file_path );
 		image_list_open_dir( mw->img_list, dir_path, NULL );
@@ -187,6 +269,11 @@ main_win_open( MainWin* mw, const char* file_path)
 	if (!gdk_pixbuf_loader_close (mw->loader, error)) {
         res = FALSE;
         error = NULL;
+		
+		g_object_unref (input_stream);
+        g_object_unref (file);
+        g_object_unref (generator_cancellable);
+		
 		return FALSE;
     }
 		 
@@ -222,7 +309,6 @@ main_win_close( MainWin* mw )
 	  mw->animation = NULL;
   }
 }
-
 
 
 

@@ -33,7 +33,7 @@
 #include "ui.h"
 #include "image-list.h"
 
-#define LOAD_BUFFER_SIZE 131072
+#define LOAD_BUFFER_SIZE 65536 
 
 #define MAIN_WIN_TYPE            (main_win_get_type ())
 #define MAIN_WIN(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), MAIN_WIN_TYPE, MainWin))
@@ -83,12 +83,14 @@ GtkWidget* main_win_new();
 
 gboolean main_win_open( MainWin* mw, const char* file_path);
 
-gboolean on_open();
-
 void main_win_show_error( MainWin* mw, const char* message );
 
 void main_win_close( MainWin* mw );
 
 GType main_win_get_type(void);
+
+void on_prev(MainWin* mw);
+
+void on_open( GtkWidget* btn, MainWin* mw );
 
 #endif 

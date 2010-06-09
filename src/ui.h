@@ -21,6 +21,8 @@
 #ifndef UI_H
 #define UI_H
 
+#include "mainwin.h"
+/*
 static const GtkActionEntry entries[] = {
 	{
 	  "Go Back",
@@ -28,7 +30,7 @@ static const GtkActionEntry entries[] = {
 	  "Go Back",
 	  "<control>b",
 	  "Go Back",
-	   NULL
+      G_CALLBACK(on_prev)
 	},
 	{
 	 "Go Forward",
@@ -55,5 +57,5 @@ static const GtkActionEntry entries[] = {
 };
 
 static guint n_entries = G_N_ELEMENTS (entries);
-
+*/
 #endif 

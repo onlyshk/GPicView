@@ -17,6 +17,9 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include "image-list.h"
 
@@ -64,7 +67,7 @@ image_list_get_dir( ImageList* il )
 const char* 
 image_list_get_current( ImageList* il )
 {
-    return il->current ? (char*)il->current->data : NULL;
+    return il->current;// ? (char*)il->current->data : NULL;
 }
 
 gboolean 
@@ -79,52 +82,42 @@ image_list_has_multiple_files( ImageList* il )
     return (il->list && il->list->next);
 }
 
-void
-image_list_close( ImageList* il )
+gboolean 
+image_list_open_dir( ImageList* il, const char* path, GError** error )
 {
-    g_list_foreach( il->list, (GFunc)g_free, NULL );
-    g_list_free( il->list );
-    il->list = NULL;
-    il->mtime = 0;
+  const char* name = NULL;
+  GDir* dir;
+  struct stat stbuf;
+	
+  if( il->dir_path && 0 == strcmp( path, il->dir_path ) )
+      return TRUE;
+	
+  image_list_close( il );
+	  
+  if( stat( path, &stbuf ) == -1 )
+      return FALSE;
 
-    g_free( il->dir_path );
-    il->dir_path = NULL;
+  dir = g_dir_open( path, 0, error );
+   
+  if( ! dir )
+      return FALSE;
+	
+  il->dir_path = g_strdup( path );
+  il->mtime = stbuf.st_mtime;
+	
+  while((name = g_dir_read_name(dir)))
+  {
+     if( image_list_is_file_supported(name))
+         il->list = g_list_prepend( il->list, g_strdup(name) );
+  }
+
+  g_dir_close( dir );
+  il->list = g_list_reverse( il->list );
+  il->current = il->list;
+  return TRUE;
 }
 
-static gboolean 
-image_list_is_file_supported( const char* name )
-{
-    const char* ext = strrchr( name, '.' );
-    if( ! ext )
-        return FALSE;
-    ++ext;
-
-    return !!g_slist_find_custom ( supported_formats, ext,  (GCompareFunc)g_ascii_strcasecmp);
-}
-
-static int 
-comp_by_name( char* name1, char* name2, GtkSortType type )
-{
-    // According to the glib API doc, UTF-8 should be considered here,
-    // So the simple strcmp couldn't be used here. What a pity!
-
-    char* utf8;
-
-    utf8 = g_filename_display_name(name1);
-    name1 = g_utf8_casefold( utf8, -1 );
-    g_free( utf8 );
-
-    utf8 = g_filename_display_name(name2);
-    name2 = g_utf8_casefold( utf8, -1 );
-    g_free( utf8 );
-    int ret = g_utf8_collate( name1, name2 );
-    g_free( name1 );
-    g_free( name2 );
-    return type == GTK_SORT_ASCENDING ? -ret : ret;
-}
-
-gboolean
-image_list_set_current(  ImageList* il,const char* name )
+gboolean image_list_set_current(  ImageList* il,const char* name )
 {
     if( ! il->list || !name )
         return FALSE;
@@ -172,45 +165,62 @@ image_list_get_last( ImageList* il )
     return image_list_get_current( il );
 }
 
+void
+image_list_close( ImageList* il )
+{
+    g_list_foreach( il->list, (GFunc)g_free, NULL );
+    g_list_free( il->list );
+    il->list = NULL;
+    il->mtime = 0;
+
+    g_free( il->dir_path );
+    il->dir_path = NULL;
+}
+
+static gboolean 
+image_list_is_file_supported( const char* name )
+{
+    const char* ext = strrchr( name, '.' );
+    if( ! ext )
+        return FALSE;
+    ++ext;
+
+    return !!g_slist_find_custom ( supported_formats, ext,  (GCompareFunc)g_ascii_strcasecmp);
+}
+
+char* image_list_get_current_file_path( ImageList* il )
+{
+    const char* name;
+    if( il->dir_path && (name = image_list_get_current( il )) )
+        return g_build_filename( il->dir_path, name, NULL );
+    return NULL;
+}
+
+static int 
+comp_by_name( char* name1, char* name2, GtkSortType type )
+{
+    // According to the glib API doc, UTF-8 should be considered here,
+    // So the simple strcmp couldn't be used here. What a pity!
+
+    char* utf8;
+
+    utf8 = g_filename_display_name(name1);
+    name1 = g_utf8_casefold( utf8, -1 );
+    g_free( utf8 );
+
+    utf8 = g_filename_display_name(name2);
+    name2 = g_utf8_casefold( utf8, -1 );
+    g_free( utf8 );
+    int ret = g_utf8_collate( name1, name2 );
+    g_free( name1 );
+    g_free( name2 );
+    return type == GTK_SORT_ASCENDING ? -ret : ret;
+}
+
 void 
 image_list_sort_by_name(  ImageList* il, GtkSortType type )
 {
     il->list = g_list_sort_with_data( il->list, (GCompareDataFunc)comp_by_name, (gpointer)type );
-}
-
-gboolean 
-image_list_open_dir( ImageList* il, const char* path, GError** error )
-{
-  const char* name = NULL;
-  GDir* dir;
-  struct stat stbuf;
-	
-  if( il->dir_path && 0 == strcmp( path, il->dir_path ) )
-      return TRUE;
-	
-  image_list_close( il );
-	  
-  if( stat( path, &stbuf ) == -1 )
-      return FALSE;
-
-  dir = g_dir_open( path, 0, error );
-   
-  if( ! dir )
-      return FALSE;
-	
-  il->dir_path = g_strdup( path );
-  il->mtime = stbuf.st_mtime;
-	
-  while((name = g_dir_read_name(dir)))
-  {
-     if( image_list_is_file_supported(name))
-         il->list = g_list_prepend( il->list, g_strdup(name) );
-  }
-
-  g_dir_close( dir );
-  il->list = g_list_reverse( il->list );
-  il->current = il->list;
-  return TRUE;
 }
 
 void image_list_remove( ImageList* il, const char* name )
