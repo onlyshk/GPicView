@@ -76,7 +76,7 @@ typedef struct _MainWin
 typedef struct _Data
 {
   MainWin *win;
-  char* argv;
+  char** argv;
 } Data;
 
 GtkWidget* main_win_new();

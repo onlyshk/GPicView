@@ -30,7 +30,7 @@
 #define G_THREADS_ENABLED
 #define PIXMAP_DIR        PACKAGE_DATA_DIR "/gpicview/pixmaps/"
 
-static char** files = NULL;
+char** files = NULL;
 static gboolean should_display_version = FALSE;
 
 static GOptionEntry opt_entries[] =
@@ -56,6 +56,13 @@ int main(int argc, char** argv)
 	
 	Data data;
     MainWin *win;
+	
+/* gettext support */
+#ifdef ENABLE_NLS
+    bindtextdomain ( GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR );
+    bind_textdomain_codeset ( GETTEXT_PACKAGE, "UTF-8" );
+    textdomain ( GETTEXT_PACKAGE );
+#endif
 
 	// init thread support
     if(!g_thread_supported())
@@ -64,13 +71,6 @@ int main(int argc, char** argv)
 		
 	// init GTK+
 	gtk_init (&argc, &argv);
-
-	/* gettext support */
-#ifdef ENABLE_NLS
-    bindtextdomain ( GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR );
-    bind_textdomain_codeset ( GETTEXT_PACKAGE, "UTF-8" );
-    textdomain ( GETTEXT_PACKAGE );
-#endif
 	
 	context = g_option_context_new ("- simple image viewer");
     g_option_context_add_main_entries (context, opt_entries, GETTEXT_PACKAGE);
@@ -92,22 +92,22 @@ int main(int argc, char** argv)
     gtk_widget_show(GTK_WIDGET(win));
 		
 	data.win = win;
-	data.argv = files[0];
-	
+    
 	if(files)
     {
         if( G_UNLIKELY( *files[0] != '/' && strstr( files[0], "://" )) )    // This is an URI
         {
+		    data.argv = files[0];
             char* path = g_filename_from_uri( files[0], NULL, NULL );
             thread = g_thread_create((GThreadFunc)argument_thread,&data,FALSE, &err);
             g_free( path );
-        }
-        else 
+		}  
+       else
+		    data.argv = files[0];
             thread = g_thread_create((GThreadFunc)argument_thread,&data,FALSE, &err);
     }
-	
+
     /* enter the GTK main loop */
     gtk_main();
-	
 	return 0;
 }
