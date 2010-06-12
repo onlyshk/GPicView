@@ -21,11 +21,11 @@
 #include <config.h>
 #endif
 
+#include "mainwin.h"
+		
 #include <gtk/gtk.h>
 #include <glib.h>
 #include <glib/gi18n.h>
-
-#include "mainwin.h"
 
 #define G_THREADS_ENABLED
 #define PIXMAP_DIR        PACKAGE_DATA_DIR "/gpicview/pixmaps/"
@@ -46,6 +46,14 @@ argument_thread(void *args)
 {
   Data *data = (Data*)args;
   main_win_open (data->win,data->argv);
+}
+
+void*
+cancell()
+{
+   generator_cancellable = g_cancellable_new();
+   g_cancellable_cancel(generator_cancellable);
+   printf("stream cancelled");
 }
 
 int main(int argc, char** argv)
@@ -90,12 +98,14 @@ int main(int argc, char** argv)
     /* TODO: create GUI here */
 	win = (MainWin*)main_win_new();
     gtk_widget_show(GTK_WIDGET(win));
+	
+	g_signal_connect( G_OBJECT( win ), "destroy", G_CALLBACK( gtk_main_quit ), NULL );
 		
 	data.win = win;
     
 	if(files)
     {
-        if( G_UNLIKELY( *files[0] != '/' && strstr( files[0], "://" )) )    // This is an URI
+        if( G_UNLIKELY( *files[0] != '/' && strstr( files[0], "://" )) ) 
         {
 		    data.argv = files[0];
             char* path = g_filename_from_uri( files[0], NULL, NULL );
@@ -104,10 +114,11 @@ int main(int argc, char** argv)
 		}  
        else
 		    data.argv = files[0];
-            thread = g_thread_create((GThreadFunc)argument_thread,&data,FALSE, &err);
+		    thread = g_thread_create((GThreadFunc)argument_thread,&data,FALSE, &err);
     }
 
     /* enter the GTK main loop */
     gtk_main();
+	
 	return 0;
 }

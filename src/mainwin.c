@@ -19,6 +19,20 @@
  ***************************************************************************/
 
 #include "mainwin.h"
+#include <glib.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+// Begin of GObject-related stuff
+G_DEFINE_TYPE( MainWin, main_win, GTK_TYPE_WINDOW)
+
+/* signal handlers */
+static gboolean on_delete_event( GtkWidget* widget, GdkEventAny* evt );
+static void on_prev(MainWin* mw );
+static void on_next(MainWin* mw);
+static void zoom_in();
+static void zoom_out();
+static void fit();
 
 gchar *ui_info =
       "<ui>"
@@ -28,52 +42,30 @@ gchar *ui_info =
              "<separator action='Sep1'/>"
            "<toolitem  action='Zoom out'/>"
            "<toolitem  action='Zoom in'/>"
+           "<toolitem  action='ZoomFit'/>"
         "</toolbar>"
       "</ui>";
 
-void
-on_prev(MainWin* mw )
+
+static ImageList* image_list;
+static GtkAnimView* aview;
+static GdkPixbufLoader* loader;
+
+void 
+main_win_class_init( MainWinClass* klass )
 {
-    const char* name;
-    if( image_list_is_empty( mw->img_list ) )
-        return;
-
-    name = image_list_get_prev( mw->img_list );
-
-    if(!name && image_list_has_multiple_files( mw->img_list ) )
-    {
-        // FIXME: need to ask user first?
-        name = image_list_get_last( mw->img_list );
-    }
-
-    if( name )
-    {
-        char* file_path = image_list_get_current_file_path( mw->img_list );
-        main_win_open( mw, file_path);
-        g_free( file_path );
-    }
+    GtkWidgetClass *widget_class = (GtkWidgetClass *) klass;
+	widget_class->delete_event = on_delete_event;
 }
 
-void on_next(MainWin* mw )
+GtkWindow* 
+main_win_new()
 {
-    if( image_list_is_empty( mw->img_list ) )
-        return;
-
-    const char* name = image_list_get_next( mw->img_list );
-
-    if( ! name && image_list_has_multiple_files( mw->img_list ) )
-    {
-        // FIXME: need to ask user first?
-        name = image_list_get_first( mw->img_list );
-    }
-
-    if( name )
-    {
-        char* file_path = image_list_get_current_file_path( mw->img_list );
-        main_win_open( mw, file_path);
-        g_free( file_path );
-    }
+	aview  =    gtk_anim_view_new();
+	image_list = image_list_new();
+	return (GtkWindow*)g_object_new (MAIN_WIN_TYPE, NULL);
 }
+
 
 static const GtkActionEntry entries[] = {
 	{
@@ -90,79 +82,35 @@ static const GtkActionEntry entries[] = {
 	 "Go Forward",
 	 "<control>g",
 	 "Go Forward",
-	  G_CALLBACK(on_next)
+	 G_CALLBACK(on_next)
 	},
 	{
 	 "Zoom out",
 	 GTK_STOCK_ZOOM_OUT,
 	 "Zoom out",
-	 "<control>u",
+	 "<control>z",
 	 "Zoom out",
-	  NULL
+	  G_CALLBACK(zoom_out)
 	},
 	{
      "Zoom in",
 	 GTK_STOCK_ZOOM_IN,
 	 "Zoom in",
-	 "<control>u",
+	 "<control>i",
 	 "Zoom in",
-	  NULL
+	  G_CALLBACK(zoom_in)
     },
+	{
+	  "ZoomFit",
+	  GTK_STOCK_ZOOM_FIT,
+	  "Fit",
+	  "<control>f",
+	  "Adapt zoom to fit image",
+	   G_CALLBACK(fit)
+	},
 };
 
 static guint n_entries = G_N_ELEMENTS (entries);
-
-
-GCancellable* generator_cancellable = NULL;
-
-/* For drag & drop */
-static GtkTargetEntry drop_targets[] =
-{
-    {"text/uri-list", 0, 0},
-    {"text/plain", 0, 1}
-};
-
-/* signal handlers */
-static gboolean on_delete_event( GtkWidget* widget, GdkEventAny* evt );
-
-/* main window initialize and finalize*/
-static void main_win_init(MainWin *mw);
-static void main_win_finalize(GObject* obj);
-
-// Begin of GObject-related stuff
-G_DEFINE_TYPE( MainWin, main_win, GTK_TYPE_WINDOW)
-
-void 
-main_win_class_init( MainWinClass* klass )
-{
-    GObjectClass * obj_class;
-    GtkWidgetClass *widget_class;
-
-    obj_class = ( GObjectClass * ) klass;
-	obj_class->finalize = main_win_finalize;
-
-    widget_class = GTK_WIDGET_CLASS ( klass );
-    
-	widget_class->delete_event = on_delete_event;
-}
-
-void
-main_win_finalize( GObject* obj )
-{
-	MainWin *mw = (MainWin*)obj;
-	    
-	if( G_LIKELY(mw->img_list) )
-        image_list_free( mw->img_list );
-	
-	main_win_close(mw);
-    gtk_main_quit();
-}
-
-GtkWidget* 
-main_win_new()
-{
-    return (GtkWidget*)g_object_new (MAIN_WIN_TYPE, NULL);
-}
 
 // End of GObject-related stuff
 void
@@ -174,13 +122,13 @@ main_win_init( MainWin*mw )
     gtk_window_set_default_size( (GtkWindow*)mw, 640, 480 );
 	gtk_window_set_position((GtkWindow*)mw, GTK_WIN_POS_CENTER);
 	
+	mw->max_width = gdk_screen_width () * 0.7;
+    mw->max_height = gdk_screen_height () * 0.7;
+	
 	mw->box = gtk_vbox_new(FALSE, 0);
 	mw->img_box = gtk_vbox_new(FALSE, 0);
-	
-	mw->loader = gdk_pixbuf_loader_new();
-	
-	mw->aview =  GTK_ANIM_VIEW (gtk_anim_view_new ());
-	mw->scroll = GTK_IMAGE_SCROLL_WIN (gtk_image_scroll_win_new (mw->aview));
+
+	mw->scroll = GTK_IMAGE_SCROLL_WIN (gtk_image_scroll_win_new (aview));
 	
 	gtk_box_pack_start(GTK_BOX(mw->box), mw->img_box, TRUE, TRUE,0);
 	gtk_box_pack_start(GTK_BOX(mw->img_box),mw->scroll,TRUE,TRUE,0);
@@ -206,20 +154,27 @@ main_win_init( MainWin*mw )
 	
 	gtk_container_add((GtkContainer*)mw, mw->box);
 	gtk_widget_show(mw->box);
-	gtk_widget_show_all((GtkWindow*)mw);	
-	
-	mw->img_list = image_list_new();
-	
+	gtk_widget_show_all(mw);	
+
 	g_object_unref(mw->uimanager);
+	
+	g_signal_connect (G_OBJECT (mw), "destroy",
+                      G_CALLBACK (gtk_main_quit), NULL);
+	
+	gtk_widget_grab_focus(aview);
+		
 }
 
-gboolean 
+gboolean
 main_win_open( MainWin* mw, const char* file_path)
 {	    
 	GError *error;
 	GInputStream* input_stream;
 	GFile *file = g_file_new_for_path(file_path);
-    
+	
+    loader =    gdk_pixbuf_loader_new();
+	GdkPixbufAnimation* animation = gdk_pixbuf_animation_new_from_file(file_path,error);
+	
 	gssize n_read;
 	gboolean res;
 	guchar buffer[LOAD_BUFFER_SIZE];
@@ -239,48 +194,46 @@ main_win_open( MainWin* mw, const char* file_path)
 	if (n_read == 0)
         break;
 	
-	if (!gdk_pixbuf_loader_write(mw->loader, buffer, sizeof(buffer), error)){
+	if (!gdk_pixbuf_loader_write(loader, buffer, sizeof(buffer), error)){
 	   res = FALSE;
-       error = NULL;
+       main_win_show_error(mw,error);
        break;
 	   }
 	}
 	
-	if (res){
-		mw->animation = gdk_pixbuf_loader_get_animation((mw->loader));
-	    gtk_anim_view_set_anim (mw->aview,mw->animation);	
-				
-		// build file list
-		char* dir_path = g_path_get_dirname( file_path );
-		image_list_open_dir( mw->img_list, dir_path, NULL );
-		image_list_sort_by_name( mw->img_list, GTK_SORT_DESCENDING );
-        g_free( dir_path );
+	if (res){		
+		animation = gdk_pixbuf_loader_get_animation((loader));
+	    gtk_anim_view_set_anim (aview,animation);	
 		
-		char* base_name = g_path_get_basename( file_path );
-        image_list_set_current( mw->img_list, base_name );
+		char* dir_path = g_path_get_dirname( file_path );
+        image_list_open_dir(image_list, dir_path, NULL );
+        image_list_sort_by_name( image_list, GTK_SORT_ASCENDING );
+        image_list_sort_by_name( image_list, GTK_SORT_DESCENDING );
+        g_free( dir_path );
+        
+        char* base_name = g_path_get_basename( file_path );
+        image_list_set_current( image_list, base_name );
 
         char* disp_name = g_filename_display_name( base_name );
+		
         g_free( base_name );
+        g_free( disp_name );	
 		
-		return TRUE;
+		gdk_pixbuf_loader_close(loader,NULL);
 	}
-		
-	// close gdkpixbufloader
-	if (!gdk_pixbuf_loader_close (mw->loader, error)) {
+    else
+	{
         res = FALSE;
         error = NULL;
-		
+		g_object_unref (loader);
 		g_object_unref (input_stream);
         g_object_unref (file);
-        g_object_unref (generator_cancellable);
-		
-		return FALSE;
+        g_object_unref (generator_cancellable);		
+		return;
     }
-		 
-	gtk_widget_show_all(mw->box);
 }
 
-// error window
+// error window 
 void 
 main_win_show_error( MainWin* mw, const char* message )
 {
@@ -300,15 +253,60 @@ on_delete_event( GtkWidget* widget, GdkEventAny* evt )
 	return TRUE;
 }
 
-void 
-main_win_close( MainWin* mw )
+/* prev/next **************************/
+void on_prev(MainWin* mw)
 {
-  if( mw->animation )
-  {
-	  g_object_unref( mw->animation );
-	  mw->animation = NULL;
-  }
+    const char* name;
+   
+	name = image_list_get_prev( image_list);
+	
+	if( !name && image_list_has_multiple_files( image_list ) )
+    {
+        // FIXME: need to ask user first?
+        name = image_list_get_last( image_list );
+    }
+    if( name )
+    {
+        char* file_path = image_list_get_current_file_path( image_list );
+        main_win_open( mw, file_path );
+        g_free( file_path );
+    }
+    
 }
 
+void on_next(MainWin* mw)
+{
+        const char* name;
+   
+	name = image_list_get_next( image_list);
+	
+	if( !name && image_list_has_multiple_files( image_list ) )
+    {
+        // FIXME: need to ask user first?
+        name = image_list_get_last( image_list );
+    }
+    if( name )
+    {
+        char* file_path = image_list_get_current_file_path( image_list );
+        main_win_open( mw, file_path );
+        g_free( file_path );
+    }
+}
+/* end prev/next **********************/
 
+/* zoom **********************/
+void zoom_out()
+{
+  gtk_image_view_zoom_out(aview);
+}
 
+void zoom_in()
+{
+  gtk_image_view_zoom_in(aview);
+}
+
+void fit()
+{
+  gtk_image_view_set_fitting(aview, TRUE);
+}
+/* end zoom *****************/

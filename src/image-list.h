@@ -32,7 +32,6 @@
 /**
     @author PCMan (Hong Jen Yee) <pcman.tw@gmail.com>
 */
-
 typedef struct _ImageList
 {
     gchar* dir_path;
@@ -42,9 +41,6 @@ typedef struct _ImageList
 } ImageList;
 
 ImageList* image_list_new();
-
-void image_list_free(ImageList* il);
-
 
 const char* image_list_get_dir( ImageList* il );
 
@@ -75,8 +71,4 @@ char* image_list_get_current_file_path( ImageList* il );
 void image_list_sort_by_name( ImageList* il, GtkSortType type );
 
 void image_list_remove( ImageList* il, const char* name );
-
-/* FIXME: currently only GTK_SORT_ASCENDING is supported */
-void image_list_add_sorted( ImageList* il, const char* name, gboolean set_current );
-
 #endif

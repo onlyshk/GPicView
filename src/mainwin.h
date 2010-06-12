@@ -30,8 +30,14 @@
 #include <gtkimageview/gtkanimview.h>
 #include <gtkimageview/gtkimagescrollwin.h>
 
-#include "ui.h"
 #include "image-list.h"
+
+G_BEGIN_DECLS
+
+static GCancellable* generator_cancellable = NULL;
+
+typedef struct _MainWin MainWin;
+typedef struct _MainWinClass MainWinClass;
 
 #define LOAD_BUFFER_SIZE 65536 
 
@@ -42,36 +48,29 @@
 #define IS_MAIN_WIN_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), MAIN_WIN_TYPE))
 #define MAIN_WIN_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), MAIN_WIN_TYPE, MainWinClass))
 
-typedef enum
-{
-     ZOOM_NONE = 0,
-     ZOOM_FIT,
-     ZOOM_ORIG,
-     ZOOM_SCALE
-} ZoomMode;
+
 
 typedef struct _MainWinClass
 {
     GtkWindowClass parent_class;
-} MainWinClass;
+};
 
 typedef struct _MainWin
 {
     GtkWindow parent;
-	GtkWidget* view;
+	
 	GtkWidget* scroll;
 	GtkWidget* box;
-	GtkAnimView* aview;
-	GdkPixbuf* pix;
-    GdkPixbufAnimation* animation;
 	GtkWidget *toolbar;
     GtkUIManager *uimanager;
 	GtkAccelGroup *accels;
 	GtkActionGroup *actions;
+	
 	GtkWidget*  img_box;
-	GdkPixbufLoader *loader;
-	ImageList* img_list;
-} MainWin;
+	
+	gint max_width;
+    gint max_height;
+};
 
 typedef struct _Data
 {
@@ -79,18 +78,25 @@ typedef struct _Data
   char** argv;
 } Data;
 
-GtkWidget* main_win_new();
+typedef struct _A
+{
+   GList *list;
+}a;
+
+
+/* constructor */
+GtkWindow* main_win_new();
 
 gboolean main_win_open( MainWin* mw, const char* file_path);
 
-void main_win_show_error( MainWin* mw, const char* message );
+void main_win_show_error( MainWin* mw, const char* message);
 
 void main_win_close( MainWin* mw );
 
 GType main_win_get_type(void);
 
-void on_prev(MainWin* mw);
-
 void on_open( GtkWidget* btn, MainWin* mw );
+
+G_END_DECLS
 
 #endif 
