@@ -33,6 +33,7 @@ static void on_next(MainWin* mw);
 static void zoom_in();
 static void zoom_out();
 static void fit();
+static void normal_size();
 
 gchar *ui_info =
       "<ui>"
@@ -43,6 +44,7 @@ gchar *ui_info =
            "<toolitem  action='Zoom out'/>"
            "<toolitem  action='Zoom in'/>"
            "<toolitem  action='ZoomFit'/>"
+           "<toolitem  action='ZoomNormal'/>"
         "</toolbar>"
       "</ui>";
 
@@ -108,6 +110,14 @@ static const GtkActionEntry entries[] = {
 	  "Adapt zoom to fit image",
 	   G_CALLBACK(fit)
 	},
+	{
+	  "ZoomNormal",
+	  GTK_STOCK_ZOOM_100, 
+	  "_Normal Size",
+	  "<control>0",
+      "Show the image at its normal size",
+      G_CALLBACK(normal_size)
+	}
 };
 
 static guint n_entries = G_N_ELEMENTS (entries);
@@ -308,5 +318,10 @@ void zoom_in()
 void fit()
 {
   gtk_image_view_set_fitting(aview, TRUE);
+}
+
+void normal_size()
+{
+  gtk_image_view_set_zoom((aview), 1);
 }
 /* end zoom *****************/
