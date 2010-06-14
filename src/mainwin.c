@@ -19,9 +19,9 @@
  ***************************************************************************/
 
 #include "mainwin.h"
+#include "utils.h"
 #include <glib.h>
 #include <stdio.h>
-#include <stdlib.h>
 
 // Begin of GObject-related stuff
 G_DEFINE_TYPE( MainWin, main_win, GTK_TYPE_WINDOW)
@@ -35,9 +35,13 @@ static void zoom_out();
 static void fit();
 static void normal_size();
 static void rotate_pixbuf(MainWin *mw, GdkPixbufRotation angle);
+static void flip_pixbuf(MainWin *mw, gboolean horizontal);
 static void rotate_cw(MainWin *mw);
 static void rotate_ccw(MainWin *mw);
-static void full_screen();
+static void full_screen(MainWin *mw);
+static void flip_v(MainWin *mw);
+static void flip_h(MainWin *mw);
+static void open_dialog();
 
 gchar *ui_info =
       "<ui>"
@@ -53,6 +57,13 @@ gchar *ui_info =
              "<separator action='Sep2' />"
            "<toolitem  action='ImageRotate1'/>"
            "<toolitem  action='ImageRotate2'/>"
+           "<toolitem  action='ImageRotate3'/>"
+           "<toolitem  action='ImageRotate4'/>"
+             "<separator action='Sep3' />"
+           "<toolitem  action='Open File'/>"
+           "<toolitem  action='Save File'/>"
+           "<toolitem  action='Save as File'/>"
+           "<toolitem  action='Delete File'/>"
         "</toolbar>"
       "</ui>";
 
@@ -60,34 +71,6 @@ gchar *ui_info =
 static ImageList* image_list;
 static GtkAnimView* aview;
 static GdkPixbufLoader* loader;
-
-void
-gtk_anim_view_set_static (GtkAnimView *aview, GdkPixbuf * pixbuf)
-{
-    GdkPixbufSimpleAnim *s_anim;
-
-    s_anim = gdk_pixbuf_simple_anim_new (gdk_pixbuf_get_width(pixbuf),
-                                         gdk_pixbuf_get_height(pixbuf),
-                                         -1);
-    gdk_pixbuf_simple_anim_add_frame(s_anim, pixbuf);
-
-    /* Simple version of uni_anim_view_set_anim */
-    if (aview->anim)
-        g_object_unref (aview->anim);
-
-    aview->anim = (GdkPixbufAnimation*)s_anim;
-
-    g_object_ref (aview->anim);
-    if (aview->iter)
-        g_object_unref (aview->iter);
-
-    gtk_image_view_set_pixbuf (GTK_IMAGE_VIEW (aview), pixbuf, TRUE);
-    gtk_anim_view_set_is_playing (aview, FALSE);
-    aview->delay = -1;
-    aview->iter = NULL;
-
-    g_object_unref(pixbuf);
-}
 
 void 
 main_win_class_init( MainWinClass* klass )
@@ -106,77 +89,50 @@ main_win_new()
 
 
 static const GtkActionEntry entries[] = {
-	{
-	  "Go Back",
-	  GTK_STOCK_GO_BACK,
-	  "Go Back",
-	  "<control>b",
-	  "Go Back",
-      G_CALLBACK(on_prev)
+	{"Go Back",GTK_STOCK_GO_BACK, "Go Back",
+	  "<control>b","Go Back", G_CALLBACK(on_prev)
 	},
-	{
-	 "Go Forward",
-	 GTK_STOCK_GO_FORWARD,
-	 "Go Forward",
-	 "<control>g",
-	 "Go Forward",
-	 G_CALLBACK(on_next)
+	{"Go Forward",GTK_STOCK_GO_FORWARD,"Go Forward",
+	 "<control>g","Go Forward",G_CALLBACK(on_next)
 	},
-	{
-	 "Zoom out",
-	 GTK_STOCK_ZOOM_OUT,
-	 "Zoom out",
-	 "<control>z",
-	 "Zoom out",
-	  G_CALLBACK(zoom_out)
+	{"Zoom out",GTK_STOCK_ZOOM_OUT,"Zoom out",
+	 "<control>z","Zoom out", G_CALLBACK(zoom_out)
 	},
-	{
-     "Zoom in",
-	 GTK_STOCK_ZOOM_IN,
-	 "Zoom in",
-	 "<control>i",
-	 "Zoom in",
-	  G_CALLBACK(zoom_in)
+	{"Zoom in",GTK_STOCK_ZOOM_IN,"Zoom in",
+	 "<control>i","Zoom in",G_CALLBACK(zoom_in)
     },
-	{
-	  "ZoomFit",
-	  GTK_STOCK_ZOOM_FIT,
-	  "Fit",
-	  "<control>f",
-	  "Adapt zoom to fit image",
-	   G_CALLBACK(fit)
+	{"ZoomFit",GTK_STOCK_ZOOM_FIT,"Fit",
+	  "<control>f","Adapt zoom to fit image",G_CALLBACK(fit)
 	},
-	{
-	  "ZoomNormal",
-	  GTK_STOCK_ZOOM_100, 
-	  "_Normal Size",
-	  "<control>0",
-      "Show the image at its normal size",
-      G_CALLBACK(normal_size)
+	{"ZoomNormal",GTK_STOCK_ZOOM_100, "_Normal Size","<control>0",
+     "Show the image at its normal size",G_CALLBACK(normal_size)
 	},
-	{
-	  "FullScreen",
-	   GTK_STOCK_FULLSCREEN, 
-	  "Full screen",
-	  "<control>r",
-      "Show the image in FULL SCREEN",
-      G_CALLBACK(full_screen)
+	{"FullScreen",GTK_STOCK_FULLSCREEN, "Full screen",
+	 "<control>r","Show the image in FULL SCREEN",G_CALLBACK(full_screen)
 	},
-	{
-	   "ImageRotate1",
-		GTK_STOCK_REDO,
-		"Rotate Clockwise",
-		"<control>R",
-		"Rotate image",
-		G_CALLBACK(rotate_cw)
+	{"ImageRotate1","object-rotate-left","Rotate Clockwise",
+	"<control>R","Rotate image",G_CALLBACK(rotate_cw)
 	},
-    {
-	    "ImageRotate2",
-		GTK_STOCK_UNDO,
-		"Rotate Counter Clockwise",
-		"<control>C",
-		"Rotate image counter clockwise",
-		G_CALLBACK(rotate_ccw)
+    {"ImageRotate2","object-rotate-right","Rotate Counter Clockwise",
+	"<control>C","Rotate image counter clockwise",G_CALLBACK(rotate_ccw)
+	},
+	{"ImageRotate3","object-flip-vertical","Flip Vertical",
+	"<control>v","Flip Horizontal",G_CALLBACK(flip_v)
+	},
+    {"ImageRotate4","object-flip-horizontal","Flip Vertical",
+	"<control>C","Flip Horizontal",G_CALLBACK(flip_h)
+	},
+	{"Open File",GTK_STOCK_OPEN,"Open File",
+	"<control>O","Open File",G_CALLBACK(open_dialog)
+	},
+	{"Save File",GTK_STOCK_SAVE,"Save File",
+	"<control>s","Save File",NULL
+	},
+	{"Save as File",GTK_STOCK_SAVE_AS,"Save as File",
+	  NULL,"Save as File",NULL
+	},
+	{"Delete File",GTK_STOCK_DELETE,"Delete File",
+     "<control>r","Delete File",NULL
 	},
 };
 
@@ -231,10 +187,7 @@ main_win_init( MainWin*mw )
 	g_signal_connect (G_OBJECT (mw), "destroy",
                       G_CALLBACK (gtk_main_quit), NULL);
 	
-	gtk_widget_grab_focus(aview);
-	
-	main_win_open(mw,"/home/shk/a.gif");
-		
+	gtk_widget_grab_focus(aview);		
 }
 
 gboolean
@@ -347,14 +300,14 @@ void on_prev(MainWin* mw)
 
 void on_next(MainWin* mw)
 {
-        const char* name;
+    const char* name;
    
 	name = image_list_get_next( image_list);
 	
 	if( !name && image_list_has_multiple_files( image_list ) )
     {
         // FIXME: need to ask user first?
-        name = image_list_get_last( image_list );
+        name = image_list_get_first( image_list );
     }
     if( name )
     {
@@ -412,6 +365,23 @@ rotate_pixbuf(MainWin *mw, GdkPixbufRotation angle)
 	mw->modifications ^=0 ;
 }
 
+static void
+flip_pixbuf(MainWin *mw, gboolean horizontal)
+{
+    GdkPixbuf *result = NULL;
+	
+	result = gdk_pixbuf_flip(GTK_IMAGE_VIEW(aview)->pixbuf,horizontal);
+	
+	if(result == NULL)
+        return;
+	
+	gtk_anim_view_set_static(GTK_ANIM_VIEW(aview), result);
+	
+	g_object_unref(result);
+	
+	mw->modifications ^= (mw->modifications&4)?1+horizontal:2-horizontal;	
+}
+
 void
 rotate_cw(MainWin *mw)
 {
@@ -423,8 +393,55 @@ rotate_ccw(MainWin *mw)
 {
 	rotate_pixbuf(mw ,GDK_PIXBUF_ROTATE_COUNTERCLOCKWISE);
 }
+
+static void
+flip_v(MainWin *mw)
+{
+  flip_pixbuf(mw,FALSE);
+}
+
+static void
+flip_h(MainWin *mw)
+{
+	flip_pixbuf(mw,TRUE);
+}
 /* end rotate ***************/
 
 static void
-full_screen()
-{}
+full_screen(MainWin* mw)
+{
+    gtk_window_fullscreen(mw);
+}
+
+static void
+open_dialog(MainWin* mw)
+{
+   GtkWidget *dialog;
+   dialog = gtk_file_chooser_dialog_new( ("Open Image"),
+                          GTK_WINDOW(mw),
+                          GTK_FILE_CHOOSER_ACTION_OPEN,
+                          GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+                          GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
+                          NULL);
+
+    gtk_window_set_modal (GTK_WINDOW(dialog), FALSE);
+    gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), TRUE);
+		
+	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT)
+    {
+	  gchar *filename;
+	  filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
+	  main_win_open (mw,filename);
+	  gtk_widget_destroy (dialog);
+	  g_free (filename);
+	}
+	else
+	{
+	  gtk_widget_destroy (dialog);
+	}
+}
+
+
+
+
+

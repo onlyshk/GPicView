@@ -75,6 +75,8 @@ typedef struct _MainWin
     gint current_image_width;
 	
 	guint8 modifications;
+	
+	gboolean full_screen;
 };
 
 typedef struct _Data
