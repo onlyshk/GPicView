@@ -23,7 +23,6 @@
 #endif
 
 #include "image-list.h"
-#include "glib-mem.h"
 
 #include <string.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>

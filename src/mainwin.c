@@ -20,14 +20,22 @@
 
 #include "mainwin.h"
 #include "utils.h"
+
 #include <glib.h>
 #include <stdio.h>
+#include <string.h>
+#include <glib/gstdio.h>
 
-// Begin of GObject-related stuff
-G_DEFINE_TYPE( MainWin, main_win, GTK_TYPE_WINDOW)
+#define LOAD_BUFFER_SIZE 65536 
 
-/* signal handlers */
-static gboolean on_delete_event( GtkWidget* widget, GdkEventAny* evt );
+static ImageList* image_list;
+static GtkAnimView* aview;
+static GdkPixbufLoader* loader;
+static GCancellable* generator_cancellable = NULL;
+
+static void main_win_init( MainWin*mw );
+static void main_win_finalize( GObject* obj );
+
 static void on_prev(MainWin* mw );
 static void on_next(MainWin* mw);
 static void zoom_in();
@@ -42,6 +50,45 @@ static void full_screen(MainWin *mw);
 static void flip_v(MainWin *mw);
 static void flip_h(MainWin *mw);
 static void open_dialog();
+static void on_save(MainWin* mw);
+static void on_delete(MainWin* mw);
+static void on_save_as(MainWin* mw);
+
+/* signal handlers */
+static gboolean on_delete_event( GtkWidget* widget, GdkEventAny* evt );
+
+// Begin of GObject-related stuff
+G_DEFINE_TYPE( MainWin, main_win, GTK_TYPE_WINDOW)
+
+void 
+main_win_class_init( MainWinClass* klass )
+{
+    GObjectClass * obj_class;
+    GtkWidgetClass *widget_class;
+	
+	obj_class = ( GObjectClass * ) klass;
+	obj_class->finalize = main_win_finalize;
+	
+	widget_class = GTK_WIDGET_CLASS ( klass );
+	widget_class->delete_event = on_delete_event;
+}
+
+void main_win_finalize( GObject* obj )
+{
+    MainWin *mw = (MainWin*)obj;
+    main_win_close(mw);
+
+    if( G_LIKELY(image_list) )
+        image_list_free(image_list );
+	
+    gtk_main_quit();
+}
+
+GtkWindow* 
+main_win_new()
+{
+	return (GtkWindow*)g_object_new (MAIN_WIN_TYPE, NULL);
+}
 
 gchar *ui_info =
       "<ui>"
@@ -66,27 +113,6 @@ gchar *ui_info =
            "<toolitem  action='Delete File'/>"
         "</toolbar>"
       "</ui>";
-
-
-static ImageList* image_list;
-static GtkAnimView* aview;
-static GdkPixbufLoader* loader;
-
-void 
-main_win_class_init( MainWinClass* klass )
-{
-    GtkWidgetClass *widget_class = (GtkWidgetClass *) klass;
-	widget_class->delete_event = on_delete_event;
-}
-
-GtkWindow* 
-main_win_new()
-{
-	aview  =    gtk_anim_view_new();
-	image_list = image_list_new();
-	return (GtkWindow*)g_object_new (MAIN_WIN_TYPE, NULL);
-}
-
 
 static const GtkActionEntry entries[] = {
 	{"Go Back",GTK_STOCK_GO_BACK, "Go Back",
@@ -126,23 +152,31 @@ static const GtkActionEntry entries[] = {
 	"<control>O","Open File",G_CALLBACK(open_dialog)
 	},
 	{"Save File",GTK_STOCK_SAVE,"Save File",
-	"<control>s","Save File",NULL
+	"<control>s","Save File",G_CALLBACK(on_save)
 	},
 	{"Save as File",GTK_STOCK_SAVE_AS,"Save as File",
-	  NULL,"Save as File",NULL
+	  NULL,"Save as File",G_CALLBACK(on_save_as)
 	},
 	{"Delete File",GTK_STOCK_DELETE,"Delete File",
-     "<control>r","Delete File",NULL
+     "<control>r","Delete File", G_CALLBACK(on_delete)
 	},
 };
 
 static guint n_entries = G_N_ELEMENTS (entries);
 
-// End of GObject-related stuff
+void 
+main_win_close( MainWin* mw )
+{
+	gtk_main_quit ();
+}
+
 void
 main_win_init( MainWin*mw )
 {
 	GError *error = NULL;
+	
+		aview  =    gtk_anim_view_new();
+	image_list = image_list_new();
 	
     gtk_window_set_title( (GtkWindow*)mw, "Image Viewer");
     gtk_window_set_default_size( (GtkWindow*)mw, 640, 480 );
@@ -249,7 +283,6 @@ main_win_open( MainWin* mw, const char* file_path)
 	{
         res = FALSE;
         error = NULL;
-		//g_object_unref (loader);
 		g_object_unref (input_stream);
         g_object_unref (file);
         g_object_unref (generator_cancellable);		
@@ -410,7 +443,11 @@ flip_h(MainWin *mw)
 static void
 full_screen(MainWin* mw)
 {
-    gtk_window_fullscreen(mw);
+    GdkColor color;
+    GtkAction *action;
+    gdk_color_parse ("white", &color);
+    gtk_window_fullscreen((GtkWindow*)mw);
+    gtk_widget_modify_bg(aview, GTK_STATE_NORMAL, &color);
 }
 
 static void
@@ -441,7 +478,65 @@ open_dialog(MainWin* mw)
 	}
 }
 
+void on_delete(MainWin* mw )
+{
+	GError *error;
+    char* file_path = image_list_get_current_file_path( image_list );
 
+    if( file_path )
+    {
+        int resp = GTK_RESPONSE_YES;
+        GtkWidget*  dlg = gtk_message_dialog_new(0,
+                    GTK_DIALOG_MODAL,
+                    GTK_MESSAGE_QUESTION,
+                    GTK_BUTTONS_YES_NO,
+                    ("Are you sure you want to delete current file?\n\nWarning: Once deleted, the file cannot be recovered.") );
+            resp = gtk_dialog_run( (GtkDialog*)dlg );
+            gtk_widget_destroy( dlg );
+   
+	if( resp == GTK_RESPONSE_YES )
+    {
+         const char* name = image_list_get_current( image_list );
+		
+		 if (g_unlink( file_path ) != 0)
+		     printf("deleting error");
+		
+		 const char* next_name = image_list_get_next( image_list );
+		
+		if( ! next_name )
+		    next_name = image_list_get_prev( image_list );
+
+		if( next_name )
+		{
+		    char* next_file_path = image_list_get_current_file_path(image_list );
+		    main_win_open( mw, next_file_path );
+		    g_free( next_file_path );
+		}
+
+		image_list_remove (image_list, name );
+
+		if ( ! next_name )
+		{
+		    main_win_close( mw );
+		    image_list_close( image_list );
+		    gtk_window_set_title( (GtkWindow*) mw, ("Image Viewer"));
+		}
+	}
+    }
+	g_free( file_path );
+}
+
+/* save andd save_as */
+void on_save(MainWin* mw )
+{
+
+}
+
+void on_save_as(MainWin* mw)
+{
+
+}
+/* end save and save as */
 
 
 

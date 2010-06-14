@@ -15,8 +15,9 @@ gpicview_SOURCES = \
 	mainwin.c   \
 	image-list.c   \
 	image-list.h   \
-	glib-mem.h   \
-	utils.h
+	utils.h   \
+	file-dlgs.c   \
+	file-dlgs.h
 
 gpicview_CFLAGS = \
 	$(GTK_CFLAGS) \

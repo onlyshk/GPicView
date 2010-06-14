@@ -32,15 +32,6 @@
 
 #include "image-list.h"
 
-G_BEGIN_DECLS
-
-static GCancellable* generator_cancellable = NULL;
-
-typedef struct _MainWin MainWin;
-typedef struct _MainWinClass MainWinClass;
-
-#define LOAD_BUFFER_SIZE 65536 
-
 #define MAIN_WIN_TYPE            (main_win_get_type ())
 #define MAIN_WIN(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), MAIN_WIN_TYPE, MainWin))
 #define MAIN_WIN_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), MAIN_WIN_TYPE, MainWinClass))
@@ -48,12 +39,10 @@ typedef struct _MainWinClass MainWinClass;
 #define IS_MAIN_WIN_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), MAIN_WIN_TYPE))
 #define MAIN_WIN_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), MAIN_WIN_TYPE, MainWinClass))
 
-
-
 typedef struct _MainWinClass
 {
     GtkWindowClass parent_class;
-};
+} MainWinClass;
 
 typedef struct _MainWin
 {
@@ -77,7 +66,7 @@ typedef struct _MainWin
 	guint8 modifications;
 	
 	gboolean full_screen;
-};
+}MainWin;
 
 typedef struct _Data
 {
@@ -85,11 +74,7 @@ typedef struct _Data
   char** argv;
 } Data;
 
-typedef struct _A
-{
-   GList *list;
-}a;
-
+GType main_win_get_type(void) ;
 
 /* constructor */
 GtkWindow* main_win_new();
@@ -100,10 +85,6 @@ void main_win_show_error( MainWin* mw, const char* message);
 
 void main_win_close( MainWin* mw );
 
-GType main_win_get_type(void);
-
 void on_open( GtkWidget* btn, MainWin* mw );
 
-G_END_DECLS
-
-#endif 
+#endif

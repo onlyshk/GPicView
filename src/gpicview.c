@@ -48,14 +48,6 @@ argument_thread(void *args)
   main_win_open (data->win,data->argv);
 }
 
-void*
-cancell()
-{
-   generator_cancellable = g_cancellable_new();
-   g_cancellable_cancel(generator_cancellable);
-   printf("stream cancelled");
-}
-
 int main(int argc, char** argv)
 {
     GError*   err;
@@ -96,8 +88,8 @@ int main(int argc, char** argv)
     }
 
     /* TODO: create GUI here */
-	win = (MainWin*)main_win_new();
-    gtk_widget_show(GTK_WIDGET(win));
+	win = main_win_new();
+    //window = main_win_new();
 	
 	g_signal_connect( G_OBJECT( win ), "destroy", G_CALLBACK( gtk_main_quit ), NULL );
 		
@@ -122,3 +114,5 @@ int main(int argc, char** argv)
 	
 	return 0;
 }
+
+
