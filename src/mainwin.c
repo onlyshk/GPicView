@@ -34,6 +34,10 @@ static void zoom_in();
 static void zoom_out();
 static void fit();
 static void normal_size();
+static void rotate_pixbuf(MainWin *mw, GdkPixbufRotation angle);
+static void rotate_cw(MainWin *mw);
+static void rotate_ccw(MainWin *mw);
+static void full_screen();
 
 gchar *ui_info =
       "<ui>"
@@ -45,6 +49,10 @@ gchar *ui_info =
            "<toolitem  action='Zoom in'/>"
            "<toolitem  action='ZoomFit'/>"
            "<toolitem  action='ZoomNormal'/>"
+           "<toolitem  action='FullScreen'/>"
+             "<separator action='Sep2' />"
+           "<toolitem  action='ImageRotate1'/>"
+           "<toolitem  action='ImageRotate2'/>"
         "</toolbar>"
       "</ui>";
 
@@ -52,6 +60,34 @@ gchar *ui_info =
 static ImageList* image_list;
 static GtkAnimView* aview;
 static GdkPixbufLoader* loader;
+
+void
+gtk_anim_view_set_static (GtkAnimView *aview, GdkPixbuf * pixbuf)
+{
+    GdkPixbufSimpleAnim *s_anim;
+
+    s_anim = gdk_pixbuf_simple_anim_new (gdk_pixbuf_get_width(pixbuf),
+                                         gdk_pixbuf_get_height(pixbuf),
+                                         -1);
+    gdk_pixbuf_simple_anim_add_frame(s_anim, pixbuf);
+
+    /* Simple version of uni_anim_view_set_anim */
+    if (aview->anim)
+        g_object_unref (aview->anim);
+
+    aview->anim = (GdkPixbufAnimation*)s_anim;
+
+    g_object_ref (aview->anim);
+    if (aview->iter)
+        g_object_unref (aview->iter);
+
+    gtk_image_view_set_pixbuf (GTK_IMAGE_VIEW (aview), pixbuf, TRUE);
+    gtk_anim_view_set_is_playing (aview, FALSE);
+    aview->delay = -1;
+    aview->iter = NULL;
+
+    g_object_unref(pixbuf);
+}
 
 void 
 main_win_class_init( MainWinClass* klass )
@@ -117,7 +153,31 @@ static const GtkActionEntry entries[] = {
 	  "<control>0",
       "Show the image at its normal size",
       G_CALLBACK(normal_size)
-	}
+	},
+	{
+	  "FullScreen",
+	   GTK_STOCK_FULLSCREEN, 
+	  "Full screen",
+	  "<control>r",
+      "Show the image in FULL SCREEN",
+      G_CALLBACK(full_screen)
+	},
+	{
+	   "ImageRotate1",
+		GTK_STOCK_REDO,
+		"Rotate Clockwise",
+		"<control>R",
+		"Rotate image",
+		G_CALLBACK(rotate_cw)
+	},
+    {
+	    "ImageRotate2",
+		GTK_STOCK_UNDO,
+		"Rotate Counter Clockwise",
+		"<control>C",
+		"Rotate image counter clockwise",
+		G_CALLBACK(rotate_ccw)
+	},
 };
 
 static guint n_entries = G_N_ELEMENTS (entries);
@@ -172,6 +232,8 @@ main_win_init( MainWin*mw )
                       G_CALLBACK (gtk_main_quit), NULL);
 	
 	gtk_widget_grab_focus(aview);
+	
+	main_win_open(mw,"/home/shk/a.gif");
 		
 }
 
@@ -206,7 +268,6 @@ main_win_open( MainWin* mw, const char* file_path)
 	
 	if (!gdk_pixbuf_loader_write(loader, buffer, sizeof(buffer), error)){
 	   res = FALSE;
-       main_win_show_error(mw,error);
        break;
 	   }
 	}
@@ -235,7 +296,7 @@ main_win_open( MainWin* mw, const char* file_path)
 	{
         res = FALSE;
         error = NULL;
-		g_object_unref (loader);
+		//g_object_unref (loader);
 		g_object_unref (input_stream);
         g_object_unref (file);
         g_object_unref (generator_cancellable);		
@@ -325,3 +386,45 @@ void normal_size()
   gtk_image_view_set_zoom((aview), 1);
 }
 /* end zoom *****************/
+
+/* rotate *******************/
+
+static void
+rotate_pixbuf(MainWin *mw, GdkPixbufRotation angle)
+{
+    GdkPixbuf *result = NULL;
+	
+	result = gdk_pixbuf_rotate_simple(GTK_IMAGE_VIEW(aview)->pixbuf,angle);
+	
+	if(result == NULL)
+        return;
+	
+	gtk_anim_view_set_static(GTK_ANIM_VIEW(aview), result);
+	
+	g_object_unref(result);
+	
+	mw->current_image_width = gdk_pixbuf_get_width (result);
+    mw->current_image_height = gdk_pixbuf_get_height (result);
+	
+    if (mw->modifications & (4))
+        mw->modifications ^= 3;
+	
+	mw->modifications ^=0 ;
+}
+
+void
+rotate_cw(MainWin *mw)
+{
+	rotate_pixbuf(mw ,GDK_PIXBUF_ROTATE_CLOCKWISE);
+}
+
+static void
+rotate_ccw(MainWin *mw)
+{
+	rotate_pixbuf(mw ,GDK_PIXBUF_ROTATE_COUNTERCLOCKWISE);
+}
+/* end rotate ***************/
+
+static void
+full_screen()
+{}

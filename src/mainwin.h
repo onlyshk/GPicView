@@ -65,11 +65,16 @@ typedef struct _MainWin
     GtkUIManager *uimanager;
 	GtkAccelGroup *accels;
 	GtkActionGroup *actions;
-	
+
 	GtkWidget*  img_box;
 	
 	gint max_width;
     gint max_height;
+	
+	gint current_image_height;
+    gint current_image_width;
+	
+	guint8 modifications;
 };
 
 typedef struct _Data
