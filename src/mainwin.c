@@ -29,6 +29,7 @@
 #define LOAD_BUFFER_SIZE 65536 
 
 static ImageList* image_list;
+static GdkPixbufAnimation* animation;
 static GtkAnimView* aview;
 static GdkPixbufLoader* loader;
 static GCancellable* generator_cancellable = NULL;
@@ -56,6 +57,7 @@ static gboolean main_win_save( MainWin* mw, const char* file_path, const char* t
 static void on_save_as(MainWin* mw);
 static gboolean save_confirm( MainWin* mw, const char* file_path );
 void on_preference(MainWin* mw );
+
 
 /* signal handlers */
 static gboolean on_delete_event( GtkWidget* widget, GdkEventAny* evt );
@@ -184,15 +186,15 @@ main_win_close( MainWin* mw )
 }
 
 void
-main_win_init( MainWin*mw )
+main_win_init( MainWin *mw )
 {
 	GError *error = NULL;
 	
     aview  =    gtk_anim_view_new();
 	image_list = image_list_new();
 	
-    gtk_window_set_title( (GtkWindow*)mw, "Image Viewer");
-    gtk_window_set_default_size( (GtkWindow*)mw, 670, 480 );
+    gtk_window_set_title((GtkWindow*)mw, "Image Viewer");
+    gtk_window_set_default_size((GtkWindow*)mw, 670, 480 );
 	gtk_window_set_position((GtkWindow*)mw, GTK_WIN_POS_CENTER);
 	
 	mw->max_width = gdk_screen_width () * 0.7;
@@ -210,10 +212,10 @@ main_win_init( MainWin*mw )
 	
 	//gtkuimanager
 	mw->actions = gtk_action_group_new ("Actions");
-	gtk_action_group_add_actions (mw->actions, entries, n_entries, NULL);
 	mw->uimanager = gtk_ui_manager_new();
+	
 	gtk_ui_manager_insert_action_group (mw->uimanager, mw->actions, 0);
-	g_object_unref (mw->actions);
+	gtk_action_group_add_actions (mw->actions, entries, n_entries, (GtkWindow*)mw);
     gtk_window_add_accel_group (GTK_WINDOW (mw), 
 				                gtk_ui_manager_get_accel_group (mw->uimanager));
 	if (!gtk_ui_manager_add_ui_from_string (mw->uimanager, ui_info, -1, &error))
@@ -225,16 +227,10 @@ main_win_init( MainWin*mw )
 	gtk_toolbar_set_style(gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"), GTK_TOOLBAR_ICONS);
 	//end gtuimanager 
 	
-	gtk_container_add((GtkContainer*)mw, mw->box);
-	gtk_widget_show(mw->box);
+	gtk_container_add(mw, mw->box);
 	gtk_widget_show_all(mw);	
-
-	g_object_unref(mw->uimanager);
+	g_object_unref(mw->uimanager);	
 	
-	g_signal_connect (G_OBJECT (mw), "destroy",
-                      G_CALLBACK (gtk_main_quit), NULL);
-		
-	gtk_widget_grab_focus(aview);		
 }
 
 gboolean
@@ -245,7 +241,7 @@ main_win_open( MainWin* mw, const char* file_path)
 	GFile *file = g_file_new_for_path(file_path);
 	
     loader =    gdk_pixbuf_loader_new();
-	GdkPixbufAnimation* animation = gdk_pixbuf_animation_new_from_file(file_path,error);
+	animation = gdk_pixbuf_animation_new_from_file(file_path,error);
 	
 	gssize n_read;
 	gboolean res;
@@ -391,8 +387,11 @@ void normal_size()
 static void
 rotate_pixbuf(MainWin *mw, GdkPixbufRotation angle)
 {
-    GdkPixbuf *result = NULL;
+	if (!animation)
+		return;
 	
+    GdkPixbuf *result = NULL;
+	gdk_flush();
 	result = gdk_pixbuf_rotate_simple(GTK_IMAGE_VIEW(aview)->pixbuf,angle);
 	
 	if(result == NULL)
@@ -405,18 +404,23 @@ rotate_pixbuf(MainWin *mw, GdkPixbufRotation angle)
 	mw->current_image_width = gdk_pixbuf_get_width (result);
     mw->current_image_height = gdk_pixbuf_get_height (result);
 	
-    if (mw->modifications & (4))
+	if((mw->modifications & (4))^((angle==GDK_PIXBUF_ROTATE_CLOCKWISE)<<2))
         mw->modifications ^= 3;
 	
-	mw->modifications ^=0 ;
+	mw->modifications ^=4;
 }
 
 static void
 flip_pixbuf(MainWin *mw, gboolean horizontal)
 {
-    GdkPixbuf *result = NULL;
+	if (!animation)
+		return;
+    
+	GdkPixbuf *result = NULL;
+    gdk_flush();
 	
 	result = gdk_pixbuf_flip(GTK_IMAGE_VIEW(aview)->pixbuf,horizontal);
+
 	
 	if(result == NULL)
         return;
@@ -425,7 +429,7 @@ flip_pixbuf(MainWin *mw, gboolean horizontal)
 	
 	g_object_unref(result);
 	
-	mw->modifications ^= (mw->modifications&4)?1+horizontal:2-horizontal;	
+	mw->modifications ^= (mw->modifications&4)?1+horizontal:2-horizontal;
 }
 
 void
@@ -447,7 +451,7 @@ flip_v(MainWin *mw)
 }
 
 static void
-flip_h(MainWin *mw)
+flip_h(MainWin * mw)
 {
 	flip_pixbuf(mw,TRUE);
 }
@@ -688,6 +692,3 @@ void on_preference(MainWin* mw )
     edit_preferences( (GtkWindow*)mw );
 }
 /* end save and save as */
-
-
-
