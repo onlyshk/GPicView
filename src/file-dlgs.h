@@ -17,3 +17,17 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
+#ifndef _FILE_DLGS_H_
+#define _FILE_DLGS_H_
+
+#include <gtk/gtk.h>
+
+G_BEGIN_DECLS
+
+char* get_open_filename( GtkWindow* parent, const char* cwd );
+char* get_save_filename( GtkWindow* parent, const char* cwd, char** type );
+
+G_END_DECLS
+
+#endif

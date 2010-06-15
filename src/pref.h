@@ -18,60 +18,33 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-#ifndef IMAGELIST_H
-#define IMAGELIST_H
+#ifndef _PREF_H_
+#define _PREF_H_
 
-#include <glib.h>
 #include <gtk/gtk.h>
 
-/* for stat and time_t */
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
+G_BEGIN_DECLS
 
-/**
-    @author PCMan (Hong Jen Yee) <pcman.tw@gmail.com>
-*/
-typedef struct _ImageList
+typedef struct _Pref
 {
-    gchar* dir_path;
-    GList* list;
-    GList* current;
-    time_t mtime;
-} ImageList;
+    gboolean auto_save_rotated; /* Save rotated images */
+    gboolean ask_before_save;
+    gboolean rotate_exif_only;
+    gboolean ask_before_delete;
+    gboolean open_maximized;
+    GdkColor bg;
+    GdkColor bg_full;
 
-ImageList* image_list_new();
+    int jpg_quality;
+    int png_compression;
+}Pref;
 
-const char* image_list_get_dir( ImageList* il );
+extern Pref pref; /* global variable holding user prerefences */
 
-gboolean image_list_open_dir( ImageList* il, const char* path, GError** error);
+void load_preferences(); /* load user preferences */
+void save_preferences(); /* save user preference s*/
+void edit_preferences( GtkWindow* parent );
 
-gboolean image_list_set_current( ImageList* il, const char* name );
-
-const char* image_list_get_current( ImageList* il );
-
-const char* image_list_get_first( ImageList* il );
-
-const char* image_list_get_next( ImageList* il );
-
-const char* image_list_get_prev( ImageList* il );
-
-const char* image_list_get_last( ImageList* il );
-
-void image_list_free( ImageList* il );
-
-void image_list_close( ImageList* il );
-
-gboolean image_list_is_empty( ImageList* il );
-
-gboolean image_list_has_multiple_files( ImageList* il );
-
-char* image_list_get_current_file_path( ImageList* il );
-
-void image_list_sort_by_name( ImageList* il, GtkSortType type );
-
-void image_list_remove( ImageList* il, const char* name );
-
-void image_list_add_sorted( ImageList* il, const char* name, gboolean set_current );
+G_END_DECLS
 
 #endif

@@ -215,3 +215,8 @@ void image_list_remove( ImageList* il, const char* name )
 {
     il->list = g_list_remove( il->list, name );
 }
+
+void image_list_add_sorted( ImageList* il, const char* name, gboolean set_current )
+{
+    il->list = g_list_insert_sorted_with_data( il->list, g_strdup(name), (GCompareDataFunc)comp_by_name, (gpointer)GTK_SORT_ASCENDING );
+}

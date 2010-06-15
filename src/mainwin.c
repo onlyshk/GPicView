@@ -52,7 +52,9 @@ static void flip_h(MainWin *mw);
 static void open_dialog();
 static void on_save(MainWin* mw);
 static void on_delete(MainWin* mw);
+static gboolean main_win_save( MainWin* mw, const char* file_path, const char* type, gboolean confirm );
 static void on_save_as(MainWin* mw);
+static gboolean save_confirm( MainWin* mw, const char* file_path );
 
 /* signal handlers */
 static gboolean on_delete_event( GtkWidget* widget, GdkEventAny* evt );
@@ -175,7 +177,7 @@ main_win_init( MainWin*mw )
 {
 	GError *error = NULL;
 	
-		aview  =    gtk_anim_view_new();
+    aview  =    gtk_anim_view_new();
 	image_list = image_list_new();
 	
     gtk_window_set_title( (GtkWindow*)mw, "Image Viewer");
@@ -220,7 +222,7 @@ main_win_init( MainWin*mw )
 	
 	g_signal_connect (G_OBJECT (mw), "destroy",
                       G_CALLBACK (gtk_main_quit), NULL);
-	
+		
 	gtk_widget_grab_focus(aview);		
 }
 
@@ -418,13 +420,13 @@ flip_pixbuf(MainWin *mw, gboolean horizontal)
 void
 rotate_cw(MainWin *mw)
 {
-	rotate_pixbuf(mw ,GDK_PIXBUF_ROTATE_CLOCKWISE);
+  	rotate_pixbuf(mw ,GDK_PIXBUF_ROTATE_COUNTERCLOCKWISE);
 }
 
 static void
 rotate_ccw(MainWin *mw)
 {
-	rotate_pixbuf(mw ,GDK_PIXBUF_ROTATE_COUNTERCLOCKWISE);
+	rotate_pixbuf(mw ,GDK_PIXBUF_ROTATE_CLOCKWISE);
 }
 
 static void
@@ -444,10 +446,10 @@ static void
 full_screen(MainWin* mw)
 {
     GdkColor color;
-    GtkAction *action;
     gdk_color_parse ("white", &color);
-    gtk_window_fullscreen((GtkWindow*)mw);
-    gtk_widget_modify_bg(aview, GTK_STATE_NORMAL, &color);
+	gtk_widget_modify_bg(aview, GTK_STATE_NORMAL, &color);
+	
+    gtk_window_fullscreen(GTK_WINDOW(mw));
 }
 
 static void
@@ -526,15 +528,151 @@ void on_delete(MainWin* mw )
 	g_free( file_path );
 }
 
-/* save andd save_as */
+/* save and save_as */
+
+gboolean save_confirm( MainWin* mw, const char* file_path )
+{
+    if( g_file_test( file_path, G_FILE_TEST_EXISTS ) )
+    {
+        GtkWidget* dlg = gtk_message_dialog_new( (GtkWindow*)mw,
+                GTK_DIALOG_MODAL,
+                GTK_MESSAGE_QUESTION,
+                GTK_BUTTONS_YES_NO,
+                ("The file name you selected already exists.\nDo you want to overwrite existing file?\n(Warning: The quality of original image might be lost)") );
+        if( gtk_dialog_run( (GtkDialog*)dlg ) != GTK_RESPONSE_YES )
+        {
+            gtk_widget_destroy( dlg );
+            return FALSE;
+        }
+        gtk_widget_destroy( dlg );
+    }
+    return TRUE;
+}
+
+gboolean main_win_save( MainWin* mw, const char* file_path, const char* type, gboolean confirm )
+{
+    gboolean result1,gdk_save_supported;
+    GSList *gdk_formats;
+    GSList *gdk_formats_i;
+    if( !aview )
+        return FALSE;
+	
+	/* detect if the current type can be save by gdk_pixbuf_save() */
+    gdk_save_supported = FALSE;
+    gdk_formats = gdk_pixbuf_get_formats();
+    for (gdk_formats_i = gdk_formats; gdk_formats_i;
+         gdk_formats_i = g_slist_next(gdk_formats_i))
+    {
+        GdkPixbufFormat *data;
+        data = gdk_formats_i->data;
+        if (gdk_pixbuf_format_is_writable(data))
+        {
+            if ( strcmp(type, gdk_pixbuf_format_get_name(data))==0)
+            {
+                gdk_save_supported = TRUE;
+                break;
+            }
+        }
+    }
+    g_slist_free (gdk_formats);
+	
+	GError* err = NULL;
+    if (!gdk_save_supported)
+    {
+        main_win_show_error( mw, ("Writing this image format is not supported.") );
+        return FALSE;
+    }
+    if( strcmp( type, "jpeg" ) == 0 )
+    {
+        char tmp[32];
+        g_sprintf(tmp, "%d", pref.jpg_quality);
+        result1 = gdk_pixbuf_save( gtk_image_view_get_pixbuf(GTK_IMAGE_VIEW(aview)),
+								  file_path, type, &err, "quality", tmp, NULL );
+    }
+    else if( strcmp( type, "png" ) == 0 )
+    {
+        char tmp[32];
+        g_sprintf(tmp, "%d", pref.png_compression);
+        result1 = gdk_pixbuf_save( gtk_image_view_get_pixbuf(GTK_IMAGE_VIEW(aview)),
+								  file_path, type, &err, "compression", tmp, NULL );
+    }
+    else
+        result1 = gdk_pixbuf_save( gtk_image_view_get_pixbuf(GTK_IMAGE_VIEW(aview)),
+								  file_path, type, &err, NULL );
+    if( ! result1 )
+    {
+        main_win_show_error( mw, err->message );
+        return FALSE;
+    }
+    return TRUE;
+}
+
 void on_save(MainWin* mw )
 {
+   if( !image_list )
+       return;
 
+    char* file_name = g_build_filename( image_list_get_dir( image_list ),
+                                        image_list_get_current( image_list ), NULL );
+    GdkPixbufFormat* info;
+    info = gdk_pixbuf_get_file_info( file_name, NULL, NULL );
+    char* type = gdk_pixbuf_format_get_name( info );
+
+    /* Confirm save if requested. */
+    if ((pref.ask_before_save) && ( ! save_confirm(mw, file_name)))
+        return;
+
+    if(strcmp(type,"jpeg")==0)
+    {
+		/*
+        if(!pref.rotate_exif_only || ExifRotate(file_name, mw->rotation_angle) == FALSE)
+        {
+#ifdef HAVE_LIBJPEG
+            int status = rotate_and_save_jpeg_lossless(file_name,mw->rotation_angle);
+	    if(status != 0)
+            {
+                main_win_show_error( mw, g_strerror(status) );
+            }
+#else
+            main_win_save( mw, file_name, type, pref.ask_before_save );
+#endif
+        }
+    } else */
+	}
+    main_win_save( mw, file_name, type, pref.ask_before_save );
+    g_free( file_name );
+    g_free( type );
 }
 
 void on_save_as(MainWin* mw)
 {
+    char *file, *type;
 
+    if( ! aview )
+        return;
+	
+	file = get_save_filename( GTK_WINDOW(mw), image_list_get_dir(image_list), &type );
+	
+	if( file )
+    {
+	    char* dir;
+        main_win_save( mw, file, type, TRUE );
+        dir = g_path_get_dirname(file);
+        const char* name = file + strlen(dir) + 1;
+		
+		if( strcmp( image_list_get_dir(image_list), dir ) == 0 )
+        {
+            image_list_add_sorted( image_list, name, TRUE );
+        }
+        else 
+        {
+            image_list_open_dir( image_list, dir, NULL );
+        }
+        //update_title( name, mw );
+        g_free( dir );
+        g_free( file );
+        g_free( type );
+	}
 }
 /* end save and save as */
 

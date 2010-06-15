@@ -30,6 +30,8 @@
 #include <gtkimageview/gtkanimview.h>
 #include <gtkimageview/gtkimagescrollwin.h>
 
+#include "pref.h"
+#include "file-dlgs.h"
 #include "image-list.h"
 
 #define MAIN_WIN_TYPE            (main_win_get_type ())
@@ -74,7 +76,7 @@ typedef struct _Data
   char** argv;
 } Data;
 
-GType main_win_get_type(void) ;
+GType main_win_get_type(void);
 
 /* constructor */
 GtkWindow* main_win_new();
