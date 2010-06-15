@@ -68,6 +68,8 @@ typedef struct _MainWin
 	guint8 modifications;
 	
 	gboolean full_screen;
+	
+	int rotation_angle;
 }MainWin;
 
 typedef struct _Data

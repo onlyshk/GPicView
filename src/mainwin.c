@@ -55,6 +55,7 @@ static void on_delete(MainWin* mw);
 static gboolean main_win_save( MainWin* mw, const char* file_path, const char* type, gboolean confirm );
 static void on_save_as(MainWin* mw);
 static gboolean save_confirm( MainWin* mw, const char* file_path );
+void on_preference(MainWin* mw );
 
 /* signal handlers */
 static gboolean on_delete_event( GtkWidget* widget, GdkEventAny* evt );
@@ -113,6 +114,9 @@ gchar *ui_info =
            "<toolitem  action='Save File'/>"
            "<toolitem  action='Save as File'/>"
            "<toolitem  action='Delete File'/>"
+             "<separator  action='Sep4' />"
+           "<toolitem   action='Preferences'/>"
+           "<toolitem   action='Quit' />"
         "</toolbar>"
       "</ui>";
 
@@ -162,6 +166,13 @@ static const GtkActionEntry entries[] = {
 	{"Delete File",GTK_STOCK_DELETE,"Delete File",
      "<control>r","Delete File", G_CALLBACK(on_delete)
 	},
+	{"Preferences",GTK_STOCK_PREFERENCES,"Preferences",
+	 "<control>p", "Preferences", G_CALLBACK(on_preference)
+	},
+	{
+	  "Quit",GTK_STOCK_QUIT,"Quit",
+	   "<control>q", "Quit",G_CALLBACK(gtk_main_quit)
+	}
 };
 
 static guint n_entries = G_N_ELEMENTS (entries);
@@ -181,7 +192,7 @@ main_win_init( MainWin*mw )
 	image_list = image_list_new();
 	
     gtk_window_set_title( (GtkWindow*)mw, "Image Viewer");
-    gtk_window_set_default_size( (GtkWindow*)mw, 640, 480 );
+    gtk_window_set_default_size( (GtkWindow*)mw, 670, 480 );
 	gtk_window_set_position((GtkWindow*)mw, GTK_WIN_POS_CENTER);
 	
 	mw->max_width = gdk_screen_width () * 0.7;
@@ -210,7 +221,7 @@ main_win_init( MainWin*mw )
 	  g_message ("building menus failed: %s", error->message);
 	  g_error_free (error);
 	}
-	gtk_box_pack_end(GTK_BOX (mw->box), gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"), FALSE, TRUE, 0);
+	gtk_box_pack_end(GTK_BOX (mw->box), gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"), FALSE, TRUE,0);
 	gtk_toolbar_set_style(gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"), GTK_TOOLBAR_ICONS);
 	//end gtuimanager 
 	
@@ -624,11 +635,9 @@ void on_save(MainWin* mw )
 
     if(strcmp(type,"jpeg")==0)
     {
-		/*
-        if(!pref.rotate_exif_only || ExifRotate(file_name, mw->rotation_angle) == FALSE)
-        {
+		
 #ifdef HAVE_LIBJPEG
-            int status = rotate_and_save_jpeg_lossless(file_name,mw->rotation_angle);
+        int status = rotate_and_save_jpeg_lossless(file_name,mw->rotation_angle);
 	    if(status != 0)
             {
                 main_win_show_error( mw, g_strerror(status) );
@@ -636,9 +645,8 @@ void on_save(MainWin* mw )
 #else
             main_win_save( mw, file_name, type, pref.ask_before_save );
 #endif
-        }
-    } else */
-	}
+        } 
+    else 
     main_win_save( mw, file_name, type, pref.ask_before_save );
     g_free( file_name );
     g_free( type );
@@ -673,6 +681,11 @@ void on_save_as(MainWin* mw)
         g_free( file );
         g_free( type );
 	}
+}
+
+void on_preference(MainWin* mw )
+{
+    edit_preferences( (GtkWindow*)mw );
 }
 /* end save and save as */
 

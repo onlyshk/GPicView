@@ -47,7 +47,10 @@ PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS)
 am__objects_1 =
 am_gpicview_OBJECTS = gpicview-gpicview.$(OBJEXT) $(am__objects_1) \
 	gpicview-mainwin.$(OBJEXT) gpicview-image-list.$(OBJEXT) \
-	gpicview-file-dlgs.$(OBJEXT) gpicview-pref.$(OBJEXT)
+	gpicview-file-dlgs.$(OBJEXT) gpicview-pref.$(OBJEXT) \
+	gpicview-jhead.$(OBJEXT) gpicview-exif.$(OBJEXT) \
+	gpicview-jpegfile.$(OBJEXT) gpicview-jpeg-tran.$(OBJEXT) \
+	gpicview-tran-supp.$(OBJEXT)
 gpicview_OBJECTS = $(am_gpicview_OBJECTS)
 am__DEPENDENCIES_1 =
 gpicview_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
@@ -220,7 +223,15 @@ gpicview_SOURCES = \
 	file-dlgs.c   \
 	file-dlgs.h   \
 	pref.c   \
-	pref.h
+	pref.h   \
+	jhead.c   \
+	jhead.h   \
+	exif.c   \
+	jpegfile.c   \
+	jpeg-tran.c   \
+	jpeg-tran.h   \
+	tran-supp.h   \
+	tran-supp.c
 
 gpicview_CFLAGS = \
 	$(GTK_CFLAGS) \
@@ -307,11 +318,16 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpicview-exif.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpicview-file-dlgs.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpicview-gpicview.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpicview-image-list.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpicview-jhead.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpicview-jpeg-tran.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpicview-jpegfile.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpicview-mainwin.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpicview-pref.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpicview-tran-supp.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xml_purge-xml-purge.Po@am__quote@
 
 .c.o:
@@ -397,6 +413,76 @@ gpicview-pref.obj: pref.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pref.c' object='gpicview-pref.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -c -o gpicview-pref.obj `if test -f 'pref.c'; then $(CYGPATH_W) 'pref.c'; else $(CYGPATH_W) '$(srcdir)/pref.c'; fi`
+
+gpicview-jhead.o: jhead.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -MT gpicview-jhead.o -MD -MP -MF $(DEPDIR)/gpicview-jhead.Tpo -c -o gpicview-jhead.o `test -f 'jhead.c' || echo '$(srcdir)/'`jhead.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/gpicview-jhead.Tpo $(DEPDIR)/gpicview-jhead.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='jhead.c' object='gpicview-jhead.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -c -o gpicview-jhead.o `test -f 'jhead.c' || echo '$(srcdir)/'`jhead.c
+
+gpicview-jhead.obj: jhead.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -MT gpicview-jhead.obj -MD -MP -MF $(DEPDIR)/gpicview-jhead.Tpo -c -o gpicview-jhead.obj `if test -f 'jhead.c'; then $(CYGPATH_W) 'jhead.c'; else $(CYGPATH_W) '$(srcdir)/jhead.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/gpicview-jhead.Tpo $(DEPDIR)/gpicview-jhead.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='jhead.c' object='gpicview-jhead.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -c -o gpicview-jhead.obj `if test -f 'jhead.c'; then $(CYGPATH_W) 'jhead.c'; else $(CYGPATH_W) '$(srcdir)/jhead.c'; fi`
+
+gpicview-exif.o: exif.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -MT gpicview-exif.o -MD -MP -MF $(DEPDIR)/gpicview-exif.Tpo -c -o gpicview-exif.o `test -f 'exif.c' || echo '$(srcdir)/'`exif.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/gpicview-exif.Tpo $(DEPDIR)/gpicview-exif.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='exif.c' object='gpicview-exif.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -c -o gpicview-exif.o `test -f 'exif.c' || echo '$(srcdir)/'`exif.c
+
+gpicview-exif.obj: exif.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -MT gpicview-exif.obj -MD -MP -MF $(DEPDIR)/gpicview-exif.Tpo -c -o gpicview-exif.obj `if test -f 'exif.c'; then $(CYGPATH_W) 'exif.c'; else $(CYGPATH_W) '$(srcdir)/exif.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/gpicview-exif.Tpo $(DEPDIR)/gpicview-exif.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='exif.c' object='gpicview-exif.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -c -o gpicview-exif.obj `if test -f 'exif.c'; then $(CYGPATH_W) 'exif.c'; else $(CYGPATH_W) '$(srcdir)/exif.c'; fi`
+
+gpicview-jpegfile.o: jpegfile.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -MT gpicview-jpegfile.o -MD -MP -MF $(DEPDIR)/gpicview-jpegfile.Tpo -c -o gpicview-jpegfile.o `test -f 'jpegfile.c' || echo '$(srcdir)/'`jpegfile.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/gpicview-jpegfile.Tpo $(DEPDIR)/gpicview-jpegfile.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='jpegfile.c' object='gpicview-jpegfile.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -c -o gpicview-jpegfile.o `test -f 'jpegfile.c' || echo '$(srcdir)/'`jpegfile.c
+
+gpicview-jpegfile.obj: jpegfile.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -MT gpicview-jpegfile.obj -MD -MP -MF $(DEPDIR)/gpicview-jpegfile.Tpo -c -o gpicview-jpegfile.obj `if test -f 'jpegfile.c'; then $(CYGPATH_W) 'jpegfile.c'; else $(CYGPATH_W) '$(srcdir)/jpegfile.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/gpicview-jpegfile.Tpo $(DEPDIR)/gpicview-jpegfile.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='jpegfile.c' object='gpicview-jpegfile.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -c -o gpicview-jpegfile.obj `if test -f 'jpegfile.c'; then $(CYGPATH_W) 'jpegfile.c'; else $(CYGPATH_W) '$(srcdir)/jpegfile.c'; fi`
+
+gpicview-jpeg-tran.o: jpeg-tran.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -MT gpicview-jpeg-tran.o -MD -MP -MF $(DEPDIR)/gpicview-jpeg-tran.Tpo -c -o gpicview-jpeg-tran.o `test -f 'jpeg-tran.c' || echo '$(srcdir)/'`jpeg-tran.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/gpicview-jpeg-tran.Tpo $(DEPDIR)/gpicview-jpeg-tran.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='jpeg-tran.c' object='gpicview-jpeg-tran.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -c -o gpicview-jpeg-tran.o `test -f 'jpeg-tran.c' || echo '$(srcdir)/'`jpeg-tran.c
+
+gpicview-jpeg-tran.obj: jpeg-tran.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -MT gpicview-jpeg-tran.obj -MD -MP -MF $(DEPDIR)/gpicview-jpeg-tran.Tpo -c -o gpicview-jpeg-tran.obj `if test -f 'jpeg-tran.c'; then $(CYGPATH_W) 'jpeg-tran.c'; else $(CYGPATH_W) '$(srcdir)/jpeg-tran.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/gpicview-jpeg-tran.Tpo $(DEPDIR)/gpicview-jpeg-tran.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='jpeg-tran.c' object='gpicview-jpeg-tran.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -c -o gpicview-jpeg-tran.obj `if test -f 'jpeg-tran.c'; then $(CYGPATH_W) 'jpeg-tran.c'; else $(CYGPATH_W) '$(srcdir)/jpeg-tran.c'; fi`
+
+gpicview-tran-supp.o: tran-supp.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -MT gpicview-tran-supp.o -MD -MP -MF $(DEPDIR)/gpicview-tran-supp.Tpo -c -o gpicview-tran-supp.o `test -f 'tran-supp.c' || echo '$(srcdir)/'`tran-supp.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/gpicview-tran-supp.Tpo $(DEPDIR)/gpicview-tran-supp.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tran-supp.c' object='gpicview-tran-supp.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -c -o gpicview-tran-supp.o `test -f 'tran-supp.c' || echo '$(srcdir)/'`tran-supp.c
+
+gpicview-tran-supp.obj: tran-supp.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -MT gpicview-tran-supp.obj -MD -MP -MF $(DEPDIR)/gpicview-tran-supp.Tpo -c -o gpicview-tran-supp.obj `if test -f 'tran-supp.c'; then $(CYGPATH_W) 'tran-supp.c'; else $(CYGPATH_W) '$(srcdir)/tran-supp.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/gpicview-tran-supp.Tpo $(DEPDIR)/gpicview-tran-supp.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tran-supp.c' object='gpicview-tran-supp.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -c -o gpicview-tran-supp.obj `if test -f 'tran-supp.c'; then $(CYGPATH_W) 'tran-supp.c'; else $(CYGPATH_W) '$(srcdir)/tran-supp.c'; fi`
 
 xml_purge-xml-purge.o: $(top_srcdir)/src/xml-purge.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(xml_purge_CFLAGS) $(CFLAGS) -MT xml_purge-xml-purge.o -MD -MP -MF $(DEPDIR)/xml_purge-xml-purge.Tpo -c -o xml_purge-xml-purge.o `test -f '$(top_srcdir)/src/xml-purge.c' || echo '$(srcdir)/'`$(top_srcdir)/src/xml-purge.c

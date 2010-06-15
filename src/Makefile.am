@@ -19,7 +19,15 @@ gpicview_SOURCES = \
 	file-dlgs.c   \
 	file-dlgs.h   \
 	pref.c   \
-	pref.h
+	pref.h   \
+	jhead.c   \
+	jhead.h   \
+	exif.c   \
+	jpegfile.c   \
+	jpeg-tran.c   \
+	jpeg-tran.h   \
+	tran-supp.h   \
+	tran-supp.c
 
 gpicview_CFLAGS = \
 	$(GTK_CFLAGS) \

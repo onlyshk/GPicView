@@ -88,8 +88,7 @@ int main(int argc, char** argv)
     }
 
     /* TODO: create GUI here */
-	win = main_win_new();
-    //window = main_win_new();
+	win = (GtkWindow*)main_win_new();
 	
 	g_signal_connect( G_OBJECT( win ), "destroy", G_CALLBACK( gtk_main_quit ), NULL );
 		
