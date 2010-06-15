@@ -56,27 +56,14 @@ typedef struct _MainWin
     GtkUIManager *uimanager;
 	GtkAccelGroup *accels;
 	GtkActionGroup *actions;
-
 	GtkWidget*  img_box;
-	
 	gint max_width;
     gint max_height;
-	
 	gint current_image_height;
     gint current_image_width;
-	
 	guint8 modifications;
-	
 	gboolean full_screen;
-	
-	int rotation_angle;
 }MainWin;
-
-typedef struct _Data
-{
-  MainWin *win;
-  char** argv;
-} Data;
 
 GType main_win_get_type(void);
 

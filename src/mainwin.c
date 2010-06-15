@@ -47,7 +47,7 @@ static void rotate_pixbuf(MainWin *mw, GdkPixbufRotation angle);
 static void flip_pixbuf(MainWin *mw, gboolean horizontal);
 static void rotate_cw(MainWin *mw);
 static void rotate_ccw(MainWin *mw);
-static void full_screen(MainWin *mw);
+static void full_screen(GtkWidget *button, MainWin *mw);
 static void flip_v(MainWin *mw);
 static void flip_h(MainWin *mw);
 static void open_dialog();
@@ -61,6 +61,7 @@ void on_preference(MainWin* mw );
 
 /* signal handlers */
 static gboolean on_delete_event( GtkWidget* widget, GdkEventAny* evt );
+static gboolean on_win_state_event( GtkWidget* widget, GdkEventWindowState* state );
 
 // Begin of GObject-related stuff
 G_DEFINE_TYPE( MainWin, main_win, GTK_TYPE_WINDOW)
@@ -76,6 +77,7 @@ main_win_class_init( MainWinClass* klass )
 	
 	widget_class = GTK_WIDGET_CLASS ( klass );
 	widget_class->delete_event = on_delete_event;
+	widget_class->window_state_event = on_win_state_event;
 }
 
 void main_win_finalize( GObject* obj )
@@ -215,10 +217,10 @@ main_win_init( MainWin *mw )
 	mw->uimanager = gtk_ui_manager_new();
 	
 	gtk_ui_manager_insert_action_group (mw->uimanager, mw->actions, 0);
-	gtk_action_group_add_actions (mw->actions, entries, n_entries, (GtkWindow*)mw);
+	gtk_action_group_add_actions (mw->actions, entries, n_entries, GTK_WINDOW(mw));
     gtk_window_add_accel_group (GTK_WINDOW (mw), 
 				                gtk_ui_manager_get_accel_group (mw->uimanager));
-	if (!gtk_ui_manager_add_ui_from_string (mw->uimanager, ui_info, -1, &error))
+	if (!gtk_ui_manager_add_ui_from_string (mw->uimanager, ui_info, -2, &error))
 	{
 	  g_message ("building menus failed: %s", error->message);
 	  g_error_free (error);
@@ -457,14 +459,31 @@ flip_h(MainWin * mw)
 }
 /* end rotate ***************/
 
-static void
-full_screen(MainWin* mw)
+gboolean on_win_state_event( GtkWidget* widget, GdkEventWindowState* state )
 {
-    GdkColor color;
-    gdk_color_parse ("white", &color);
-	gtk_widget_modify_bg(aview, GTK_STATE_NORMAL, &color);
+    MainWin* mw = (GtkWindow*)widget;
+    if( state->new_window_state == GDK_WINDOW_STATE_FULLSCREEN )
+    {
+        mw->full_screen = TRUE;
+    }
+    else
+    {
+        mw->full_screen = FALSE;
+    }
+    return TRUE;
+}
+
+static void
+full_screen(GtkWidget *button, MainWin* mw)
+{	
+    if( ! mw->full_screen )
+	{    
+        gtk_window_fullscreen( (GtkWindow*)mw );
+	}
+	else
+        gtk_window_unfullscreen( (GtkWindow*)mw );
 	
-    gtk_window_fullscreen(GTK_WINDOW(mw));
+	g_signal_connect(button, "clicked", G_CALLBACK(full_screen), mw);
 }
 
 static void
