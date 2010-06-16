@@ -56,8 +56,8 @@ static void on_delete(MainWin* mw);
 static gboolean main_win_save( MainWin* mw, const char* file_path, const char* type, gboolean confirm );
 static void on_save_as(MainWin* mw);
 static gboolean save_confirm( MainWin* mw, const char* file_path );
-void on_preference(MainWin* mw );
-
+static void on_preference(MainWin* mw );
+static void start_slideshow(GtkButton* btn, MainWin* mw);
 
 /* signal handlers */
 static gboolean on_delete_event( GtkWidget* widget, GdkEventAny* evt );
@@ -108,6 +108,7 @@ gchar *ui_info =
            "<toolitem  action='ZoomFit'/>"
            "<toolitem  action='ZoomNormal'/>"
            "<toolitem  action='FullScreen'/>"
+           "<toolitem   action='SlideShow' />"
              "<separator action='Sep2' />"
            "<toolitem  action='ImageRotate1'/>"
            "<toolitem  action='ImageRotate2'/>"
@@ -145,6 +146,9 @@ static const GtkActionEntry entries[] = {
 	},
 	{"FullScreen",GTK_STOCK_FULLSCREEN, "Full screen",
 	 "<control>r","Show the image in FULL SCREEN",G_CALLBACK(full_screen)
+	},
+	{"SlideShow", GTK_STOCK_DND_MULTIPLE, "SlideShow",
+	 "<control>w", "Slide show", G_CALLBACK(start_slideshow)
 	},
 	{"ImageRotate1","object-rotate-left","Rotate Clockwise",
 	"<control>R","Rotate image",G_CALLBACK(rotate_cw)
@@ -196,7 +200,7 @@ main_win_init( MainWin *mw )
 	image_list = image_list_new();
 	
     gtk_window_set_title((GtkWindow*)mw, "Image Viewer");
-    gtk_window_set_default_size((GtkWindow*)mw, 670, 480 );
+    gtk_window_set_default_size((GtkWindow*)mw, 700, 480 );
 	gtk_window_set_position((GtkWindow*)mw, GTK_WIN_POS_CENTER);
 	
 	mw->max_width = gdk_screen_width () * 0.7;
@@ -585,6 +589,9 @@ gboolean save_confirm( MainWin* mw, const char* file_path )
 
 gboolean main_win_save( MainWin* mw, const char* file_path, const char* type, gboolean confirm )
 {
+	if (!aview)
+		return;
+	
     gboolean result1,gdk_save_supported;
     GSList *gdk_formats;
     GSList *gdk_formats_i;
@@ -677,6 +684,9 @@ void on_save(MainWin* mw )
 
 void on_save_as(MainWin* mw)
 {
+   if( !image_list )
+       return;
+	
     char *file, *type;
 
     if( ! aview )
@@ -705,9 +715,32 @@ void on_save_as(MainWin* mw)
         g_free( type );
 	}
 }
+/* end save and save as */
 
 void on_preference(MainWin* mw )
 {
     edit_preferences( (GtkWindow*)mw );
 }
-/* end save and save as */
+
+static void
+start_slideshow(GtkButton* btn, MainWin* mw)
+{
+	if (mw->slideshow == TRUE)
+	{
+        gtk_window_unfullscreen( (GtkWindow*)mw );
+	    g_signal_connect(btn, "clicked", G_CALLBACK(full_screen), mw);
+		g_source_remove (mw->ss_source_tag);
+		mw->slideshow = FALSE;
+	}
+	else
+	{
+      gtk_window_fullscreen (mw);
+	  g_signal_connect(btn, "clicked", G_CALLBACK(gtk_window_fullscreen), mw);
+	
+      mw->ss_source_tag =    g_timeout_add_seconds (2,
+                                                   (GSourceFunc)on_next,
+                                                   mw);
+	  mw->slideshow = TRUE;
+	}
+}
+

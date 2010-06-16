@@ -49,7 +49,6 @@ typedef struct _MainWinClass
 typedef struct _MainWin
 {
     GtkWindow parent;
-	
 	GtkWidget* scroll;
 	GtkWidget* box;
 	GtkWidget *toolbar;
@@ -63,6 +62,9 @@ typedef struct _MainWin
     gint current_image_width;
 	guint8 modifications;
 	gboolean full_screen;
+	gboolean slideshow;
+	guint ss_source_tag;
+	gint ss_timeout;
 }MainWin;
 
 GType main_win_get_type(void);
