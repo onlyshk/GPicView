@@ -33,6 +33,8 @@ static GdkPixbufAnimation* animation;
 static GtkAnimView* aview;
 static GdkPixbufLoader* loader;
 static GCancellable* generator_cancellable = NULL;
+static GtkActionGroup *actions;
+static GtkActionGroup *rotation_actions;
 
 static void main_win_init( MainWin*mw );
 static void main_win_finalize( GObject* obj );
@@ -47,7 +49,7 @@ static void rotate_pixbuf(MainWin *mw, GdkPixbufRotation angle);
 static void flip_pixbuf(MainWin *mw, gboolean horizontal);
 static void rotate_cw(MainWin *mw);
 static void rotate_ccw(MainWin *mw);
-static void full_screen(GtkWidget *button, MainWin *mw);
+static void full_screen(GtkButton *button, MainWin *mw);
 static void flip_v(MainWin *mw);
 static void flip_h(MainWin *mw);
 static void open_dialog();
@@ -58,6 +60,7 @@ static void on_save_as(MainWin* mw);
 static gboolean save_confirm( MainWin* mw, const char* file_path );
 static void on_preference(MainWin* mw );
 static void start_slideshow(GtkButton* btn, MainWin* mw);
+static void update_title(const char *filename, MainWin *mw );
 
 /* signal handlers */
 static gboolean on_delete_event( GtkWidget* widget, GdkEventAny* evt );
@@ -150,18 +153,6 @@ static const GtkActionEntry entries[] = {
 	{"SlideShow", GTK_STOCK_DND_MULTIPLE, "SlideShow",
 	 "<control>w", "Slide show", G_CALLBACK(start_slideshow)
 	},
-	{"ImageRotate1","object-rotate-left","Rotate Clockwise",
-	"<control>R","Rotate image",G_CALLBACK(rotate_cw)
-	},
-    {"ImageRotate2","object-rotate-right","Rotate Counter Clockwise",
-	"<control>C","Rotate image counter clockwise",G_CALLBACK(rotate_ccw)
-	},
-	{"ImageRotate3","object-flip-vertical","Flip Vertical",
-	"<control>v","Flip Horizontal",G_CALLBACK(flip_v)
-	},
-    {"ImageRotate4","object-flip-horizontal","Flip Vertical",
-	"<control>C","Flip Horizontal",G_CALLBACK(flip_h)
-	},
 	{"Open File",GTK_STOCK_OPEN,"Open File",
 	"<control>O","Open File",G_CALLBACK(open_dialog)
 	},
@@ -183,7 +174,23 @@ static const GtkActionEntry entries[] = {
 	}
 };
 
+static const GtkActionEntry entries1[] = {
+	{"ImageRotate1","object-rotate-left","Rotate Clockwise",
+	"<control>R","Rotate image",G_CALLBACK(rotate_cw)
+	},
+    {"ImageRotate2","object-rotate-right","Rotate Counter Clockwise",
+	"<control>C","Rotate image counter clockwise",G_CALLBACK(rotate_ccw)
+	},
+	{"ImageRotate3","object-flip-vertical","Flip Vertical",
+	"<control>v","Flip Horizontal",G_CALLBACK(flip_v)
+	},
+    {"ImageRotate4","object-flip-horizontal","Flip Vertical",
+	"<control>C","Flip Horizontal",G_CALLBACK(flip_h)
+	},
+};
+
 static guint n_entries = G_N_ELEMENTS (entries);
+static guint n_entries1 = G_N_ELEMENTS (entries1);
 
 void 
 main_win_close( MainWin* mw )
@@ -217,12 +224,18 @@ main_win_init( MainWin *mw )
 	gtk_box_pack_start(GTK_BOX(mw->box), gtk_hseparator_new(), FALSE, TRUE,0);
 	
 	//gtkuimanager
-	mw->actions = gtk_action_group_new ("Actions");
+	actions = gtk_action_group_new ("Actions");
+	rotation_actions = gtk_action_group_new("Rotate_Actions");
+	
 	mw->uimanager = gtk_ui_manager_new();
 	
-	gtk_ui_manager_insert_action_group (mw->uimanager, mw->actions, 0);
-	gtk_action_group_add_actions (mw->actions, entries, n_entries, GTK_WINDOW(mw));
-    gtk_window_add_accel_group (GTK_WINDOW (mw), 
+	gtk_ui_manager_insert_action_group (mw->uimanager, actions, 0);
+	gtk_ui_manager_insert_action_group (mw->uimanager, rotation_actions,1);
+	
+	gtk_action_group_add_actions (actions, entries, n_entries, GTK_WINDOW(mw));
+    gtk_action_group_add_actions (rotation_actions, entries1, n_entries1, GTK_WINDOW(mw));
+	
+	gtk_window_add_accel_group (GTK_WINDOW (mw), 
 				                gtk_ui_manager_get_accel_group (mw->uimanager));
 	if (!gtk_ui_manager_add_ui_from_string (mw->uimanager, ui_info, -2, &error))
 	{
@@ -275,6 +288,12 @@ main_win_open( MainWin* mw, const char* file_path)
 	}
 	
 	if (res){		
+
+      if ( !gdk_pixbuf_animation_is_static_image( animation ) )
+		gtk_action_group_set_sensitive(rotation_actions, FALSE);
+	  else
+		gtk_action_group_set_sensitive(rotation_actions, TRUE);
+		
 		animation = gdk_pixbuf_loader_get_animation((loader));
 	    gtk_anim_view_set_anim (aview,animation);	
 		
@@ -288,7 +307,7 @@ main_win_open( MainWin* mw, const char* file_path)
         image_list_set_current( image_list, base_name );
 
         char* disp_name = g_filename_display_name( base_name );
-		
+
         g_free( base_name );
         g_free( disp_name );	
 		
@@ -329,7 +348,7 @@ on_delete_event( GtkWidget* widget, GdkEventAny* evt )
 void on_prev(MainWin* mw)
 {
     const char* name;
-   
+
 	name = image_list_get_prev( image_list);
 	
 	if( !name && image_list_has_multiple_files( image_list ) )
@@ -340,10 +359,9 @@ void on_prev(MainWin* mw)
     if( name )
     {
         char* file_path = image_list_get_current_file_path( image_list );
-        main_win_open( mw, file_path );
+        main_win_open((GtkWindow*)mw, file_path );
         g_free( file_path );
     }
-    
 }
 
 void on_next(MainWin* mw)
@@ -362,7 +380,7 @@ void on_next(MainWin* mw)
         char* file_path = image_list_get_current_file_path( image_list );
         main_win_open( mw, file_path );
         g_free( file_path );
-    }
+	}
 }
 /* end prev/next **********************/
 
@@ -478,7 +496,7 @@ gboolean on_win_state_event( GtkWidget* widget, GdkEventWindowState* state )
 }
 
 static void
-full_screen(GtkWidget *button, MainWin* mw)
+full_screen(GtkButton *button, MainWin* mw)
 {	
     if( ! mw->full_screen )
 	{    
@@ -508,7 +526,8 @@ open_dialog(MainWin* mw)
     {
 	  gchar *filename;
 	  filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
-	  main_win_open (mw,filename);
+	  gtk_window_set_title(GTK_WINDOW(mw),"ASDASDASD");
+	  main_win_open ((GtkWindow*)mw,filename);
 	  gtk_widget_destroy (dialog);
 	  g_free (filename);
 	}
@@ -709,7 +728,6 @@ void on_save_as(MainWin* mw)
         {
             image_list_open_dir( image_list, dir, NULL );
         }
-        //update_title( name, mw );
         g_free( dir );
         g_free( file );
         g_free( type );
@@ -742,5 +760,24 @@ start_slideshow(GtkButton* btn, MainWin* mw)
                                                    mw);
 	  mw->slideshow = TRUE;
 	}
+}
+
+void update_title(const char *filename, MainWin* mw )
+{
+	GtkButton* btn = gtk_button_new();
+	static int wid, hei;
+    static char fname[50];
+    char buf[100];
+
+    if(filename != NULL)
+    {
+      strncpy(fname, filename, 49);
+	  wid = gdk_pixbuf_get_width(  gtk_image_view_get_pixbuf (GTK_IMAGE_VIEW(aview)) );
+      hei = gdk_pixbuf_get_height( gtk_image_view_get_pixbuf ( GTK_IMAGE_VIEW(aview)) );
+      fname[49] = '\0';
+    }
+	        
+	snprintf(buf, 100, "%s (%dx%d) %d%%", fname, wid, hei, (int)(mw->scale * 100));
+	gtk_window_set_title(mw, buf);
 }
 

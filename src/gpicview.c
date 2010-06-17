@@ -96,10 +96,10 @@ int main(int argc, char** argv)
     /* TODO: create GUI here */
 	win = (MainWin*)main_win_new();
 	
-	//g_signal_connect( G_OBJECT( win ), "destroy", G_CALLBACK( gtk_main_quit ), NULL );
+	g_signal_connect( G_OBJECT( win ), "destroy", G_CALLBACK( gtk_main_quit ), NULL );
 		
-	//data.win = win;
-    /*
+	data.win = win;
+    
 	if(files)
     {
         if( G_UNLIKELY( *files[0] != '/' && strstr( files[0], "://" )) ) 
@@ -113,7 +113,7 @@ int main(int argc, char** argv)
 		    data.argv = files[0];
 		    thread = g_thread_create((GThreadFunc)argument_thread,&data,FALSE, &err);
     }
-    */
+    
     /* enter the GTK main loop */
     gtk_main();
 	

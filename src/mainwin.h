@@ -54,7 +54,8 @@ typedef struct _MainWin
 	GtkWidget *toolbar;
     GtkUIManager *uimanager;
 	GtkAccelGroup *accels;
-	GtkActionGroup *actions;
+	//GtkActionGroup *actions;
+	//GtkActionGroup *rotation_actions;
 	GtkWidget*  img_box;
 	gint max_width;
     gint max_height;
@@ -65,6 +66,7 @@ typedef struct _MainWin
 	gboolean slideshow;
 	guint ss_source_tag;
 	gint ss_timeout;
+	double scale;
 }MainWin;
 
 GType main_win_get_type(void);
