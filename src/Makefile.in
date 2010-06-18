@@ -50,7 +50,8 @@ am_gpicview_OBJECTS = gpicview-gpicview.$(OBJEXT) $(am__objects_1) \
 	gpicview-file-dlgs.$(OBJEXT) gpicview-pref.$(OBJEXT) \
 	gpicview-jhead.$(OBJEXT) gpicview-exif.$(OBJEXT) \
 	gpicview-jpegfile.$(OBJEXT) gpicview-jpeg-tran.$(OBJEXT) \
-	gpicview-tran-supp.$(OBJEXT)
+	gpicview-tran-supp.$(OBJEXT) \
+	gpicview-ptk-menu.$(OBJEXT)
 gpicview_OBJECTS = $(am_gpicview_OBJECTS)
 am__DEPENDENCIES_1 =
 gpicview_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
@@ -231,7 +232,9 @@ gpicview_SOURCES = \
 	jpeg-tran.c   \
 	jpeg-tran.h   \
 	tran-supp.h   \
-	tran-supp.c
+	tran-supp.c   \
+	ptk-menu.c   \
+	ptk-menu.h   
 
 gpicview_CFLAGS = \
 	$(GTK_CFLAGS) \
@@ -327,6 +330,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpicview-jpegfile.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpicview-mainwin.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpicview-pref.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpicview-ptk-menu.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpicview-tran-supp.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xml_purge-xml-purge.Po@am__quote@
 
@@ -483,6 +487,20 @@ gpicview-tran-supp.obj: tran-supp.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tran-supp.c' object='gpicview-tran-supp.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -c -o gpicview-tran-supp.obj `if test -f 'tran-supp.c'; then $(CYGPATH_W) 'tran-supp.c'; else $(CYGPATH_W) '$(srcdir)/tran-supp.c'; fi`
+
+gpicview-ptk-menu.o: ptk-menu.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -MT gpicview-ptk-menu.o -MD -MP -MF $(DEPDIR)/gpicview-ptk-menu.Tpo -c -o gpicview-ptk-menu.o `test -f 'ptk-menu.c' || echo '$(srcdir)/'`ptk-menu.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/gpicview-ptk-menu.Tpo $(DEPDIR)/gpicview-ptk-menu.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='ptk-menu.c' object='gpicview-ptk-menu.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -c -o gpicview-ptk-menu.o `test -f 'ptk-menu.c' || echo '$(srcdir)/'`ptk-menu.c
+
+gpicview-ptk-menu.obj: ptk-menu.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -MT gpicview-ptk-menu.obj -MD -MP -MF $(DEPDIR)/gpicview-ptk-menu.Tpo -c -o gpicview-ptk-menu.obj `if test -f 'ptk-menu.c'; then $(CYGPATH_W) 'ptk-menu.c'; else $(CYGPATH_W) '$(srcdir)/ptk-menu.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/gpicview-ptk-menu.Tpo $(DEPDIR)/gpicview-ptk-menu.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='ptk-menu.c' object='gpicview-ptk-menu.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -c -o gpicview-ptk-menu.obj `if test -f 'ptk-menu.c'; then $(CYGPATH_W) 'ptk-menu.c'; else $(CYGPATH_W) '$(srcdir)/ptk-menu.c'; fi`
 
 xml_purge-xml-purge.o: $(top_srcdir)/src/xml-purge.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(xml_purge_CFLAGS) $(CFLAGS) -MT xml_purge-xml-purge.o -MD -MP -MF $(DEPDIR)/xml_purge-xml-purge.Tpo -c -o xml_purge-xml-purge.o `test -f '$(top_srcdir)/src/xml-purge.c' || echo '$(srcdir)/'`$(top_srcdir)/src/xml-purge.c

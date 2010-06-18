@@ -217,4 +217,3 @@ char* get_save_filename( GtkWindow* parent, const char* cwd, char** type )
 
     return file;
 }
-

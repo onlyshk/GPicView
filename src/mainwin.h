@@ -1,7 +1,7 @@
 /***************************************************************************
- *   Copyright (C) 2007 by PCMan (Hong Jen Yee)  pcman.tw@gmail.com        *
- *                 2010 by shk (Kuleshov Alexander kuleshovmail@gmail.com  *  
- * 																		   *
+ *   Copyright (C) 2007 by PCMan (Hong Jen Yee)   *
+ *   pcman.tw@gmail.com   *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -17,7 +17,6 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-
 #ifndef MAINWIN_H
 #define MAINWIN_H
 
@@ -30,16 +29,26 @@
 #include <gtkimageview/gtkanimview.h>
 #include <gtkimageview/gtkimagescrollwin.h>
 
-#include "pref.h"
-#include "file-dlgs.h"
 #include "image-list.h"
 
-#define MAIN_WIN_TYPE            (main_win_get_type ())
-#define MAIN_WIN(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), MAIN_WIN_TYPE, MainWin))
+/**
+    @author PCMan (Hong Jen Yee) <pcman.tw@gmail.com>
+*/
+
+#define MAIN_WIN_TYPE        (main_win_get_type ())
+#define MAIN_WIN(obj)        (G_TYPE_CHECK_INSTANCE_CAST ((obj), MAIN_WIN_TYPE, MainWin))
 #define MAIN_WIN_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), MAIN_WIN_TYPE, MainWinClass))
-#define IS_MAIN_WIN(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), MAIN_WIN_TYPE))
+#define IS_MAIN_WIN(obj)     (G_TYPE_CHECK_INSTANCE_TYPE ((obj), MAIN_WIN_TYPE))
 #define IS_MAIN_WIN_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), MAIN_WIN_TYPE))
 #define MAIN_WIN_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), MAIN_WIN_TYPE, MainWinClass))
+
+typedef enum
+{
+     ZOOM_NONE = 0,
+     ZOOM_FIT,
+     ZOOM_ORIG,
+     ZOOM_SCALE
+} ZoomMode;
 
 typedef struct _MainWinClass
 {
@@ -54,9 +63,8 @@ typedef struct _MainWin
 	GtkWidget *toolbar;
     GtkUIManager *uimanager;
 	GtkAccelGroup *accels;
-	//GtkActionGroup *actions;
-	//GtkActionGroup *rotation_actions;
 	GtkWidget*  img_box;
+	GtkWidget* thumb_box;
 	gint max_width;
     gint max_height;
 	gint current_image_height;
@@ -67,19 +75,28 @@ typedef struct _MainWin
 	guint ss_source_tag;
 	gint ss_timeout;
 	double scale;
-}MainWin;
+	ImageList* img_list;
+} MainWin;
 
-GType main_win_get_type(void);
+GtkWidget* main_win_new();
 
-/* constructor */
-GtkWindow* main_win_new();
-
-gboolean main_win_open( MainWin* mw, const char* file_path);
-
-void main_win_show_error( MainWin* mw, const char* message);
+gboolean main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom );
 
 void main_win_close( MainWin* mw );
 
-void on_open( GtkWidget* btn, MainWin* mw );
+gboolean main_win_save( MainWin* mw, const char* file_path, const char* type, gboolean confirm );
+
+void main_win_show_error( MainWin* mw, const char* message );
+
+void main_win_fit_size( MainWin* mw, int width, int height, gboolean can_strech, GdkInterpType type );
+
+void main_win_fit_window_size( MainWin* mw, gboolean can_strech, GdkInterpType type );
+
+void main_win_center_image( MainWin* mw );
+
+gboolean main_win_scale_image(  MainWin* mw, double new_scale, GdkInterpType type );
+
+
+GType main_win_get_type();
 
 #endif

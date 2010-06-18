@@ -27,7 +27,9 @@ gpicview_SOURCES = \
 	jpeg-tran.c   \
 	jpeg-tran.h   \
 	tran-supp.h   \
-	tran-supp.c
+	tran-supp.c   \
+	ptk-menu.c   \
+	ptk-menu.h  
 
 gpicview_CFLAGS = \
 	$(GTK_CFLAGS) \

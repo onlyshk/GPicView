@@ -21,16 +21,14 @@
 #include <config.h>
 #endif
 
-#include "mainwin.h"
-		
 #include <gtk/gtk.h>
-#include <glib.h>
 #include <glib/gi18n.h>
+#include <string.h>
 
-#define G_THREADS_ENABLED
-#define PIXMAP_DIR        PACKAGE_DATA_DIR "/gpicview/pixmaps/"
+#include "pref.h"
+#include "mainwin.h"
 
-char** files = NULL;
+static char** files = NULL;
 static gboolean should_display_version = FALSE;
 
 static GOptionEntry opt_entries[] =
@@ -41,83 +39,65 @@ static GOptionEntry opt_entries[] =
     { NULL }
 };
 
-typedef struct _Data
-{
-  MainWin *win;
-  char** argv;
-} Data;
+#define PIXMAP_DIR        PACKAGE_DATA_DIR "/gpicview/pixmaps/"
 
-void*
-argument_thread(void *args)
+int main(int argc, char *argv[])
 {
-  Data *data = (Data*)args;
-  main_win_open (data->win,data->argv);
-}
+    GError *error = NULL;
+    GOptionContext *context;
+    MainWin* win;
 
-int main(int argc, char** argv)
-{
-    GError*   err;
-	GThread*  thread;
-	GOptionContext *context;
-	
-	Data data;
-    MainWin *win;
-	
-/* gettext support */
 #ifdef ENABLE_NLS
     bindtextdomain ( GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR );
     bind_textdomain_codeset ( GETTEXT_PACKAGE, "UTF-8" );
     textdomain ( GETTEXT_PACKAGE );
 #endif
 
-	// init thread support
-    if(!g_thread_supported())
-		g_thread_init(NULL);
-        gdk_threads_init();
-		
-	// init GTK+
-	gtk_init (&argc, &argv);
-	
-	context = g_option_context_new ("- simple image viewer");
+    context = g_option_context_new ("- simple image viewer");
     g_option_context_add_main_entries (context, opt_entries, GETTEXT_PACKAGE);
     g_option_context_add_group (context, gtk_get_option_group (TRUE));
-    if ( !g_option_context_parse (context, &argc, &argv, &err) )
+    if ( !g_option_context_parse (context, &argc, &argv, &error) )
     {
-        g_print( "option parsing failed: %s\n", err->message);
+        g_print( "option parsing failed: %s\n", error->message);
         return 1;
     }
-	
-	if( should_display_version )
+
+    if( should_display_version )
     {
         printf( "gpicview %s\n", VERSION );
         return 0;
     }
 
-    /* TODO: create GUI here */
-	win = (MainWin*)main_win_new();
-	
-	g_signal_connect( G_OBJECT( win ), "destroy", G_CALLBACK( gtk_main_quit ), NULL );
-		
-	data.win = win;
-    
-	if(files)
+    gtk_icon_theme_append_search_path(gtk_icon_theme_get_default(), PIXMAP_DIR);
+
+    load_preferences();
+
+    /* Allocate and show the window.
+     * We must show the window now in case the file open needs to put up an error dialog. */
+    win = (MainWin*)main_win_new();
+    gtk_widget_show( GTK_WIDGET(win) );
+
+    if ( pref.open_maximized )
+        gtk_window_maximize( (GtkWindow*)win );
+
+    // FIXME: need to process multiple files...
+    if( files )
     {
-        if( G_UNLIKELY( *files[0] != '/' && strstr( files[0], "://" )) ) 
+        if( G_UNLIKELY( *files[0] != '/' && strstr( files[0], "://" )) )    // This is an URI
         {
-		    data.argv = files[0];
             char* path = g_filename_from_uri( files[0], NULL, NULL );
-            thread = g_thread_create((GThreadFunc)argument_thread,&data,FALSE, &err);
+            main_win_open( win, path, ZOOM_NONE );
             g_free( path );
-		}  
-       else
-		    data.argv = files[0];
-		    thread = g_thread_create((GThreadFunc)argument_thread,&data,FALSE, &err);
+        }
+        else
+            main_win_open( win, files[0], ZOOM_NONE );
     }
-    
-    /* enter the GTK main loop */
+
     gtk_main();
-	
-	return 0;
+
+    save_preferences();
+
+    return 0;
 }
 
 
