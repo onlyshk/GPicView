@@ -87,6 +87,7 @@ static void show_popup_menu( MainWin* mw, GdkEventButton* evt );
 
 /* signal handlers */
 static gboolean on_delete_event( GtkWidget* widget, GdkEventAny* evt );
+static gboolean on_key_press_event(GtkWidget* widget, GdkEventKey * key);
 static void on_size_allocate( GtkWidget* widget, GtkAllocation    *allocation );
 static gboolean on_win_state_event( GtkWidget* widget, GdkEventWindowState* state );
 static void on_zoom_fit( GtkToggleButton* btn, MainWin* mw );
@@ -117,7 +118,7 @@ void main_win_class_init( MainWinClass* klass )
 
     widget_class = GTK_WIDGET_CLASS ( klass );
     widget_class->delete_event = on_delete_event;
-    //widget_class->key_press_event = on_key_press_event;
+    widget_class->key_press_event = on_key_press_event;
     widget_class->window_state_event = on_win_state_event;
 }
 
@@ -234,7 +235,7 @@ main_win_close( MainWin* mw )
 }
 
 void main_win_init( MainWin*mw )
-{
+{	
 	GError* error;
 	aview  =    GTK_IMAGE_VIEW(gtk_anim_view_new());
 	mw->img_list = image_list_new();
@@ -497,9 +498,15 @@ void normal_size()
 void on_full_screen( GtkWidget* btn, MainWin* mw )
 {
     if( ! mw->full_screen )
+	{
         gtk_window_fullscreen( (GtkWindow*)mw );
-    else
+	    gtk_widget_hide(gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"));
+	}
+	else
+	{
         gtk_window_unfullscreen( (GtkWindow*)mw );
+	    gtk_widget_show(gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"));
+	}
 }
 
 void
@@ -509,6 +516,7 @@ start_slideshow(GtkWidget* btn, MainWin* mw)
 	{
         gtk_window_unfullscreen( (GtkWindow*)mw );
 		g_source_remove (mw->ss_source_tag);
+		gtk_widget_show(gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"));
 		mw->slideshow = FALSE;
 	}
 	else
@@ -517,6 +525,8 @@ start_slideshow(GtkWidget* btn, MainWin* mw)
       mw->ss_source_tag =    g_timeout_add_seconds (2,
                                                    (GSourceFunc)next_for_slide_show,
                                                    mw);
+	
+	  gtk_widget_hide(gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"));
 	  mw->slideshow = TRUE;
 	}
 }
@@ -786,6 +796,112 @@ void on_save( GtkWidget* btn, MainWin* mw )
 static void on_preference(MainWin* mw)
 {
    edit_preferences(mw);
+}
+
+gboolean on_key_press_event(GtkWidget* widget, GdkEventKey * key)
+{
+    MainWin* mw = (MainWin*)widget;
+    switch( key->keyval )
+    {
+        case GDK_Right:
+        case GDK_KP_Right:
+        case GDK_rightarrow:
+            if( gtk_widget_get_default_direction () == GTK_TEXT_DIR_RTL )
+                on_prev( NULL, mw );
+            else
+                on_next( NULL, mw );
+            break;
+        case GDK_Return:
+        case GDK_space:
+        case GDK_Next:
+        case GDK_KP_Down:
+        case GDK_Down:
+        case GDK_downarrow:
+            on_next( NULL, mw );
+            break;
+        case GDK_Left:
+        case GDK_KP_Left:
+        case GDK_leftarrow:
+            if( gtk_widget_get_default_direction () == GTK_TEXT_DIR_RTL )
+                on_next( NULL, mw );
+            else
+                on_prev( NULL, mw );
+            break;
+        case GDK_Prior:
+        case GDK_BackSpace:
+        case GDK_KP_Up:
+        case GDK_Up:
+        case GDK_uparrow:
+            on_prev( NULL, mw );
+            break;
+        case GDK_KP_Add:
+        case GDK_plus:
+        case GDK_equal:
+            zoom_in( mw );
+            break;
+        case GDK_KP_Subtract:
+        case GDK_minus:
+            zoom_out( mw );
+            break;
+        case GDK_s:
+        case GDK_S:
+            on_save( NULL, mw );
+            break;
+        case GDK_a:
+        case GDK_A:
+            on_save_as( NULL, mw );
+            break;
+        case GDK_l:
+        case GDK_L:
+            rotate_ccw( mw );
+            break;
+        case GDK_r:
+        case GDK_R:
+            rotate_cw( mw );
+            break;
+        case GDK_f:
+        case GDK_F:
+            fit(mw);
+            break;
+        case GDK_h:
+        case GDK_H:
+            flip_h( mw );
+            break;
+        case GDK_v:
+        case GDK_V:
+            flip_v( mw );
+            break;
+        case GDK_o:
+        case GDK_O:
+            on_open( NULL, mw );
+            break;
+        case GDK_Delete:
+        case GDK_d:
+        case GDK_D:
+            on_delete( NULL, mw );
+            break;
+        case GDK_p:
+        case GDK_P:
+            on_preference( mw );
+	    break;
+        case GDK_Escape:
+            if( mw->full_screen )
+                on_full_screen( NULL, mw );
+            else
+                gtk_main_quit();
+            break;
+        case GDK_q:
+	case GDK_Q:
+            gtk_main_quit();
+            break;
+        case GDK_F11:
+            on_full_screen( NULL, mw );
+            break;
+
+        default:
+            GTK_WIDGET_CLASS(main_win_parent_class)->key_press_event( widget, key );
+    }
+    return FALSE;
 }
 
 //=========================================================

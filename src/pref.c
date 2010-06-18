@@ -1,22 +1,23 @@
-/***************************************************************************
- *   Copyright (C) 2007 by PCMan (Hong Jen Yee)  pcman.tw@gmail.com        *
- *                 2010 by shk (Kuleshov Alexander kuleshovmail@gmail.com  *  
- * 																		   *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************/
+/*
+ *      pref.h
+ *
+ *      Copyright (C) 2007 PCMan <pcman.tw@gmail.com>
+ *
+ *      This program is free software; you can redistribute it and/or modify
+ *      it under the terms of the GNU General Public License as published by
+ *      the Free Software Foundation; either version 2 of the License, or
+ *      (at your option) any later version.
+ *
+ *      This program is distributed in the hope that it will be useful,
+ *      but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *      GNU General Public License for more details.
+ *
+ *      You should have received a copy of the GNU General Public License
+ *      along with this program; if not, write to the Free Software
+ *      Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ *      MA 02110-1301, USA.
+ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -159,51 +160,70 @@ static void on_set_default( GtkButton* btn, gpointer user_data )
     gtk_widget_destroy( dlg );
 }
 
+static void on_set_bg( GtkColorButton* btn, gpointer user_data )
+{
+    MainWin* parent=(MainWin*)user_data;
+    gtk_color_button_get_color(btn, &pref.bg);
+    if( !parent->full_screen )
+    {
+        //gtk_widget_modify_bg( parent->evt_box, GTK_STATE_NORMAL, &pref.bg );
+        //gtk_widget_queue_draw(parent->evt_box );
+    }
+}
+
+static void on_set_bg_full( GtkColorButton* btn, gpointer user_data )
+{
+    MainWin* parent=(MainWin*)user_data;
+    gtk_color_button_get_color(btn, &pref.bg_full);
+    if( parent->full_screen )
+    {
+        //gtk_widget_modify_bg( parent->evt_box, GTK_STATE_NORMAL, &pref.bg_full );
+        //gtk_widget_queue_draw(parent->evt_box );
+    }
+}
+
 void edit_preferences( GtkWindow* parent )
 {
-	
     GtkWidget *auto_save_btn, *ask_before_save_btn, *set_default_btn,
               *rotate_exif_only_btn, *ask_before_del_btn, *bg_btn, *bg_full_btn;
     GtkBuilder* builder = gtk_builder_new();
     GtkDialog* dlg;
-	/*
-    gtk_builder_add_from_file(builder, "data/pref-dlg.ui", NULL);
+    gtk_builder_add_from_file(builder, PACKAGE_DATA_DIR "/gpicview/ui/pref-dlg.ui", NULL);
 
     dlg = (GtkDialog*)gtk_builder_get_object(builder, "dlg");
-    //gtk_window_set_transient_for((GtkWindow*)dlg, parent);
-    
+    gtk_window_set_transient_for((GtkWindow*)dlg, parent);
+
     ask_before_save_btn = (GtkWidget*)gtk_builder_get_object(builder, "ask_before_save");
-    //gtk_toggle_button_set_active( (GtkToggleButton*)ask_before_save_btn, pref.ask_before_save );
+    gtk_toggle_button_set_active( (GtkToggleButton*)ask_before_save_btn, pref.ask_before_save );
 
     ask_before_del_btn = (GtkWidget*)gtk_builder_get_object(builder, "ask_before_delete");
-    //gtk_toggle_button_set_active( (GtkToggleButton*)ask_before_del_btn, pref.ask_before_delete );
+    gtk_toggle_button_set_active( (GtkToggleButton*)ask_before_del_btn, pref.ask_before_delete );
 
     auto_save_btn = (GtkWidget*)gtk_builder_get_object(builder, "auto_save_rotated");
-    //gtk_toggle_button_set_active( (GtkToggleButton*)auto_save_btn, pref.auto_save_rotated );
+    gtk_toggle_button_set_active( (GtkToggleButton*)auto_save_btn, pref.auto_save_rotated );
 
     rotate_exif_only_btn = (GtkWidget*)gtk_builder_get_object(builder, "rotate_exif_only");
-    //gtk_toggle_button_set_active( (GtkToggleButton*)rotate_exif_only_btn, pref.rotate_exif_only );
+    gtk_toggle_button_set_active( (GtkToggleButton*)rotate_exif_only_btn, pref.rotate_exif_only );
 
     set_default_btn = (GtkWidget*)gtk_builder_get_object(builder, "make_default");
-    //g_signal_connect( set_default_btn, "clicked", G_CALLBACK(on_set_default), parent );
+    g_signal_connect( set_default_btn, "clicked", G_CALLBACK(on_set_default), parent );
 
     bg_btn = (GtkWidget*)gtk_builder_get_object(builder, "bg");
-    //gtk_color_button_set_color(bg_btn, &pref.bg);
-    //g_signal_connect( bg_btn, "color-set", G_CALLBACK(on_set_bg), parent );
+    gtk_color_button_set_color(bg_btn, &pref.bg);
+    g_signal_connect( bg_btn, "color-set", G_CALLBACK(on_set_bg), parent );
 
     bg_full_btn = (GtkWidget*)gtk_builder_get_object(builder, "bg_full");
-    //gtk_color_button_set_color(bg_full_btn, &pref.bg_full);
-    //g_signal_connect( bg_full_btn, "color-set", G_CALLBACK(on_set_bg_full), parent );
+    gtk_color_button_set_color(bg_full_btn, &pref.bg_full);
+    g_signal_connect( bg_full_btn, "color-set", G_CALLBACK(on_set_bg_full), parent );
 
     g_object_unref( builder );
 
     gtk_dialog_run( dlg );
 
-   // pref.ask_before_save = gtk_toggle_button_get_active( (GtkToggleButton*)ask_before_save_btn );
-    //pref.ask_before_delete = gtk_toggle_button_get_active( (GtkToggleButton*)ask_before_del_btn );
-    //pref.auto_save_rotated = gtk_toggle_button_get_active( (GtkToggleButton*)auto_save_btn );
-    //pref.rotate_exif_only = gtk_toggle_button_get_active( (GtkToggleButton*)rotate_exif_only_btn );
+    pref.ask_before_save = gtk_toggle_button_get_active( (GtkToggleButton*)ask_before_save_btn );
+    pref.ask_before_delete = gtk_toggle_button_get_active( (GtkToggleButton*)ask_before_del_btn );
+    pref.auto_save_rotated = gtk_toggle_button_get_active( (GtkToggleButton*)auto_save_btn );
+    pref.rotate_exif_only = gtk_toggle_button_get_active( (GtkToggleButton*)rotate_exif_only_btn );
 
-    gtk_widget_destroy( (GtkWidget*)dlg );
-    */
+    //gtk_widget_destroy( (GtkWidget*)dlg );
 }

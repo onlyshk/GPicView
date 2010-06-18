@@ -1,16 +1,25 @@
-NULL=
+PIXMAPS_FILES = \
+	pixmaps/object-rotate-right.png \
+	pixmaps/object-rotate-left.png \
+	pixmaps/object-flip-horizontal.png \
+	pixmaps/object-flip-vertical.png
 
-SUBDIRS= \
-	ui \
-	$(NULL)
+gpicview_DATA = 
+gpicviewdir = $(datadir)/gpicview
 
-desktopdir=$(datadir)/applications
-desktop_in_files = \
-	gpicview.desktop.in \
-	$(NULL)
-desktop_DATA = $(desktop_in_files:.desktop.in=.desktop)
-@INTLTOOL_DESKTOP_RULE@
+pixmaps_DATA = $(PIXMAPS_FILES)
+pixmapsdir = $(gpicviewdir)/pixmaps
 
-EXTRA_DIST= \
-	$(desktop_DATA) \
-	$(NULL)
+ui_in_files = \
+	pref-dlg.glade
+ui_DATA = $(ui_in_files:.glade=.ui)
+uidir=$(datadir)/gpicview/ui
+
+EXTRA_DIST = \
+	$(gpicview_DATA) \
+	$(pixmaps_DATA) \
+	$(ui_DATA)
+
+%.ui: %.glade
+	cp $< $@
+	$(top_builddir)/src/xml-purge $@
