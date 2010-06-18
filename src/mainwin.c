@@ -82,6 +82,7 @@ static void rotate_ccw(MainWin *mw);
 static void flip_v(MainWin *mw);
 static void flip_h(MainWin *mw);
 static void open_dialog (MainWin* mw);
+static void on_about( GtkWidget* menu, MainWin* mw );
 
 static void show_popup_menu( MainWin* mw, GdkEventButton* evt );
 
@@ -102,7 +103,9 @@ static void on_open( GtkWidget* btn, MainWin* mw );
 static void on_delete( GtkWidget* btn, MainWin* mw );
 static void update_title(const char *filename, MainWin *mw );
 static void on_preference(MainWin* mw);
-
+static void show_popup_menu( MainWin* mw, GdkEventButton* evt );
+static void open_url( GtkAboutDialog *dlg, const gchar *url, gpointer data);
+static gboolean on_button_press( GtkWidget* widget, GdkEventButton* evt, MainWin* mw );
 
 // Begin of GObject-related stuff
 
@@ -276,6 +279,8 @@ void main_win_init( MainWin*mw )
 	gtk_box_pack_end(GTK_BOX (mw->box), gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"), FALSE, TRUE,0);
 	gtk_toolbar_set_style(gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"), GTK_TOOLBAR_ICONS);
 	//end gtuimanager 
+	
+	g_signal_connect( mw->box, "button-press-event", G_CALLBACK(on_button_press), mw );
     
 	gtk_container_add(mw, mw->box);
     gtk_widget_show_all( mw->box );
@@ -471,6 +476,25 @@ void next_for_slide_show( MainWin* mw )
         main_win_open( mw, file_path, ZOOM_FIT );
         g_free( file_path );
     }
+}
+
+gboolean on_button_press( GtkWidget* widget, GdkEventButton* evt, MainWin* mw )
+{
+    if( ! GTK_WIDGET_HAS_FOCUS( widget ) )
+        gtk_widget_grab_focus( widget );
+
+    if( evt->type == GDK_BUTTON_PRESS)
+    {
+        if( evt->button == 3 )   // right button
+        {
+            show_popup_menu( mw, evt );
+        }
+    }
+    else if( evt->type == GDK_2BUTTON_PRESS && evt->button == 1 )    // double clicked
+    {
+         on_full_screen( NULL, mw );
+    }
+    return FALSE;
 }
 
 /* zoom **********************/
@@ -904,4 +928,102 @@ gboolean on_key_press_event(GtkWidget* widget, GdkEventKey * key)
     return FALSE;
 }
 
+void show_popup_menu( MainWin* mw, GdkEventButton* evt )
+{
+    static PtkMenuItemEntry menu_def[] =
+    {
+        PTK_IMG_MENU_ITEM( N_( "Previous" ), GTK_STOCK_GO_BACK, on_prev, GDK_leftarrow, 0 ),
+        PTK_IMG_MENU_ITEM( N_( "Next" ), GTK_STOCK_GO_FORWARD, on_next, GDK_rightarrow, 0 ),
+        PTK_SEPARATOR_MENU_ITEM,
+        PTK_IMG_MENU_ITEM( N_( "Zoom Out" ), GTK_STOCK_ZOOM_OUT, zoom_out, GDK_minus, 0 ),
+        PTK_IMG_MENU_ITEM( N_( "Zoom In" ), GTK_STOCK_ZOOM_IN, zoom_in, GDK_plus, 0 ),
+	    PTK_IMG_MENU_ITEM( N_( "Fit Image To Window Size" ), GTK_STOCK_ZOOM_FIT, fit, GDK_F, 0 ),
+        PTK_IMG_MENU_ITEM( N_( "Original Size" ), GTK_STOCK_ZOOM_100, normal_size, GDK_G, 0 ),
+		PTK_IMG_MENU_ITEM( N_( "Full Screen" ), GTK_STOCK_FULLSCREEN, on_full_screen, GDK_F11, 0 ),
+		PTK_IMG_MENU_ITEM( N_( "Slide show" ), GTK_STOCK_DND_MULTIPLE, start_slideshow, GDK_F12, 0 ),
+        PTK_SEPARATOR_MENU_ITEM,
+		PTK_IMG_MENU_ITEM( N_( "Rotate Counterclockwise" ), "object-rotate-left", rotate_ccw, GDK_L, 0 ),
+        PTK_IMG_MENU_ITEM( N_( "Rotate Clockwise" ), "object-rotate-right", rotate_cw, GDK_R, 0 ),
+        PTK_IMG_MENU_ITEM( N_( "Flip Horizontal" ), "object-flip-horizontal", flip_h, GDK_H, 0 ),
+        PTK_IMG_MENU_ITEM( N_( "Flip Vertical" ), "object-flip-vertical", flip_v, GDK_V, 0 ),
+		PTK_SEPARATOR_MENU_ITEM,
+		PTK_IMG_MENU_ITEM( N_("Open File"), GTK_STOCK_OPEN, G_CALLBACK(on_open), GDK_O, 0 ),
+        PTK_IMG_MENU_ITEM( N_("Save File"), GTK_STOCK_SAVE, G_CALLBACK(on_save), GDK_S, 0 ),
+        PTK_IMG_MENU_ITEM( N_("Save As"), GTK_STOCK_SAVE_AS, G_CALLBACK(on_save_as), GDK_A, 0 ),
+		PTK_IMG_MENU_ITEM( N_("Delete File"), GTK_STOCK_DELETE, G_CALLBACK(on_delete), GDK_Delete, 0 ),
+        PTK_SEPARATOR_MENU_ITEM,
+		PTK_IMG_MENU_ITEM( N_("Preferences"), GTK_STOCK_PREFERENCES, G_CALLBACK(on_preference), GDK_P, 0 ),
+        PTK_STOCK_MENU_ITEM( GTK_STOCK_ABOUT, on_about ),
+        PTK_SEPARATOR_MENU_ITEM,
+        PTK_IMG_MENU_ITEM( N_("Quit"), GTK_STOCK_QUIT, G_CALLBACK(gtk_main_quit), GDK_Q, 0 ),
+        PTK_MENU_END
+		
+    };
+	
+    // mw accel group is useless. It's only used to display accels in popup menu
+    GtkAccelGroup* accel_group = gtk_accel_group_new();
+    GtkMenuShell* popup = (GtkMenuShell*)ptk_menu_new_from_data( menu_def, mw, accel_group );
+
+    gtk_widget_show_all( (GtkWidget*)popup );
+    g_signal_connect( popup, "selection-done", G_CALLBACK(gtk_widget_destroy), NULL );
+    gtk_menu_popup( (GtkMenu*)popup, NULL, NULL, NULL, NULL, evt->button, evt->time );
+}
+
+void on_about( GtkWidget* menu, MainWin* mw )
+{
+    GtkWidget * about_dlg;
+    const gchar *authors[] =
+    {
+        "洪任諭 Hong Jen Yee <pcman.tw@gmail.com>",
+        "Martin Siggel <martinsiggel@googlemail.com>",
+        "Hialan Liu <hialan.liu@gmail.com>",
+        "Marty Jack <martyj19@comcast.net>",
+        "Louis Casillas <oxaric@gmail.com>",
+		"Kuleshov Alexander <kuleshovmail@gmail.com>",
+        _(" * Refer to source code of EOG image viewer and GThumb"),
+        NULL
+    };
+    /* TRANSLATORS: Replace this string with your names, one name per line. */
+    gchar *translators = _( "translator-credits" );
+
+    gtk_about_dialog_set_url_hook( open_url, mw, NULL);
+
+    about_dlg = gtk_about_dialog_new ();
+
+    gtk_container_set_border_width ( ( GtkContainer*)about_dlg , 2 );
+    gtk_about_dialog_set_version ( (GtkAboutDialog*)about_dlg, VERSION );
+    gtk_about_dialog_set_name ( (GtkAboutDialog*)about_dlg, _( "GPicView" ) );
+    gtk_about_dialog_set_logo( (GtkAboutDialog*)about_dlg, gdk_pixbuf_new_from_file(  PACKAGE_DATA_DIR"/pixmaps/gpicview.png", NULL ) );
+    gtk_about_dialog_set_copyright ( (GtkAboutDialog*)about_dlg, _( "Copyright (C) 2007 - 2009" ) );
+    gtk_about_dialog_set_comments ( (GtkAboutDialog*)about_dlg, _( "Lightweight image viewer from LXDE project" ) );
+    gtk_about_dialog_set_license ( (GtkAboutDialog*)about_dlg, "GPicView\n\nCopyright (C) 2007 Hong Jen Yee (PCMan)\n\nThis program is free software; you can redistribute it and/or\nmodify it under the terms of the GNU General Public License\nas published by the Free Software Foundation; either version 2\nof the License, or (at your option) any later version.\n\nThis program is distributed in the hope that it will be useful,\nbut WITHOUT ANY WARRANTY; without even the implied warranty of\nMERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\nGNU General Public License for more details.\n\nYou should have received a copy of the GNU General Public License\nalong with this program; if not, write to the Free Software\nFoundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA." );
+    gtk_about_dialog_set_website ( (GtkAboutDialog*)about_dlg, "http://wiki.lxde.org/en/GPicView" );
+    gtk_about_dialog_set_authors ( (GtkAboutDialog*)about_dlg, authors );
+    gtk_about_dialog_set_translator_credits ( (GtkAboutDialog*)about_dlg, translators );
+    gtk_window_set_transient_for( (GtkWindow*) about_dlg, GTK_WINDOW( mw ) );
+
+    gtk_dialog_run( ( GtkDialog*)about_dlg );
+    gtk_widget_destroy( about_dlg );
+}
+
+static void open_url( GtkAboutDialog *dlg, const gchar *url, gpointer data)
+{
+    /* FIXME: is there any better way to do this? */
+    char* programs[] = { "xdg-open", "gnome-open", "exo-open" };
+    int i;
+    for(  i = 0; i < G_N_ELEMENTS(programs); ++i)
+    {
+        gchar* open_cmd = NULL;
+        if( (open_cmd = g_find_program_in_path( programs[i] )) )
+        {
+             char* argv [3];
+             argv [0] = programs[i];
+             argv [1] = (gchar *) url;
+             argv [2] = NULL;
+             g_spawn_async (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, NULL);
+             g_free( open_cmd );
+             break;
+        }
+    }
+}
 //=========================================================
