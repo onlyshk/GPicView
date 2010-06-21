@@ -18,6 +18,11 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
+/*
+* Scale pix from pcmanfm/libfm/thumbnail.c
+* Copyright 2010 Hong Jen Yee (PCMan) <pcman.tw@gmail.com>s
+*/
+
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
@@ -59,31 +64,23 @@ static GtkTargetEntry drop_targets[] =
     {"text/plain", 0, 1}
 };
 
-typedef struct _Param
-{
-  GtkWidget* btn;
-  MainWin*   mw;
-}Param;
-
 static void main_win_init( MainWin*mw );
 static void main_win_finalize( GObject* obj );
-
 static void on_prev( GtkWidget* btn, MainWin* mw );
 static void on_next( GtkWidget* btn, MainWin* mw );
-static void zoom_in();
-static void zoom_out();
+static void zoom_in(GtkWidget* widget, MainWin* mw);
+static void zoom_out(GtkWidget* widget, MainWin* mw);
+static void fit(GtkWidget* widget, MainWin* mw);
+static void normal_size(GtkWidget* widget, MainWin* mw);
 static void next_for_slide_show( MainWin* mw );
-static void fit();
-static void normal_size();
 static void rotate_pixbuf(MainWin *mw, GdkPixbufRotation angle);
 static void flip_pixbuf(MainWin *mw, gboolean horizontal);
-static void rotate_cw(MainWin *mw);
-static void rotate_ccw(MainWin *mw);
-static void flip_v(MainWin *mw);
-static void flip_h(MainWin *mw);
+static void rotate_cw(GtkWidget* widget, MainWin *mw);
+static void rotate_ccw(GtkWidget* widget, MainWin *mw);
+static void flip_v(GtkWidget* widget, MainWin *mw);
+static void flip_h(GtkWidget* widget, MainWin *mw);
 static void open_dialog (MainWin* mw);
 static void on_about( GtkWidget* menu, MainWin* mw );
-
 static void show_popup_menu( MainWin* mw, GdkEventButton* evt );
 
 /* signal handlers */
@@ -102,10 +99,11 @@ static void on_save( GtkWidget* btn, MainWin* mw );
 static void on_open( GtkWidget* btn, MainWin* mw );
 static void on_delete( GtkWidget* btn, MainWin* mw );
 static void update_title(const char *filename, MainWin *mw );
-static void on_preference(MainWin* mw);
+static void on_preference(GtkWidget* widget, MainWin* mw);
 static void show_popup_menu( MainWin* mw, GdkEventButton* evt );
 static void open_url( GtkAboutDialog *dlg, const gchar *url, gpointer data);
 static gboolean on_button_press( GtkWidget* widget, GdkEventButton* evt, MainWin* mw );
+static void thumbnail_selected(GtkWidget* widget, MainWin* mw);
 
 // Begin of GObject-related stuff
 
@@ -249,14 +247,27 @@ void main_win_init( MainWin*mw )
 	gtk_window_set_position((GtkWindow*)mw, GTK_WIN_POS_CENTER);
 
 	mw->box = gtk_vbox_new(FALSE, 0);
-	mw->img_box = gtk_vbox_new(FALSE, 0);
+	mw->img_box =   gtk_hpaned_new ();
     mw->thumb_box = gtk_vbox_new (FALSE,0);
 	
-	mw->scroll = GTK_IMAGE_SCROLL_WIN (gtk_image_scroll_win_new (aview));
-	gtk_box_pack_start(GTK_BOX(mw->box), mw->img_box, TRUE, TRUE,0);
-	gtk_box_pack_start(GTK_BOX(mw->img_box),mw->scroll,TRUE,TRUE,0);
-	gtk_box_pack_start(GTK_BOX(mw->box), gtk_hseparator_new(), FALSE, TRUE,0);
+    mw->model = gtk_list_store_new(NUM_COLS, G_TYPE_STRING, GDK_TYPE_PIXBUF);
+	mw->view = gtk_icon_view_new_with_model( GTK_TREE_MODEL(mw->model));
+	
+	mw->thumbnail_scroll = gtk_scrolled_window_new (NULL, NULL);
+	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (mw->thumbnail_scroll),GTK_POLICY_AUTOMATIC, 
+                                    GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (mw->thumbnail_scroll), GTK_SHADOW_IN);
 
+	gtk_paned_add1(GTK_PANED(mw->img_box),mw->thumbnail_scroll);
+	gtk_scrolled_window_add_with_viewport(mw->thumbnail_scroll,mw->view);
+	gtk_paned_add2(GTK_PANED(mw->img_box),aview);	
+	
+	mw->scroll = GTK_IMAGE_SCROLL_WIN (gtk_image_scroll_win_new (aview));
+	
+	gtk_box_pack_start(GTK_BOX(mw->box), mw->img_box, TRUE, TRUE,0);
+    gtk_box_pack_start(GTK_BOX(mw->img_box), mw->thumbnail_scroll, TRUE, TRUE,0);
+	gtk_box_pack_start(GTK_BOX(mw->img_box),mw->scroll,TRUE,TRUE,0);
+	
 	//gtkuimanager
 	actions = gtk_action_group_new ("Actions");
 	rotation_actions = gtk_action_group_new("Rotate_Actions");
@@ -281,6 +292,7 @@ void main_win_init( MainWin*mw )
 	//end gtuimanager 
 	
 	g_signal_connect( mw->box, "button-press-event", G_CALLBACK(on_button_press), mw );
+	g_signal_connect(mw->view,"selection-changed",G_CALLBACK(thumbnail_selected),mw);
     
 	gtk_container_add(mw, mw->box);
     gtk_widget_show_all( mw->box );
@@ -290,6 +302,13 @@ gboolean on_delete_event( GtkWidget* widget, GdkEventAny* evt )
 {
     gtk_widget_destroy( widget );
     return TRUE;
+}
+
+void thumbnail_selected(GtkWidget* widget, MainWin* mw)
+{
+   GList* a = gtk_icon_view_get_selected_items(mw->view);
+  printf( a->data);
+ //  main_win_open(mw,"a->data",ZOOM_FIT);
 }
 
 static void update_title(const char *filename, MainWin *mw )
@@ -328,7 +347,7 @@ gboolean main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom )
 	gboolean res;
 	guchar buffer[LOAD_BUFFER_SIZE];
 	
-	input_stream = g_file_read(file,generator_cancellable ,NULL);
+	input_stream = g_file_read(file, generator_cancellable , NULL);
 	
 	res = TRUE;
 	while (1){
@@ -337,6 +356,8 @@ gboolean main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom )
 		if (n_read < 0) {
                         res = FALSE;
                         error = NULL; 
+			            gdk_pixbuf_loader_close(loader,NULL);
+			            g_input_stream_close(input_stream,NULL,NULL);  
                         break;
                 }
 	
@@ -345,6 +366,8 @@ gboolean main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom )
 	
 	if (!gdk_pixbuf_loader_write(loader, buffer, sizeof(buffer), error)){
 	   res = FALSE;
+	   g_input_stream_close(input_stream,NULL,NULL);
+	   gdk_pixbuf_loader_close(loader,NULL);
        break;
 	   }
 	}
@@ -355,6 +378,8 @@ gboolean main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom )
 		gtk_action_group_set_sensitive(rotation_actions, FALSE);
 	  else
 		gtk_action_group_set_sensitive(rotation_actions, TRUE);
+		
+		gtk_list_store_clear(mw->model);
         		
 		animation = gdk_pixbuf_loader_get_animation((loader));
 	    gtk_anim_view_set_anim (aview,animation);	
@@ -370,10 +395,36 @@ gboolean main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom )
 
         char* disp_name = g_filename_display_name( base_name );
 		update_title( disp_name, mw );
+		
+		//Build thumbnails
+		GtkTreeIter iter;
+		int i = 0;
+		
+		for (i; i < g_list_length(mw->img_list) - 1; ++i)
+		{			  
+		  char* file = image_list_get_current_file_path( mw->img_list );	
+			
+		  mw->p1 = gdk_pixbuf_new_from_file(file,NULL);
+		  mw->p1 = scale_pix(mw->p1,64);
+		  
+		  gtk_list_store_append(mw->model, &iter);
+          gtk_list_store_set(mw->model, &iter, COL_DISPLAY_NAME, image_list_get_current(mw->img_list), COL_PIXBUF, mw->p1, -1);   
+			
+		  if (!mw->img_list->current->next )
+							   image_list_get_first(mw->img_list);
+
+		  else
+		      image_list_get_next(mw->img_list);
+		}
+		
+		gtk_icon_view_set_text_column(GTK_ICON_VIEW(mw->view),0);
+        gtk_icon_view_set_pixbuf_column(GTK_ICON_VIEW(mw->view), 1);
+        gtk_icon_view_set_selection_mode(GTK_ICON_VIEW(mw->view), GTK_SELECTION_SINGLE);
 
         g_free( base_name );
         g_free( disp_name );	
-		
+
+		g_input_stream_close(input_stream,NULL,NULL);
 		gdk_pixbuf_loader_close(loader,NULL);
 	}
     else
@@ -490,7 +541,7 @@ gboolean on_button_press( GtkWidget* widget, GdkEventButton* evt, MainWin* mw )
             show_popup_menu( mw, evt );
         }
     }
-    else if( evt->type == GDK_2BUTTON_PRESS && evt->button == 1 )    // double clicked
+    else if( evt->type == GDK_2BUTTON_PRESS && evt->button == 1 )  
     {
          on_full_screen( NULL, mw );
     }
@@ -498,24 +549,41 @@ gboolean on_button_press( GtkWidget* widget, GdkEventButton* evt, MainWin* mw )
 }
 
 /* zoom **********************/
-void zoom_out()
-{
+void zoom_out(GtkWidget* widget, MainWin* mw)
+{ 
+  mw->scale -= 0.03;
+  update_title(NULL,mw);
   gtk_image_view_zoom_out(aview);
 }
 
-void zoom_in()
+void zoom_in(GtkWidget* widget, MainWin* mw)
 {
   gtk_image_view_zoom_in(aview);
+  mw->scale += 0.03;
+  update_title(NULL,mw);
 }
 
-void fit()
+void fit(GtkWidget* widget, MainWin* mw)
 {
+  int height, width;
+  int orig_w = gdk_pixbuf_get_width(gtk_image_view_get_pixbuf(GTK_IMAGE_VIEW(aview)));
+  int orig_h = gdk_pixbuf_get_height(gtk_image_view_get_pixbuf(GTK_IMAGE_VIEW(aview)));
+	
+  gdouble xscale = ((gdouble)width) / orig_w;
+  gdouble yscale = ((gdouble)height)/ orig_h;
+  gdouble final_scale = xscale < yscale ? xscale : yscale;
+  
+  mw->scale = final_scale;
+	
   gtk_image_view_set_fitting(aview, TRUE);
+  update_title (NULL,mw);
 }
 
-void normal_size()
+void normal_size(GtkWidget* widget, MainWin* mw)
 {
   gtk_image_view_set_zoom((aview), 1);
+  mw->scale = 1.0;
+  update_title (NULL,mw);
 }
 /* end zoom *****************/
 
@@ -604,25 +672,25 @@ flip_pixbuf(MainWin *mw, gboolean horizontal)
 }
 
 void
-rotate_ccw(MainWin *mw)
+rotate_ccw(GtkWidget* widget, MainWin *mw)
 {
   	rotate_pixbuf(mw ,GDK_PIXBUF_ROTATE_COUNTERCLOCKWISE);
 }
 
-static void
-rotate_cw(MainWin *mw)
+void
+rotate_cw(GtkWidget* widget, MainWin *mw)
 {
 	rotate_pixbuf(mw ,GDK_PIXBUF_ROTATE_CLOCKWISE);
 }
 
-static void
-flip_v(MainWin *mw)
+void
+flip_v(GtkWidget* widget, MainWin *mw)
 {
   flip_pixbuf(mw,FALSE);
 }
 
-static void
-flip_h(MainWin * mw)
+void
+flip_h(GtkWidget* widget ,MainWin * mw)
 {
 	flip_pixbuf(mw,TRUE);
 }
@@ -750,7 +818,7 @@ gboolean main_win_save( MainWin* mw, const char* file_path, const char* type, gb
 
 void on_save_as( GtkWidget* btn, MainWin* mw )
 {
-   if( !mw->img_list )
+   if(image_list_is_empty(mw->img_list))
        return;
 	
     char *file, *type;
@@ -784,6 +852,9 @@ void on_save_as( GtkWidget* btn, MainWin* mw )
 
 void on_save( GtkWidget* btn, MainWin* mw )
 {
+	if(image_list_is_empty(mw->img_list))
+       return;
+	
     char* file_name = g_build_filename( image_list_get_dir( mw->img_list ),
                                         image_list_get_current( mw->img_list ), NULL );
     GdkPixbufFormat* info;
@@ -817,9 +888,9 @@ void on_save( GtkWidget* btn, MainWin* mw )
     g_free( type );
 }
 
-static void on_preference(MainWin* mw)
+static void on_preference(GtkWidget* widget, MainWin* mw)
 {
-   edit_preferences(mw);
+   edit_preferences(widget,mw);
 }
 
 gboolean on_key_press_event(GtkWidget* widget, GdkEventKey * key)
@@ -861,11 +932,11 @@ gboolean on_key_press_event(GtkWidget* widget, GdkEventKey * key)
         case GDK_KP_Add:
         case GDK_plus:
         case GDK_equal:
-            zoom_in( mw );
+            zoom_in(NULL, mw );
             break;
         case GDK_KP_Subtract:
         case GDK_minus:
-            zoom_out( mw );
+            zoom_out(NULL, mw );
             break;
         case GDK_s:
         case GDK_S:
@@ -877,23 +948,23 @@ gboolean on_key_press_event(GtkWidget* widget, GdkEventKey * key)
             break;
         case GDK_l:
         case GDK_L:
-            rotate_ccw( mw );
+            rotate_ccw(NULL, mw );
             break;
         case GDK_r:
         case GDK_R:
-            rotate_cw( mw );
+            rotate_cw(NULL, mw );
             break;
         case GDK_f:
         case GDK_F:
-            fit(mw);
+            fit(NULL,mw);
             break;
         case GDK_h:
         case GDK_H:
-            flip_h( mw );
+            flip_h(NULL, mw );
             break;
         case GDK_v:
         case GDK_V:
-            flip_v( mw );
+            flip_v(NULL, mw );
             break;
         case GDK_o:
         case GDK_O:
@@ -906,7 +977,7 @@ gboolean on_key_press_event(GtkWidget* widget, GdkEventKey * key)
             break;
         case GDK_p:
         case GDK_P:
-            on_preference( mw );
+            on_preference(NULL,mw );
 	    break;
         case GDK_Escape:
             if( mw->full_screen )

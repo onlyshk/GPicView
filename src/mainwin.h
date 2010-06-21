@@ -50,6 +50,13 @@ typedef enum
      ZOOM_SCALE
 } ZoomMode;
 
+enum 
+{ 
+  COL_DISPLAY_NAME, 
+  COL_PIXBUF, 
+  NUM_COLS 
+};
+
 typedef struct _MainWinClass
 {
     GtkWindowClass parent_class;
@@ -64,7 +71,6 @@ typedef struct _MainWin
     GtkUIManager *uimanager;
 	GtkAccelGroup *accels;
 	GtkWidget*  img_box;
-	GtkWidget* thumb_box;
 	gint max_width;
     gint max_height;
 	gint current_image_height;
@@ -76,6 +82,15 @@ typedef struct _MainWin
 	gint ss_timeout;
 	double scale;
 	ImageList* img_list;
+	
+	//Thumbnail
+	GtkIconView*  view;
+    GtkWidget* thumb_box;
+	GtkWidget* thumbnail_scroll;
+	GtkListStore* model;
+	GtkTreeIter* iter;
+	GdkPixbuf *p1;
+	GtkVPaned *box1;
 } MainWin;
 
 GtkWidget* main_win_new();

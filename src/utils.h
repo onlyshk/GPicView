@@ -49,4 +49,41 @@ gtk_anim_view_set_static (GtkAnimView *aview, GdkPixbuf * pixbuf)
     g_object_unref(pixbuf);
 }
 
+GdkPixbuf* scale_pix(GdkPixbuf* ori_pix, int size)
+  {
+      GdkPixbuf* scaled_pix;
+      int width = gdk_pixbuf_get_width(ori_pix);
+      int height = gdk_pixbuf_get_height(ori_pix);
+      int new_width;
+      int new_height;
+  
+      if(width > height)
+      {
+          gdouble aspect = (gdouble)height / width;
+          new_width = size;
+          new_height = size * aspect;
+      }
+      else if(width < height)
+      {
+          gdouble aspect = (gdouble)width / height;
+          new_height = size;
+          new_width = size * aspect;
+      }
+      else
+      {
+          new_width = new_height = size;
+      }
+  
+      if((new_width == width && new_height == height) ||
+         (size > width && size > height )) /* don't scale up */
+      {
+          /* if size is not changed or original size is smaller, use original size. */
+          scaled_pix = (GdkPixbuf*)g_object_ref(ori_pix);
+      }
+      else
+         scaled_pix = gdk_pixbuf_scale_simple(ori_pix, new_width, new_height, GDK_INTERP_BILINEAR);
+  
+      return scaled_pix;
+  }
+
 #endif

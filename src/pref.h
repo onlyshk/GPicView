@@ -42,7 +42,7 @@ extern Pref pref; /* global variable holding user prerefences */
 
 void load_preferences(); /* load user preferences */
 void save_preferences(); /* save user preference s*/
-void edit_preferences( GtkWindow* parent );
+void edit_preferences(GtkWidget* widget, GtkWindow* parent );
 
 G_END_DECLS
 

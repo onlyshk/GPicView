@@ -182,7 +182,7 @@ static void on_set_bg_full( GtkColorButton* btn, gpointer user_data )
     }
 }
 
-void edit_preferences( GtkWindow* parent )
+void edit_preferences(GtkWidget* widget, GtkWindow* parent )
 {
     GtkWidget *auto_save_btn, *ask_before_save_btn, *set_default_btn,
               *rotate_exif_only_btn, *ask_before_del_btn, *bg_btn, *bg_full_btn;
