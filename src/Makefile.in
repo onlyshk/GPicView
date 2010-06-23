@@ -50,7 +50,7 @@ am_gpicview_OBJECTS = gpicview-gpicview.$(OBJEXT) $(am__objects_1) \
 	gpicview-file-dlgs.$(OBJEXT) gpicview-pref.$(OBJEXT) \
 	gpicview-jhead.$(OBJEXT) gpicview-exif.$(OBJEXT) \
 	gpicview-jpegfile.$(OBJEXT) gpicview-jpeg-tran.$(OBJEXT) \
-	gpicview-tran-supp.$(OBJEXT) gpicview-ptk-menu.$(OBJEXT)
+	gpicview-tran-supp.$(OBJEXT) gpicview-ptk-menu.$(OBJEXT) 
 gpicview_OBJECTS = $(am_gpicview_OBJECTS)
 am__DEPENDENCIES_1 =
 gpicview_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
@@ -233,7 +233,7 @@ gpicview_SOURCES = \
 	tran-supp.h   \
 	tran-supp.c   \
 	ptk-menu.c   \
-	ptk-menu.h  
+	ptk-menu.h   
 
 gpicview_CFLAGS = \
 	$(GTK_CFLAGS) \

@@ -18,6 +18,11 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
+/*
+* Scale pix from pcmanfm/libfm/thumbnail.c
+* Copyright 2010 Hong Jen Yee (PCMan) <pcman.tw@gmail.com>s
+*/
+
 #ifndef UTILS_H
 #define UTILS_H
 

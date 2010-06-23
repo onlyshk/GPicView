@@ -52,9 +52,9 @@ typedef enum
 
 enum 
 { 
-  COL_DISPLAY_NAME, 
+  COL_DISPLAY_NAME , 
   COL_PIXBUF, 
-  NUM_COLS 
+  NUM_COLS  
 };
 
 typedef struct _MainWinClass
@@ -83,14 +83,22 @@ typedef struct _MainWin
 	double scale;
 	ImageList* img_list;
 	
+	 GdkPixbufAnimation* animation;
+     GdkPixbufLoader* loader;
+	
 	//Thumbnail
 	GtkIconView*  view;
+	ImageList* thmb_list;
+	GtkIconView*  view1;
     GtkWidget* thumb_box;
 	GtkWidget* thumbnail_scroll;
 	GtkListStore* model;
+	GtkListStore* model1;
 	GtkTreeIter* iter;
 	GdkPixbuf *p1;
 	GtkVPaned *box1;
+	GList     *displaing_thumbnail_list;
+	gint      prev_pos;
 } MainWin;
 
 GtkWidget* main_win_new();

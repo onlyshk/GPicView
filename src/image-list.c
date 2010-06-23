@@ -190,8 +190,7 @@ char* image_list_get_first_file_path( ImageList* il)
     const char* name;
 	if( il->dir_path && (name = image_list_get_first( il )) )
         return g_build_filename( il->dir_path, name, NULL );
-    return NULL;
-	
+    return NULL;	
 }
 
 static int comp_by_name( char* name1, char* name2, GtkSortType type )
