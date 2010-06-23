@@ -99,6 +99,7 @@ typedef struct _MainWin
 	GtkVPaned *box1;
 	GList     *displaing_thumbnail_list;
 	gint      prev_pos;
+	gboolean  thumb_bar_hide;
 } MainWin;
 
 GtkWidget* main_win_new();
