@@ -43,7 +43,7 @@
 
 #define LOAD_BUFFER_SIZE 65536 
 
-static GtkAnimView* aview;
+
 static GCancellable* generator_cancellable = NULL;
 static GtkActionGroup *actions;
 static GtkActionGroup *rotation_actions;
@@ -94,6 +94,7 @@ static gboolean on_button_press( GtkWidget* widget, GdkEventButton* evt, MainWin
 static void thumbnail_selected(GtkWidget* widget, MainWin* mw);
 static void build_thumbnails(GtkWidget* widget, MainWin* mw);
 static void loading(GtkWidget * widget, const char* file_path, MainWin* mw);
+static void on_rotate_auto_save( GtkWidget* btn, MainWin* mw );
 
 /* signal handlers */
 static gboolean on_delete_event( GtkWidget* widget, GdkEventAny* evt );
@@ -232,7 +233,7 @@ void main_win_init( MainWin*mw )
 {	
 	GError* error;
 		
-	aview  =    GTK_IMAGE_VIEW(gtk_anim_view_new());
+	mw->aview  =    GTK_IMAGE_VIEW(gtk_anim_view_new());
 	mw->img_list = image_list_new();
 	mw->thumb_bar_hide = TRUE;
 	
@@ -252,7 +253,7 @@ void main_win_init( MainWin*mw )
                                     GTK_POLICY_AUTOMATIC);
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (mw->thumbnail_scroll), GTK_SHADOW_IN);
 
-	mw->scroll = GTK_IMAGE_SCROLL_WIN (gtk_image_scroll_win_new (aview));
+	mw->scroll = GTK_IMAGE_SCROLL_WIN (gtk_image_scroll_win_new (mw->aview));
 	gtk_paned_add1(GTK_PANED(mw->img_box),mw->thumbnail_scroll);
 	gtk_scrolled_window_add_with_viewport(mw->thumbnail_scroll,mw->view);
 	gtk_paned_add2(GTK_PANED(mw->img_box),mw->scroll);	
@@ -312,8 +313,8 @@ static void update_title(const char *filename, MainWin *mw )
       strncpy(fname, filename, 49);
       fname[49] = '\0';
 
-	  wid = gdk_pixbuf_get_width(  gtk_image_view_get_pixbuf (GTK_IMAGE_VIEW(aview)) );
-      hei = gdk_pixbuf_get_height( gtk_image_view_get_pixbuf ( GTK_IMAGE_VIEW(aview)) );
+	  wid = gdk_pixbuf_get_width(  gtk_image_view_get_pixbuf (GTK_IMAGE_VIEW(mw->aview)) );
+      hei = gdk_pixbuf_get_height( gtk_image_view_get_pixbuf ( GTK_IMAGE_VIEW(mw->aview)) );
     }
     snprintf(buf, 100, "%s (%dx%d)", fname, wid, hei);
     gtk_window_set_title( (GtkWindow*)mw, buf );
@@ -323,8 +324,10 @@ static void update_title(const char *filename, MainWin *mw )
 gboolean main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom )
 {        	
 	list= NULL;
-	
+
 	GError *error;
+	
+	GThread* thread;
 	
 	loading(NULL, file_path, mw);
 
@@ -338,9 +341,15 @@ gboolean main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom )
     char* disp_name = g_filename_display_name( base_name );
 	
 	update_title( disp_name, mw );
-				
-	build_thumbnails(NULL, mw);
-		
+	
+	//g_io_scheduler_job_send_to_mainloop_async (mw->job,gtk_main_quit,NULL,
+	//					                       g_free);
+	
+	//g_io_scheduler_push_job(build_thumbnails,&p,NULL,G_PRIORITY_HIGH,generator_cancellable);
+	
+	build_thumbnails(NULL,mw);
+	
+	
 	g_free( dir_path );
     g_free( base_name );
     g_free( disp_name );	
@@ -392,7 +401,7 @@ void loading(GtkWidget *widget, const char* file_path, MainWin* mw)
 		gtk_action_group_set_sensitive(rotation_actions, TRUE);
         		
 		mw->animation = gdk_pixbuf_loader_get_animation((mw->loader));
-	    gtk_anim_view_set_anim (aview,mw->animation);	
+	    gtk_anim_view_set_anim (mw->aview,mw->animation);	
 		
 		update_title(g_file_get_basename(file),mw);
 	}
@@ -461,13 +470,21 @@ gboolean on_win_state_event( GtkWidget* widget, GdkEventWindowState* state )
     if( state->new_window_state == GDK_WINDOW_STATE_FULLSCREEN )
     {
         mw->full_screen = TRUE;
-		gtk_paned_set_position(mw->img_box,0);
+		gtk_widget_modify_bg( mw->aview, GTK_STATE_NORMAL, &pref.bg_full );
+		gtk_widget_hide(gtk_paned_get_child1(mw->img_box));
     }
     else
     {
         mw->full_screen = FALSE;
-		gtk_paned_set_position(mw->img_box,170);
+		gtk_widget_modify_bg( mw->aview, GTK_STATE_NORMAL, &pref.bg );
+		gtk_widget_show(gtk_paned_get_child1(mw->img_box));
     }
+	
+	int previous = pref.open_maximized;
+    pref.open_maximized = (state->new_window_state == GDK_WINDOW_STATE_MAXIMIZED);
+    if (previous != pref.open_maximized)
+        save_preferences();
+	
     return TRUE;
 }
 
@@ -504,6 +521,12 @@ void on_next( GtkWidget* bnt, MainWin* mw )
 	    loading(NULL,file_path,mw);
         g_free( file_path );
     }
+}
+
+void on_rotate_auto_save( GtkWidget* btn, MainWin* mw )
+{
+    if(pref.auto_save_rotated)
+        on_save(btn,mw);
 }
 
 void next_for_slide_show( MainWin* mw )
@@ -544,22 +567,22 @@ gboolean on_button_press( GtkWidget* widget, GdkEventButton* evt, MainWin* mw )
 /* zoom **********************/
 void zoom_out(GtkWidget* widget, MainWin* mw)
 { 
-  gtk_image_view_zoom_out(aview);
+  gtk_image_view_zoom_out(mw->aview);
 }
 
 void zoom_in(GtkWidget* widget, MainWin* mw)
 {
-  gtk_image_view_zoom_in(aview);
+  gtk_image_view_zoom_in(mw->aview);
 }
 
 void fit(GtkWidget* widget, MainWin* mw)
 {	
-  gtk_image_view_set_fitting(aview, TRUE);
+  gtk_image_view_set_fitting(mw->aview, TRUE);
 }
 
 void normal_size(GtkWidget* widget, MainWin* mw)
 {
-  gtk_image_view_set_zoom((aview), 1);
+  gtk_image_view_set_zoom((mw->aview), 1);
   mw->scale = 1.0;
   update_title (NULL,mw);
 }
@@ -622,12 +645,12 @@ rotate_pixbuf(MainWin *mw, GdkPixbufRotation angle)
 	
     GdkPixbuf *result = NULL;
 	gdk_flush();
-	result = gdk_pixbuf_rotate_simple(GTK_IMAGE_VIEW(aview)->pixbuf,angle);
+	result = gdk_pixbuf_rotate_simple(GTK_IMAGE_VIEW(mw->aview)->pixbuf,angle);
 	
 	if(result == NULL)
         return;
 	
-	gtk_anim_view_set_static(GTK_ANIM_VIEW(aview), result);
+	gtk_anim_view_set_static(GTK_ANIM_VIEW(mw->aview), result);
 	
 	g_object_unref(result);
 	
@@ -649,12 +672,12 @@ flip_pixbuf(MainWin *mw, gboolean horizontal)
 	GdkPixbuf *result = NULL;
     gdk_flush();
 	
-	result = gdk_pixbuf_flip(GTK_IMAGE_VIEW(aview)->pixbuf,horizontal);
+	result = gdk_pixbuf_flip(GTK_IMAGE_VIEW(mw->aview)->pixbuf,horizontal);
 	
 	if(result == NULL)
         return;
 	
-	gtk_anim_view_set_static(GTK_ANIM_VIEW(aview), result);
+	gtk_anim_view_set_static(GTK_ANIM_VIEW(mw->aview), result);
 	
 	g_object_unref(result);
 	
@@ -690,7 +713,8 @@ void on_delete( GtkWidget* btn, MainWin* mw )
     char* file_path = image_list_get_current_file_path( mw->img_list );
     if( file_path )
     {
-        int resp = GTK_RESPONSE_YES;
+       int resp = GTK_RESPONSE_YES;
+	
 	if ( pref.ask_before_delete )
 	{
             GtkWidget* dlg = gtk_message_dialog_new( (GtkWindow*)mw,
@@ -701,7 +725,7 @@ void on_delete( GtkWidget* btn, MainWin* mw )
             resp = gtk_dialog_run( (GtkDialog*)dlg );
             gtk_widget_destroy( dlg );
         }
-
+    
 	if( resp == GTK_RESPONSE_YES )
         {
             const char* name = image_list_get_current( mw->img_list );
@@ -711,8 +735,9 @@ void on_delete( GtkWidget* btn, MainWin* mw )
 	    else
 	    {
 		const char* next_name = image_list_get_next( mw->img_list );
+		
 		if( ! next_name )
-		    next_name = image_list_get_prev( mw->img_list );
+		    ;
 
 		if( next_name )
 		{
@@ -725,7 +750,6 @@ void on_delete( GtkWidget* btn, MainWin* mw )
 
 		if ( ! next_name )
 		{
-		    main_win_close( mw );
 		    image_list_close( mw->img_list );
 		    gtk_window_set_title( (GtkWindow*) mw, _("Image Viewer"));
 		}
@@ -753,9 +777,7 @@ gboolean main_win_save( MainWin* mw, const char* file_path, const char* type, gb
     gboolean result1,gdk_save_supported;
     GSList *gdk_formats;
     GSList *gdk_formats_i;
-    if( !aview )
-        return FALSE;
-	
+		
 	/* detect if the current type can be save by gdk_pixbuf_save() */
     gdk_save_supported = FALSE;
     gdk_formats = gdk_pixbuf_get_formats();
@@ -785,18 +807,18 @@ gboolean main_win_save( MainWin* mw, const char* file_path, const char* type, gb
     {
         char tmp[32];
         g_sprintf(tmp, "%d", pref.jpg_quality);
-        result1 = gdk_pixbuf_save( gtk_image_view_get_pixbuf(GTK_IMAGE_VIEW(aview)),
+        result1 = gdk_pixbuf_save( gtk_image_view_get_pixbuf(GTK_IMAGE_VIEW(mw->aview)),
 								  file_path, type, &err, "quality", tmp, NULL );
     }
     else if( strcmp( type, "png" ) == 0 )
     {
         char tmp[32];
         g_sprintf(tmp, "%d", pref.png_compression);
-        result1 = gdk_pixbuf_save( gtk_image_view_get_pixbuf(GTK_IMAGE_VIEW(aview)),
+        result1 = gdk_pixbuf_save( gtk_image_view_get_pixbuf(GTK_IMAGE_VIEW(mw->aview)),
 								  file_path, type, &err, "compression", tmp, NULL );
     }
     else
-        result1 = gdk_pixbuf_save( gtk_image_view_get_pixbuf(GTK_IMAGE_VIEW(aview)),
+        result1 = gdk_pixbuf_save( gtk_image_view_get_pixbuf(GTK_IMAGE_VIEW(mw->aview)),
 								  file_path, type, &err, NULL );
     if( ! result1 )
     {
@@ -813,7 +835,7 @@ void on_save_as( GtkWidget* btn, MainWin* mw )
 	
     char *file, *type;
 
-    if( ! aview )
+    if( ! mw->aview )
         return;
 	
 	file = get_save_filename( GTK_WINDOW(mw), image_list_get_dir(mw->img_list), &type );

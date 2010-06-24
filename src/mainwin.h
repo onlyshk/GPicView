@@ -86,8 +86,9 @@ typedef struct _MainWin
 	ImageList* img_list;
 	guint      rotation_angle;
 	
-	 GdkPixbufAnimation* animation;
-     GdkPixbufLoader* loader;
+	GtkAnimView* aview;
+    GdkPixbufAnimation* animation;
+    GdkPixbufLoader* loader;
 	
 	//Thumbnail
 	GtkIconView*  view;
@@ -105,7 +106,15 @@ typedef struct _MainWin
 	gboolean  thumb_bar_hide;
 	
 	ImageInfo_t ImageInfo;
+	
+	GIOSchedulerJob *job;
 } MainWin;
+
+typedef struct _Param
+{
+   GtkWidget* widget;
+   MainWin*   mw;
+}Param;
 
 GtkWidget* main_win_new();
 
@@ -124,7 +133,6 @@ void main_win_fit_window_size( MainWin* mw, gboolean can_strech, GdkInterpType t
 void main_win_center_image( MainWin* mw );
 
 gboolean main_win_scale_image(  MainWin* mw, double new_scale, GdkInterpType type );
-
 
 GType main_win_get_type();
 

@@ -50,7 +50,8 @@ am_gpicview_OBJECTS = gpicview-gpicview.$(OBJEXT) $(am__objects_1) \
 	gpicview-file-dlgs.$(OBJEXT) gpicview-pref.$(OBJEXT) \
 	gpicview-jhead.$(OBJEXT) gpicview-exif.$(OBJEXT) \
 	gpicview-jpegfile.$(OBJEXT) gpicview-jpeg-tran.$(OBJEXT) \
-	gpicview-tran-supp.$(OBJEXT) gpicview-ptk-menu.$(OBJEXT)
+	gpicview-tran-supp.$(OBJEXT) gpicview-ptk-menu.$(OBJEXT) \
+	gpicview-crop.$(OBJEXT)
 gpicview_OBJECTS = $(am_gpicview_OBJECTS)
 am__DEPENDENCIES_1 =
 gpicview_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
@@ -234,7 +235,9 @@ gpicview_SOURCES = \
 	tran-supp.c   \
 	ptk-menu.c   \
 	ptk-menu.h   \
-	exif.h
+	exif.h   \
+	crop.c   \
+	crop.h
 
 gpicview_CFLAGS = \
 	$(GTK_CFLAGS) \
@@ -321,6 +324,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpicview-crop.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpicview-exif.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpicview-file-dlgs.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpicview-gpicview.Po@am__quote@
@@ -501,6 +505,20 @@ gpicview-ptk-menu.obj: ptk-menu.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='ptk-menu.c' object='gpicview-ptk-menu.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -c -o gpicview-ptk-menu.obj `if test -f 'ptk-menu.c'; then $(CYGPATH_W) 'ptk-menu.c'; else $(CYGPATH_W) '$(srcdir)/ptk-menu.c'; fi`
+
+gpicview-crop.o: crop.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -MT gpicview-crop.o -MD -MP -MF $(DEPDIR)/gpicview-crop.Tpo -c -o gpicview-crop.o `test -f 'crop.c' || echo '$(srcdir)/'`crop.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/gpicview-crop.Tpo $(DEPDIR)/gpicview-crop.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='crop.c' object='gpicview-crop.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -c -o gpicview-crop.o `test -f 'crop.c' || echo '$(srcdir)/'`crop.c
+
+gpicview-crop.obj: crop.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -MT gpicview-crop.obj -MD -MP -MF $(DEPDIR)/gpicview-crop.Tpo -c -o gpicview-crop.obj `if test -f 'crop.c'; then $(CYGPATH_W) 'crop.c'; else $(CYGPATH_W) '$(srcdir)/crop.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/gpicview-crop.Tpo $(DEPDIR)/gpicview-crop.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='crop.c' object='gpicview-crop.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gpicview_CFLAGS) $(CFLAGS) -c -o gpicview-crop.obj `if test -f 'crop.c'; then $(CYGPATH_W) 'crop.c'; else $(CYGPATH_W) '$(srcdir)/crop.c'; fi`
 
 xml_purge-xml-purge.o: $(top_srcdir)/src/xml-purge.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(xml_purge_CFLAGS) $(CFLAGS) -MT xml_purge-xml-purge.o -MD -MP -MF $(DEPDIR)/xml_purge-xml-purge.Tpo -c -o xml_purge-xml-purge.o `test -f '$(top_srcdir)/src/xml-purge.c' || echo '$(srcdir)/'`$(top_srcdir)/src/xml-purge.c
