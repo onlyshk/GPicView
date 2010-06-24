@@ -30,6 +30,8 @@
 #include <gtkimageview/gtkimagescrollwin.h>
 
 #include "image-list.h"
+#include "exif.h"
+#include "jhead.h"
 
 /**
     @author PCMan (Hong Jen Yee) <pcman.tw@gmail.com>
@@ -82,6 +84,7 @@ typedef struct _MainWin
 	gint ss_timeout;
 	double scale;
 	ImageList* img_list;
+	guint      rotation_angle;
 	
 	 GdkPixbufAnimation* animation;
      GdkPixbufLoader* loader;
@@ -100,6 +103,8 @@ typedef struct _MainWin
 	GList     *displaing_thumbnail_list;
 	gint      prev_pos;
 	gboolean  thumb_bar_hide;
+	
+	ImageInfo_t ImageInfo;
 } MainWin;
 
 GtkWidget* main_win_new();

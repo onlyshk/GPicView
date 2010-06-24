@@ -8,7 +8,11 @@
 //--------------------------------------------------------------------------
 // Modified by hialan Liu <hialan.liu@gamil.com>
 //--------------------------------------------------------------------------
+
+#include "exif.h"
 #include "jhead.h"
+
+#include <gtk/gtk.h>
 
 #include <math.h>
 
@@ -31,7 +35,6 @@ typedef struct {
     unsigned short Tag;
     char * Desc;
 }TagTable_t;
-
 
 //--------------------------------------------------------------------------
 // Table of Jpeg encoding process names
