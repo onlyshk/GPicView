@@ -31,7 +31,6 @@
 
 #include "image-list.h"
 #include "exif.h"
-#include "jhead.h"
 
 /**
     @author PCMan (Hong Jen Yee) <pcman.tw@gmail.com>
@@ -69,7 +68,6 @@ typedef struct _MainWin
     GtkWindow parent;
 	GtkWidget* scroll;
 	GtkWidget* box;
-	GtkWidget *toolbar;
     GtkUIManager *uimanager;
 	GtkAccelGroup *accels;
 	GtkWidget*  img_box;
@@ -104,17 +102,14 @@ typedef struct _MainWin
 	GList     *displaing_thumbnail_list;
 	gint      prev_pos;
 	gboolean  thumb_bar_hide;
-	
-	ImageInfo_t ImageInfo;
-	
-	GIOSchedulerJob *job;
+
 } MainWin;
 
-typedef struct _Param
+typedef struct _JobParam
 {
-   GtkWidget* widget;
-   MainWin*   mw;
-}Param;
+  GtkWidget* widget;
+  struct MainWin  *mw;
+}JobParam;
 
 GtkWidget* main_win_new();
 
@@ -133,6 +128,8 @@ void main_win_fit_window_size( MainWin* mw, gboolean can_strech, GdkInterpType t
 void main_win_center_image( MainWin* mw );
 
 gboolean main_win_scale_image(  MainWin* mw, double new_scale, GdkInterpType type );
+
+void build_thumbnails(GtkWidget* widget, MainWin *mw);
 
 GType main_win_get_type();
 

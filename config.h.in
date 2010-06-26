@@ -15,6 +15,15 @@
 /* Define if the GNU gettext() function is already present or preinstalled. */
 #undef HAVE_GETTEXT
 
+/* glib.h */
+#undef HAVE_GLIB_H
+
+/* libglib */
+#undef HAVE_GTHREAD
+
+/* have gtk image view */
+#undef HAVE_GTKIMAGEVIEW
+
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 

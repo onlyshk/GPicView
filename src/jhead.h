@@ -16,6 +16,7 @@
 #include <ctype.h>
 
 //--------------------------------------------------------------------------
+
 #ifdef _WIN32
     #include <sys/utime.h>
 #else
@@ -38,7 +39,14 @@ typedef unsigned char uchar;
 
 #ifdef _WIN32
     #define PATH_MAX _MAX_PATH
+    #define SLASH '\\'
+#else
+    #ifndef PATH_MAX
+        #define PATH_MAX 1024
+    #endif
+    #define SLASH '/'
 #endif
+
 
 //--------------------------------------------------------------------------
 // This structure is used to store jpeg file sections in memory.
@@ -49,8 +57,8 @@ typedef struct {
 }Section_t;
 
 extern int ExifSectionIndex;
-// Variables from jhead.c used by exif.c
 
+extern int DumpExifMap;
 
 #define MAX_DATE_COPIES 10
 
@@ -61,6 +69,17 @@ extern int ExifSectionIndex;
 typedef struct {
     char  FileName     [PATH_MAX+1];
     time_t FileDateTime;
+
+    struct {
+        // Info in the jfif header.
+        // This info is not used much - jhead used to just replace it with default
+        // values, and over 10 years, only two people pointed this out.
+        char  Present;
+        char  ResolutionUnits;
+        short XDensity;
+        short YDensity;
+    }JfifHeader;
+
     unsigned FileSize;
     char  CameraMake   [32];
     char  CameraModel  [40];
@@ -85,7 +104,13 @@ typedef struct {
     int   ISOequivalent;
     int   LightSource;
     int   DistanceRange;
+
+    float xResolution;
+    float yResolution;
+    int   ResolutionUnit;
+
     char  Comments[MAX_COMMENT_SIZE];
+    int   CommentWidthchars; // If nonzero, widechar comment, indicates number of chars.
 
     unsigned ThumbnailOffset;          // Exif offset to thumbnail
     unsigned ThumbnailSize;            // Size of thumbnail.
@@ -104,9 +129,6 @@ typedef struct {
     char GpsAlt[20];
 }ImageInfo_t;
 
-extern ImageInfo_t ImageInfo;
-extern int ShowTags;
-extern int DumpExifMap;
 
 
 #define EXIT_FAILURE  1
@@ -118,6 +140,7 @@ typedef enum {
     READ_IMAGE = 2,
     READ_ALL = 3
 }ReadMode_t;
+
 
 // prototypes for jhead.c functions
 void ErrFatal(char * msg);
@@ -157,7 +180,7 @@ extern const int BytesPerFormat[];
 #define FMT_SINGLE    11
 #define FMT_DOUBLE    12
 
-/*
+
 // makernote.c prototypes
 extern void ProcessMakerNote(unsigned char * DirStart, int ByteCount,
                  unsigned char * OffsetBase, unsigned ExifLength);
@@ -171,8 +194,14 @@ void show_IPTC (unsigned char * CharBuf, unsigned int length);
 void ShowXmp(Section_t XmpSection);
 
 // Prototypes for myglob.c module
-extern void MyGlob(const char * Pattern , void (*FileFuncParm)(const char * FileName));
-*/
+#ifdef _WIN32
+void MyGlob(const char * Pattern , void (*FileFuncParm)(const char * FileName));
+void SlashToNative(char * Path);
+#endif
+
+// Prototypes for paths.c module
+int EnsurePathExists(const char * FileName);
+void CatPath(char * BasePath, const char * FilePath);
 
 // Prototypes from jpgfile.c
 int ReadJpegSections (FILE * infile, ReadMode_t ReadMode);
@@ -187,6 +216,11 @@ void WriteJpegFile(const char * FileName);
 Section_t * FindSection(int SectionType);
 Section_t * CreateSection(int SectionType, unsigned char * Data, int size);
 void ResetJpgfile(void);
+
+
+// Variables from jhead.c used by exif.c
+extern ImageInfo_t ImageInfo;
+extern int ShowTags;
 
 //--------------------------------------------------------------------------
 // JPEG markers consist of one or more 0xFF bytes, followed by a marker

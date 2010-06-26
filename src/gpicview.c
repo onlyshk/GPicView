@@ -44,9 +44,16 @@ static GOptionEntry opt_entries[] =
 int main(int argc, char *argv[])
 {
     GError *error = NULL;
-    GOptionContext *context;
+    GOptionContext *context = NULL;
     MainWin* win;
-
+	
+    gtk_init (&argc, &argv);
+	
+	if(!g_thread_supported())
+	 	g_thread_init(NULL);	
+	   
+    gdk_threads_init();
+	
 #ifdef ENABLE_NLS
     bindtextdomain ( GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR );
     bind_textdomain_codeset ( GETTEXT_PACKAGE, "UTF-8" );
@@ -70,7 +77,7 @@ int main(int argc, char *argv[])
 
     gtk_icon_theme_append_search_path(gtk_icon_theme_get_default(), PIXMAP_DIR);
 
-    load_preferences();
+	load_preferences();
 
     /* Allocate and show the window.
      * We must show the window now in case the file open needs to put up an error dialog. */
@@ -89,10 +96,10 @@ int main(int argc, char *argv[])
             main_win_open( win, path, ZOOM_NONE );
             g_free( path );
         }
-        else
-            main_win_open( win, files[0], ZOOM_NONE );
+        else 
+           main_win_open( (MainWin*)win, files[0], ZOOM_NONE );
     }
-
+	
     gtk_main();
 
     save_preferences();

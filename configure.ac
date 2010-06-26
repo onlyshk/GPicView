@@ -29,6 +29,19 @@ IT_PROG_INTLTOOL([0.40.0])
 # AC_SUBST(XLIB_CFLAGS)
 # AC_SUBST(XLIB_LIBS)
 
+PKG_CHECK_MODULES(GTKIMAGEVIEW, gtkimageview >= 1.3,
+[ have_gtkimageview=yes
+GTK_LIBS=$GTKIMAGEVIEW_LIBS
+GTK_CFLAGS=$GTKIMAGEVIEW_CFLAGS
+AC_DEFINE(HAVE_GTKIMAGEVIEW, 1, have gtk image view) ],
+[ have_gtkimageview=no
+AC_MSG_RESULT($GTKIMAGEVIEW_PKG_ERRORS) ] )
+
+PKG_CHECK_MODULES(GTHREAD, gthread-2.0 >= 2.4.0, [
+AC_DEFINE([HAVE_GTHREAD], [1], [libglib])
+AC_DEFINE([HAVE_GLIB_H], [1], [glib.h])
+])
+
 pkg_modules="gtk+-2.0 >= 2.12.0"
 PKG_CHECK_MODULES(GTK, [$pkg_modules])
 AC_SUBST(GTK_CFLAGS)

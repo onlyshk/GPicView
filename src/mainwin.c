@@ -25,6 +25,8 @@
 #include "mainwin.h"
 #include "utils.h"
 
+#include <glib.h>
+#include <gio/gio.h>
 #include <glib/gi18n.h>
 #include <glib/gstdio.h>
 #include <gdk/gdkkeysyms.h>
@@ -40,11 +42,11 @@
 #include "ptk-menu.h"
 #include "file-dlgs.h"
 #include "jpeg-tran.h"
+#include "crop.h"
 
 #define LOAD_BUFFER_SIZE 65536 
 
-
-static GCancellable* generator_cancellable = NULL;
+static GCancellable* generator_cancellable;
 static GtkActionGroup *actions;
 static GtkActionGroup *rotation_actions;
 GList* list;
@@ -72,7 +74,6 @@ static void rotate_cw(GtkWidget* widget, MainWin *mw);
 static void rotate_ccw(GtkWidget* widget, MainWin *mw);
 static void flip_v(GtkWidget* widget, MainWin *mw);
 static void flip_h(GtkWidget* widget, MainWin *mw);
-static void open_dialog (MainWin* mw);
 static void on_about( GtkWidget* menu, MainWin* mw );
 static void show_popup_menu( MainWin* mw, GdkEventButton* evt );
 static void hide_thumbnails(GtkWidget* widget, MainWin* mw);
@@ -92,9 +93,10 @@ static void show_popup_menu( MainWin* mw, GdkEventButton* evt );
 static void open_url( GtkAboutDialog *dlg, const gchar *url, gpointer data);
 static gboolean on_button_press( GtkWidget* widget, GdkEventButton* evt, MainWin* mw );
 static void thumbnail_selected(GtkWidget* widget, MainWin* mw);
-static void build_thumbnails(GtkWidget* widget, MainWin* mw);
 static void loading(GtkWidget * widget, const char* file_path, MainWin* mw);
 static void on_rotate_auto_save( GtkWidget* btn, MainWin* mw );
+static void set_as_wallpapaer(GtkWidget* widget, MainWin* mw);
+static gboolean job_func(GIOSchedulerJob* job, GCancellable *cancellable, gpointer user_data);
 
 /* signal handlers */
 static gboolean on_delete_event( GtkWidget* widget, GdkEventAny* evt );
@@ -128,7 +130,7 @@ void main_win_finalize( GObject* obj )
 
 GtkWidget* main_win_new()
 {
-    return (GtkWidget*)g_object_new ( MAIN_WIN_TYPE, NULL );
+    return (GObject*)g_object_new ( MAIN_WIN_TYPE, NULL );
 }
 
 gchar *ui_info =
@@ -231,7 +233,7 @@ main_win_close( MainWin* mw )
 
 void main_win_init( MainWin*mw )
 {	
-	GError* error;
+	GError* error = NULL;
 		
 	mw->aview  =    GTK_IMAGE_VIEW(gtk_anim_view_new());
 	mw->img_list = image_list_new();
@@ -325,10 +327,12 @@ gboolean main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom )
 {        	
 	list= NULL;
 
+    JobParam param;
+	param.widget = NULL;
+	param.mw     = mw;
+	
 	GError *error;
-	
-	GThread* thread;
-	
+		
 	loading(NULL, file_path, mw);
 
 	char* dir_path = g_path_get_dirname( file_path );
@@ -342,14 +346,8 @@ gboolean main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom )
 	
 	update_title( disp_name, mw );
 	
-	//g_io_scheduler_job_send_to_mainloop_async (mw->job,gtk_main_quit,NULL,
-	//					                       g_free);
-	
-	//g_io_scheduler_push_job(build_thumbnails,&p,NULL,G_PRIORITY_HIGH,generator_cancellable);
-	
-	build_thumbnails(NULL,mw);
-	
-	
+	g_io_scheduler_push_job(job_func, &param, g_free, G_PRIORITY_HIGH, generator_cancellable);
+
 	g_free( dir_path );
     g_free( base_name );
     g_free( disp_name );	
@@ -357,27 +355,32 @@ gboolean main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom )
 	gtk_icon_view_unselect_all(mw->view);
 }
 
+gboolean job_func(GIOSchedulerJob *job, GCancellable *cancellable, gpointer user_data)
+{   	
+	JobParam* job_param = (JobParam*)user_data;	
+	build_thumbnails(NULL, job_param->mw);
+	return TRUE;
+}
+
 void loading(GtkWidget *widget, const char* file_path, MainWin* mw)
 {
-	GError* error; 
-    gssize n_read;
-	gboolean res;
+	GError* error = NULL; 
+    gssize n_read = 0;
+	gboolean res = TRUE;
+	generator_cancellable = g_cancellable_new();
 	guchar buffer[LOAD_BUFFER_SIZE];
-	GInputStream* input_stream;
+	GInputStream* input_stream = NULL;
 	GFile *file = g_file_new_for_path(file_path);
 
     mw->loader =    gdk_pixbuf_loader_new();
 	mw->animation = gdk_pixbuf_animation_new_from_file(file_path,error);	
 	input_stream = g_file_read(file, generator_cancellable , NULL);
 	
-	res = TRUE;
-	
 	while (1){
-		n_read = g_input_stream_read(input_stream, buffer, sizeof (buffer),generator_cancellable,error);
+		n_read = g_input_stream_read(input_stream, buffer, sizeof (buffer),generator_cancellable, &error);
 		
 		if (n_read < 0) {
                         res = FALSE;
-                        error = NULL; 
 			            gdk_pixbuf_loader_close(mw->loader,NULL);
 			            g_input_stream_close(input_stream,NULL,NULL);  
                         break;
@@ -386,7 +389,7 @@ void loading(GtkWidget *widget, const char* file_path, MainWin* mw)
 	if (n_read == 0)
         break;
 	
-	if (!gdk_pixbuf_loader_write(mw->loader, buffer, sizeof(buffer), error)){
+	if (!gdk_pixbuf_loader_write(mw->loader, buffer, sizeof(buffer), &error)){
 	   res = FALSE;
 	   g_input_stream_close(input_stream,NULL,NULL);
 	   gdk_pixbuf_loader_close(mw->loader,NULL);
@@ -408,6 +411,13 @@ void loading(GtkWidget *widget, const char* file_path, MainWin* mw)
   }
 	g_input_stream_close(input_stream,NULL,NULL);
 	gdk_pixbuf_loader_close(mw->loader,NULL);
+	
+			
+	g_object_unref (file);
+	g_object_unref (mw->loader);
+	g_object_unref (input_stream);
+	
+	file_path = NULL;
 }
 
 void build_thumbnails(GtkWidget* widget, MainWin* mw)
@@ -472,12 +482,14 @@ gboolean on_win_state_event( GtkWidget* widget, GdkEventWindowState* state )
         mw->full_screen = TRUE;
 		gtk_widget_modify_bg( mw->aview, GTK_STATE_NORMAL, &pref.bg_full );
 		gtk_widget_hide(gtk_paned_get_child1(mw->img_box));
+		gtk_widget_hide(gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"));
     }
     else
     {
         mw->full_screen = FALSE;
 		gtk_widget_modify_bg( mw->aview, GTK_STATE_NORMAL, &pref.bg );
 		gtk_widget_show(gtk_paned_get_child1(mw->img_box));
+		gtk_widget_show(gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"));
     }
 	
 	int previous = pref.open_maximized;
@@ -730,10 +742,10 @@ void on_delete( GtkWidget* btn, MainWin* mw )
         {
             const char* name = image_list_get_current( mw->img_list );
 
-	    if( g_unlink( file_path ) != 0 )
-		main_win_show_error( mw, g_strerror(errno) );
-	    else
-	    {
+	    //if( g_unlink( file_path ) != 0 )
+	    //main_win_show_error( mw, g_strerror(errno) );
+	    //else
+	    //{
 		const char* next_name = image_list_get_next( mw->img_list );
 		
 		if( ! next_name )
@@ -743,6 +755,7 @@ void on_delete( GtkWidget* btn, MainWin* mw )
 		{
 		    char* next_file_path = image_list_get_current_file_path( mw->img_list );
 		    main_win_open( mw, next_file_path, ZOOM_FIT );
+			update_title(next_file_path, mw);
 		    g_free( next_file_path );
 		}
 
@@ -753,7 +766,7 @@ void on_delete( GtkWidget* btn, MainWin* mw )
 		    image_list_close( mw->img_list );
 		    gtk_window_set_title( (GtkWindow*) mw, _("Image Viewer"));
 		}
-	    }
+	    //}
         }
 	g_free( file_path );
     }
@@ -875,15 +888,8 @@ void on_save( GtkWidget* btn, MainWin* mw )
 
     if(strcmp(type,"jpeg")==0)
     {
-        if(!pref.rotate_exif_only || ExifRotate(file_name, mw->rotation_angle) == FALSE)
+        if(!pref.rotate_exif_only) //|| ExifRotate(file_name, mw->rotation_angle) == FALSE)
         {
-            // hialan notes:
-            // ExifRotate retrun FALSE when
-            //   1. Can not read file
-            //   2. Exif do not have TAG_ORIENTATION tag
-            //   3. Format unknown
-            // And then we apply rotate_and_save_jpeg_lossless() ,
-            // the result would not effected by EXIF Orientation...
 #ifdef HAVE_LIBJPEG
             int status = rotate_and_save_jpeg_lossless(file_name,mw->rotation_angle);
 	    if(status != 0)
@@ -1015,6 +1021,9 @@ gboolean on_key_press_event(GtkWidget* widget, GdkEventKey * key)
     return FALSE;
 }
 
+void set_as_wallpapaer(GtkWidget* widget, MainWin* mw)
+{}
+
 void show_popup_menu( MainWin* mw, GdkEventButton* evt )
 {
     static PtkMenuItemEntry menu_def[] =
@@ -1028,6 +1037,7 @@ void show_popup_menu( MainWin* mw, GdkEventButton* evt )
         PTK_IMG_MENU_ITEM( N_( "Original Size" ), GTK_STOCK_ZOOM_100, normal_size, GDK_G, 0 ),
 		PTK_IMG_MENU_ITEM( N_( "Full Screen" ), GTK_STOCK_FULLSCREEN, on_full_screen, GDK_F11, 0 ),
 		PTK_IMG_MENU_ITEM( N_( "Slide show" ), GTK_STOCK_DND_MULTIPLE, start_slideshow, GDK_F12, 0 ),
+		PTK_IMG_MENU_ITEM( N_( "Set as wallpaper"), GTK_STOCK_INDEX, set_as_wallpapaer, GDK_W, 0),
         PTK_SEPARATOR_MENU_ITEM,
 		PTK_IMG_MENU_ITEM( N_( "Rotate Counterclockwise" ), "object-rotate-left", rotate_ccw, GDK_L, 0 ),
         PTK_IMG_MENU_ITEM( N_( "Rotate Clockwise" ), "object-rotate-right", rotate_cw, GDK_R, 0 ),

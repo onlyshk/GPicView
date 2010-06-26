@@ -30,7 +30,7 @@
 #include "pref.h"
 #include "mainwin.h"
 
-#define CFG_DIR    "gpicview"
+#define CFG_DIR    "GPicView"
 #define CFG_FILE    CFG_DIR"/gpicview.conf"
 
 Pref pref = {0};
@@ -84,12 +84,11 @@ void load_preferences()
     GKeyFile* kf;
     char* path;
     char* color;
-
-    /* pref.auto_save_rotated = FALSE; */
+	
     pref.ask_before_save = TRUE;
     pref.ask_before_delete = TRUE;
     pref.rotate_exif_only = TRUE;
-    /* pref.open_maximized = FALSE; */
+
     pref.bg.red = pref.bg.green = pref.bg.blue = 65535;
     pref.bg_full.red = pref.bg_full.green = pref.bg_full.blue = 0;
 
@@ -124,6 +123,7 @@ void load_preferences()
             g_free(color);
         }
     }
+
     g_free( path );
     g_key_file_free( kf );
 }
@@ -185,6 +185,11 @@ static void on_set_bg( GtkColorButton* btn, gpointer user_data )
     }
 }
 
+static void on_delete_event(GtkWidget* widget, GdkEventAny* evt)
+{ 
+	gtk_widget_hide(widget);	
+}
+
 static void on_set_bg_full( GtkColorButton* btn, gpointer user_data )
 {
     MainWin* parent =(MainWin*)user_data;
@@ -228,7 +233,7 @@ void edit_preferences(GtkWidget* widget, GtkWindow* parent )
 	gtk_box_pack_start(GTK_BOX(hbox1), label2, FALSE, FALSE,40);
 	
 	bg_btn = gtk_color_button_new();
-	gtk_color_button_set_color(bg_btn, &pref.bg);
+	gtk_color_button_set_color(bg_btn, &pref.bg_full);
 	gtk_box_pack_start(GTK_BOX(hbox1), bg_btn, FALSE, FALSE,20);
 	
 	label3 = gtk_label_new("Fullscreen:");
@@ -248,6 +253,8 @@ void edit_preferences(GtkWidget* widget, GtkWindow* parent )
 	
 	g_signal_connect( bg_btn, "color-set", G_CALLBACK(on_set_bg), parent );
 	g_signal_connect( bg_full_btn, "color-set", G_CALLBACK(on_set_bg_full), parent );
+	
+	g_signal_connect (pref_window, "delete-event", G_CALLBACK(on_delete_event) , parent);
 	
 	gtk_widget_show_all(pref_window);
 }

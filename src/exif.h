@@ -9,8 +9,8 @@
 // Modified by hialan Liu <hialan.liu@gamil.com>
 //--------------------------------------------------------------------------
 
-#ifndef EXIF_H
-#define EXIF_H
+#ifndef __EXIF_H__
+#define __EXIF_H__
 
 void ShowImageInfo(int ShowFileInfo);
 
