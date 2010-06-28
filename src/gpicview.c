@@ -23,6 +23,7 @@
 
 #include <gtk/gtk.h>
 #include <glib/gi18n.h>
+#include <gdk/gdk.h>
 #include <string.h>
 
 #include "pref.h"
@@ -99,8 +100,8 @@ int main(int argc, char *argv[])
         else 
            main_win_open( (MainWin*)win, files[0], ZOOM_NONE );
     }
-	
-    gtk_main();
+
+	gtk_main();
 
     save_preferences();
 

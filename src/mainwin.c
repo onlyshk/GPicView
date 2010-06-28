@@ -26,10 +26,13 @@
 #include "utils.h"
 
 #include <glib.h>
+#include <string.h>
+#include <gdk/gdk.h>
 #include <gio/gio.h>
 #include <glib/gi18n.h>
 #include <glib/gstdio.h>
 #include <gdk/gdkkeysyms.h>
+#include <gconf/gconf-client.h>
 
 #include <unistd.h>
 #include <string.h>
@@ -96,7 +99,14 @@ static void thumbnail_selected(GtkWidget* widget, MainWin* mw);
 static void loading(GtkWidget * widget, const char* file_path, MainWin* mw);
 static void on_rotate_auto_save( GtkWidget* btn, MainWin* mw );
 static void set_as_wallpapaer(GtkWidget* widget, MainWin* mw);
-static gboolean job_func(GIOSchedulerJob* job, GCancellable *cancellable, gpointer user_data);
+static gboolean set_as_gnome_wallpaper( const gchar *image_path, WallpaperAlign align );
+
+static void job_func (GIOSchedulerJob *job, GCancellable    *cancellable, gpointer user_data);
+static void set_image(GtkWidget* widget, MainWin* mw);
+static gboolean load(GIOSchedulerJob *job, GCancellable *cancellable, gpointer user_data);
+static void load_thumbnails(GtkWidget* widget, MainWin* mw);
+static void display_thumbnails (GtkWidget* widget, MainWin* mw);
+int length(GtkWidget* widget, MainWin* mw);
 
 /* signal handlers */
 static gboolean on_delete_event( GtkWidget* widget, GdkEventAny* evt );
@@ -325,16 +335,20 @@ static void update_title(const char *filename, MainWin *mw )
 
 gboolean main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom )
 {        	
-	list= NULL;
-
+	list = NULL;
+	
+    GtkWidget* widget = NULL;
+	
     JobParam param;
-	param.widget = NULL;
+	param.widget = widget;
+	param.file_path = file_path;
 	param.mw     = mw;
 	
-	GError *error;
-		
+	GError *error = NULL;
+	
 	loading(NULL, file_path, mw);
-
+	//g_io_scheduler_job_send_to_mainloop(&loading,(GSourceFunc)loading, &param, NULL);
+	
 	char* dir_path = g_path_get_dirname( file_path );
     image_list_open_dir(mw->img_list, dir_path, NULL );
     image_list_sort_by_name( mw->img_list, GTK_SORT_ASCENDING );
@@ -346,20 +360,13 @@ gboolean main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom )
 	
 	update_title( disp_name, mw );
 	
-	g_io_scheduler_push_job(job_func, &param, g_free, G_PRIORITY_HIGH, generator_cancellable);
-
+    g_io_scheduler_job_send_to_mainloop(&load_thumbnails,(GSourceFunc)load_thumbnails, NULL, NULL);
+	
 	g_free( dir_path );
     g_free( base_name );
     g_free( disp_name );	
-		
+			
 	gtk_icon_view_unselect_all(mw->view);
-}
-
-gboolean job_func(GIOSchedulerJob *job, GCancellable *cancellable, gpointer user_data)
-{   	
-	JobParam* job_param = (JobParam*)user_data;	
-	build_thumbnails(NULL, job_param->mw);
-	return TRUE;
 }
 
 void loading(GtkWidget *widget, const char* file_path, MainWin* mw)
@@ -397,15 +404,7 @@ void loading(GtkWidget *widget, const char* file_path, MainWin* mw)
 	   }
 	
 	if (res){		
-
-      if ( !gdk_pixbuf_animation_is_static_image(mw->animation ) )
-		gtk_action_group_set_sensitive(rotation_actions, FALSE);
-	  else
-		gtk_action_group_set_sensitive(rotation_actions, TRUE);
-        		
-		mw->animation = gdk_pixbuf_loader_get_animation((mw->loader));
-	    gtk_anim_view_set_anim (mw->aview,mw->animation);	
-		
+	    set_image(NULL,mw);
 		update_title(g_file_get_basename(file),mw);
 	}
   }
@@ -420,20 +419,31 @@ void loading(GtkWidget *widget, const char* file_path, MainWin* mw)
 	file_path = NULL;
 }
 
-void build_thumbnails(GtkWidget* widget, MainWin* mw)
+void set_image(GtkWidget* widget, MainWin* mw)
 {
+    if ( !gdk_pixbuf_animation_is_static_image(mw->animation ) )
+   		  gtk_action_group_set_sensitive(rotation_actions, FALSE);
+	else
+	  	  gtk_action_group_set_sensitive(rotation_actions, TRUE);
+        		
+	mw->animation = gdk_pixbuf_loader_get_animation((mw->loader));
+	gtk_anim_view_set_anim (mw->aview,mw->animation);
+}
+
+void load_thumbnails(GtkWidget* widget, MainWin* mw)
+{		
 	gtk_list_store_clear(mw->model);
 	
 	GtkTreeIter iter;
 	int i = 0;
-	
+
 	for (i; i < g_list_length(mw->img_list) - 1; ++i)
 	{			  			
 	  char* file = image_list_get_current_file_path( mw->img_list );
 			
 	  mw->p1 = gdk_pixbuf_new_from_file(file,NULL);
 	  mw->p1 = scale_pix(mw->p1,128);
-	
+
 	  gtk_list_store_append(mw->model, &iter);
       gtk_list_store_set(mw->model, &iter, COL_DISPLAY_NAME, image_list_get_current(mw->img_list), COL_PIXBUF, mw->p1, -1);   
 	
@@ -1022,7 +1032,109 @@ gboolean on_key_press_event(GtkWidget* widget, GdkEventKey * key)
 }
 
 void set_as_wallpapaer(GtkWidget* widget, MainWin* mw)
-{}
+{
+	FILE *fp;
+	char path[65535];
+	int max = 65535;
+	int length;
+	char* de = NULL;
+	char* res;
+	
+	// Gnome
+	fp = popen("ps -C nautilus", "r");
+	
+	if (fp == NULL)
+		return;
+	
+	while (fgets(path, 65535, fp) != NULL)
+           ;
+			
+	if ((strlen (path)) == 33)
+		de = "Gnome";
+	
+	//LXDE
+	fp = popen("ps -C pcmanfm", "r");
+	
+	if (fp == NULL)
+		return;
+	
+	while (fgets(path, 65535, fp) != NULL)
+           ;
+			
+	if ((strlen (path)) == 33)
+		de = "LXDE";
+	
+	//XFCE
+	fp = popen("ps -C pcmanfm", "r");
+	
+	if (fp == NULL)
+		return;
+	
+	while (fgets(path, 65535, fp) != NULL)
+           ;
+			
+	if ((strlen (path)) == 33)
+		de = "XFCE";
+	
+	//pcmanfm --set-wallpaper /home/user_name/path_to_image
+	if (de == "LXDE")
+	{
+	   printf("LXDE");
+	   
+	   char* result = NULL;		
+	   const char* command;
+		
+	   result = image_list_get_current_file_path(mw->img_list);
+		
+	   char temp1[max];	
+	   strncpy (temp1, "pcmanfm --set-wallpaper ", max);
+	   command =  strncat (temp1, result, max);
+	    
+	   system(command);
+	   
+	   return;
+	}	
+	
+	//xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/image-path -s <image-file>
+	if (de == "XFCE")
+	{
+	   char* result = NULL;		
+	   
+	   const char* command1;
+	   const char* command2;
+	   const char* command3;
+		
+	   const char* dir_path;
+	   char* base_name = NULL;
+		
+	   result = image_list_get_current_file_path(mw->img_list);
+	   dir_path = g_path_get_dirname(result);
+	 
+	   base_name = g_path_get_basename( result );
+	   
+	   char temp1[max];	
+	   
+	   strncpy (temp1, "xfconf-query -c xfce4-desktop -p  ", max);
+		
+	   command1 =  strncat (temp1, dir_path,  max);
+	   command2 =  strncat (temp1, " -s ",    max);
+	   command3 =  strncat (temp1, base_name, max);
+
+	   system(command3);
+		
+	   return;
+	}	
+	if (de == "Gnome")
+	{
+		char* result = NULL;	
+		result = image_list_get_current_file_path(mw->img_list);
+		
+	    set_as_gnome_wallpaper(result, WALLPAPER_ALIGN_STRETCHED);
+	    return;
+	}	
+	
+	g_free(fp);
+}
 
 void show_popup_menu( MainWin* mw, GdkEventButton* evt )
 {
@@ -1122,5 +1234,36 @@ static void open_url( GtkAboutDialog *dlg, const gchar *url, gpointer data)
              break;
         }
     }
+}
+
+gboolean set_as_gnome_wallpaper( const gchar *image_path, WallpaperAlign align )
+{
+    GConfClient *client;
+    char        *options = "none";
+
+    client = gconf_client_get_default();
+
+    // TODO: check that image_path is a file
+    if ( image_path == NULL ) options = "none";
+    else {
+        gconf_client_set_string( client, 
+            "/desktop/gnome/background/picture_filename",
+            image_path,
+            NULL );
+        switch ( align ) {
+            case WALLPAPER_ALIGN_TILED: options = "wallpaper"; break;
+            case WALLPAPER_ALIGN_CENTERED: options = "centered"; break;
+            case WALLPAPER_ALIGN_STRETCHED: options = "stretched"; break;
+            case WALLPAPER_ALIGN_SCALED: options = "scaled"; break;
+            case WALLPAPER_NONE: options = "none"; break;
+        }
+    }
+    gboolean result = gconf_client_set_string( client, 
+        "/desktop/gnome/background/picture_options", 
+        options,
+        NULL);
+    g_object_unref( G_OBJECT(client) );
+
+    return result;
 }
 //=========================================================
