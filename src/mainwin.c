@@ -31,7 +31,6 @@
 #include <glib/gi18n.h>
 #include <glib/gstdio.h>
 #include <gdk/gdkkeysyms.h>
-#include <gconf/gconf-client.h>
 
 #include <unistd.h>
 #include <string.h>
@@ -46,6 +45,7 @@
 #include "jpeg-tran.h"
 #include "crop.h"
 #include "utils.h"
+#include "wallpaper.h"
 
 #define LOAD_BUFFER_SIZE 65536 
 
@@ -98,8 +98,7 @@ static gboolean on_button_press( GtkWidget* widget, GdkEventButton* evt, MainWin
 static void thumbnail_selected(GtkWidget* widget, MainWin* mw);
 static void loading(GtkWidget * widget, const char* file_path, MainWin* mw);
 static void on_rotate_auto_save( GtkWidget* btn, MainWin* mw );
-static void set_as_wallpapaer(GtkWidget* widget, MainWin* mw);
-static gboolean set_as_gnome_wallpaper( const gchar *image_path, WallpaperAlign align );
+static void set_wallpapaer(GtkWidget* widget, MainWin* mw);
 static void crop_image (GtkWidget* widget, MainWin* mw, GdkEventMotion *event);
 static void draw_rectangle(GtkWidget* widget, MainWin* mw);
 static void job_func (GIOSchedulerJob *job, GCancellable    *cancellable, gpointer user_data);
@@ -1034,109 +1033,9 @@ gboolean on_key_press_event(GtkWidget* widget, GdkEventKey * key)
     return FALSE;
 }
 
-void set_as_wallpapaer(GtkWidget* widget, MainWin* mw)
+void set_wallpapaer(GtkWidget* widget, MainWin* mw)
 {
-	FILE *fp;
-	char path[65535];
-	int max = 65535;
-	int length;
-	char* de = NULL;
-	char* res;
-	
-	// Gnome
-	fp = popen("ps -C nautilus", "r");
-	
-	if (fp == NULL)
-		return;
-	
-	while (fgets(path, 65535, fp) != NULL)
-           ;
-			
-	if ((strlen (path)) == 33)
-		de = "Gnome";
-	
-	//LXDE
-	fp = popen("ps -C pcmanfm", "r");
-	
-	if (fp == NULL)
-		return;
-	
-	while (fgets(path, 65535, fp) != NULL)
-           ;
-			
-	if ((strlen (path)) == 33)
-		de = "LXDE";
-	
-	//XFCE
-	fp = popen("ps -C pcmanfm", "r");
-	
-	if (fp == NULL)
-		return;
-	
-	while (fgets(path, 65535, fp) != NULL)
-           ;
-			
-	if ((strlen (path)) == 33)
-		de = "XFCE";
-	
-	//pcmanfm --set-wallpaper /home/user_name/path_to_image
-	if (de == "LXDE")
-	{
-	   printf("LXDE");
-	   
-	   char* result = NULL;		
-	   const char* command;
-		
-	   result = image_list_get_current_file_path(mw->img_list);
-		
-	   char temp1[max];	
-	   strncpy (temp1, "pcmanfm --set-wallpaper ", max);
-	   command =  strncat (temp1, result, max);
-	    
-	   system(command);
-	   
-	   return;
-	}	
-	
-	//xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/image-path -s <image-file>
-	if (de == "XFCE")
-	{
-	   char* result = NULL;		
-	   
-	   const char* command1;
-	   const char* command2;
-	   const char* command3;
-		
-	   const char* dir_path;
-	   char* base_name = NULL;
-		
-	   result = image_list_get_current_file_path(mw->img_list);
-	   dir_path = g_path_get_dirname(result);
-	 
-	   base_name = g_path_get_basename( result );
-	   
-	   char temp1[max];	
-	   
-	   strncpy (temp1, "xfconf-query -c xfce4-desktop -p  ", max);
-		
-	   command1 =  strncat (temp1, dir_path,  max);
-	   command2 =  strncat (temp1, " -s ",    max);
-	   command3 =  strncat (temp1, base_name, max);
-
-	   system(command3);
-		
-	   return;
-	}	
-	if (de == "Gnome")
-	{
-		char* result = NULL;	
-		result = image_list_get_current_file_path(mw->img_list);
-		
-	    set_as_gnome_wallpaper(result, WALLPAPER_ALIGN_STRETCHED);
-	    return;
-	}	
-	
-	g_free(fp);
+  set_as_wallpapaer(widget, mw);
 }
 
 void show_popup_menu( MainWin* mw, GdkEventButton* evt )
@@ -1247,36 +1146,4 @@ static void open_url( GtkAboutDialog *dlg, const gchar *url, gpointer data)
         }
     }
 }
-
-gboolean set_as_gnome_wallpaper( const gchar *image_path, WallpaperAlign align )
-{	
-    GConfClient *client;
-    char        *options = "none";
-
-    client = gconf_client_get_default();
-
-    // TODO: check that image_path is a file
-    if ( image_path == NULL ) options = "none";
-    else {
-        gconf_client_set_string( client, 
-            "/desktop/gnome/background/picture_filename",
-            image_path,
-            NULL );
-        switch ( align ) {
-            case WALLPAPER_ALIGN_TILED: options = "wallpaper"; break;
-            case WALLPAPER_ALIGN_CENTERED: options = "centered"; break;
-            case WALLPAPER_ALIGN_STRETCHED: options = "stretched"; break;
-            case WALLPAPER_ALIGN_SCALED: options = "scaled"; break;
-            case WALLPAPER_NONE: options = "none"; break;
-        }
-    }
-    gboolean result = gconf_client_set_string( client, 
-        "/desktop/gnome/background/picture_options", 
-        options,
-        NULL);
-    g_object_unref( G_OBJECT(client) );
-
-    return result; 
-}
-
 //=========================================================

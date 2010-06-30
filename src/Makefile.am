@@ -32,7 +32,9 @@ gpicview_SOURCES = \
 	ptk-menu.h   \
 	exif.h   \
 	crop.c   \
-	crop.h
+	crop.h   \
+	wallpaper.c   \
+	wallpaper.h
 
 gpicview_CFLAGS = \
 	$(GTK_CFLAGS) \

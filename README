@@ -55,6 +55,9 @@ It's fast and memory efficient and did a much better work than ours.
    -Including mouse cursor
    -Time delay (in seconds)
 
+Crop image functional of the GPicView's sources handling are adopted from
+the Viewnior by Siyan Panayotov <xsisqox@gmail.com>.
+
 If you have any questions, ask them to:
 
 -mail:        kuleshovmail@gmail.com

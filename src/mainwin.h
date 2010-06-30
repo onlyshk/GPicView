@@ -58,14 +58,6 @@ enum
   NUM_COLS  
 };
 
-typedef enum {
-    WALLPAPER_ALIGN_TILED     = 0,
-    WALLPAPER_ALIGN_CENTERED  = 1,
-    WALLPAPER_ALIGN_STRETCHED = 2,
-    WALLPAPER_ALIGN_SCALED    = 3,
-    WALLPAPER_NONE            = 4
-} WallpaperAlign;
-
 typedef struct _MainWinClass
 {
     GtkWindowClass parent_class;

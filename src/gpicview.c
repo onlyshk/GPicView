@@ -50,11 +50,6 @@ int main(int argc, char *argv[])
 	
     gtk_init (&argc, &argv);
 	
-	if(!g_thread_supported())
-	 	g_thread_init(NULL);	
-	   
-    gdk_threads_init();
-	
 #ifdef ENABLE_NLS
     bindtextdomain ( GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR );
     bind_textdomain_codeset ( GETTEXT_PACKAGE, "UTF-8" );

@@ -11,4 +11,6 @@ jpeg-trans.c and trans-supp.c use code from GThumb project by Thomas G. Lane.
 The icons of "Rotate clockwise & counterclockwise" was taken from nuoveXT 2
 icon theme by Alexandre Moore, which is released under LGPL.
 
-shk  (Kuleshov Alexander) <kuleshovmail@gmail.com> (GtkImageView porting)
+shk  (Kuleshov Alexander) <kuleshovmail@gmail.com> (GtkImageView porting GSoC project)
+
+Siyan Panayotov <xsisqox@gmail.com> (Crop image functional)
