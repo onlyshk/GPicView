@@ -1,7 +1,7 @@
 /***************************************************************************
  *   Copyright (C) 2007, 2008 by PCMan (Hong Jen Yee)                      *
  *   pcman.tw@gmail.com                                                    *
- *                                                                         *
+ *   2010 Kuleshov Alexander <kuleshovmail@gmail.com>                      *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -23,7 +23,6 @@
 #endif
 
 #include "mainwin.h"
-#include "utils.h"
 
 #include <glib.h>
 #include <string.h>
@@ -46,6 +45,7 @@
 #include "file-dlgs.h"
 #include "jpeg-tran.h"
 #include "crop.h"
+#include "utils.h"
 
 #define LOAD_BUFFER_SIZE 65536 
 
@@ -100,13 +100,13 @@ static void loading(GtkWidget * widget, const char* file_path, MainWin* mw);
 static void on_rotate_auto_save( GtkWidget* btn, MainWin* mw );
 static void set_as_wallpapaer(GtkWidget* widget, MainWin* mw);
 static gboolean set_as_gnome_wallpaper( const gchar *image_path, WallpaperAlign align );
-
+static void crop_image (GtkWidget* widget, MainWin* mw, GdkEventMotion *event);
+static void draw_rectangle(GtkWidget* widget, MainWin* mw);
 static void job_func (GIOSchedulerJob *job, GCancellable    *cancellable, gpointer user_data);
 static void set_image(GtkWidget* widget, MainWin* mw);
 static gboolean load(GIOSchedulerJob *job, GCancellable *cancellable, gpointer user_data);
 static void load_thumbnails(GtkWidget* widget, MainWin* mw);
 static void display_thumbnails (GtkWidget* widget, MainWin* mw);
-int length(GtkWidget* widget, MainWin* mw);
 
 /* signal handlers */
 static gboolean on_delete_event( GtkWidget* widget, GdkEventAny* evt );
@@ -267,10 +267,12 @@ void main_win_init( MainWin*mw )
 
 	mw->scroll = GTK_IMAGE_SCROLL_WIN (gtk_image_scroll_win_new (mw->aview));
 	gtk_paned_add1(GTK_PANED(mw->img_box),mw->thumbnail_scroll);
+	
 	gtk_scrolled_window_add_with_viewport(mw->thumbnail_scroll,mw->view);
 	gtk_paned_add2(GTK_PANED(mw->img_box),mw->scroll);	
 		
 	gtk_box_pack_start(GTK_BOX(mw->box), mw->img_box, TRUE, TRUE,0);
+	
     gtk_box_pack_start(GTK_BOX(mw->img_box), mw->thumbnail_scroll, TRUE, TRUE,0);
 	gtk_box_pack_start(GTK_BOX(mw->img_box),mw->scroll,TRUE,TRUE,0);
 	
@@ -294,7 +296,7 @@ void main_win_init( MainWin*mw )
 	gtk_box_pack_end(GTK_BOX (mw->box), gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"), FALSE, TRUE,0);
 	gtk_toolbar_set_style(gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"), GTK_TOOLBAR_ICONS);
 	//end gtuimanager 
-	
+			
 	g_signal_connect( mw->box, "button-press-event", G_CALLBACK(on_button_press), mw );
 	g_signal_connect(mw->view,"selection-changed",G_CALLBACK(thumbnail_selected),mw);
 	
@@ -302,7 +304,8 @@ void main_win_init( MainWin*mw )
 	gtk_icon_view_set_text_column(GTK_ICON_VIEW(mw->view),0);
     gtk_icon_view_set_pixbuf_column(GTK_ICON_VIEW(mw->view), 1);
     gtk_icon_view_set_selection_mode(GTK_ICON_VIEW(mw->view), GTK_SELECTION_SINGLE);
-	gtk_box_pack_start(GTK_BOX(mw->box), gtk_hseparator_new(), FALSE, TRUE,0);
+				
+	gtk_box_pack_start(mw->box, gtk_hseparator_new(), FALSE, TRUE,0);	
 	
 	gtk_container_add(mw, mw->box);
     gtk_widget_show_all( mw->box );
@@ -360,7 +363,7 @@ gboolean main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom )
 	
 	update_title( disp_name, mw );
 	
-    g_io_scheduler_job_send_to_mainloop(&load_thumbnails,(GSourceFunc)load_thumbnails, NULL, NULL);
+    //g_io_scheduler_job_send_to_mainloop(&load_thumbnails,(GSourceFunc)load_thumbnails, NULL, NULL);
 	
 	g_free( dir_path );
     g_free( base_name );
@@ -752,10 +755,10 @@ void on_delete( GtkWidget* btn, MainWin* mw )
         {
             const char* name = image_list_get_current( mw->img_list );
 
-	    //if( g_unlink( file_path ) != 0 )
-	    //main_win_show_error( mw, g_strerror(errno) );
-	    //else
-	    //{
+	    if( g_unlink( file_path ) != 0 )
+	    main_win_show_error( mw, g_strerror(errno) );
+	    else
+	    {
 		const char* next_name = image_list_get_next( mw->img_list );
 		
 		if( ! next_name )
@@ -776,7 +779,7 @@ void on_delete( GtkWidget* btn, MainWin* mw )
 		    image_list_close( mw->img_list );
 		    gtk_window_set_title( (GtkWindow*) mw, _("Image Viewer"));
 		}
-	    //}
+	    }
         }
 	g_free( file_path );
     }
@@ -1151,6 +1154,8 @@ void show_popup_menu( MainWin* mw, GdkEventButton* evt )
 		PTK_IMG_MENU_ITEM( N_( "Slide show" ), GTK_STOCK_DND_MULTIPLE, start_slideshow, GDK_F12, 0 ),
 		PTK_IMG_MENU_ITEM( N_( "Set as wallpaper"), GTK_STOCK_INDEX, set_as_wallpapaer, GDK_W, 0),
         PTK_SEPARATOR_MENU_ITEM,
+		PTK_IMG_MENU_ITEM( N_( "Crop image"),GTK_STOCK_CUT, crop_image, GDK_C,0),
+		PTK_SEPARATOR_MENU_ITEM,
 		PTK_IMG_MENU_ITEM( N_( "Rotate Counterclockwise" ), "object-rotate-left", rotate_ccw, GDK_L, 0 ),
         PTK_IMG_MENU_ITEM( N_( "Rotate Clockwise" ), "object-rotate-right", rotate_cw, GDK_R, 0 ),
         PTK_IMG_MENU_ITEM( N_( "Flip Horizontal" ), "object-flip-horizontal", flip_h, GDK_H, 0 ),
@@ -1176,6 +1181,13 @@ void show_popup_menu( MainWin* mw, GdkEventButton* evt )
     gtk_widget_show_all( (GtkWidget*)popup );
     g_signal_connect( popup, "selection-done", G_CALLBACK(gtk_widget_destroy), NULL );
     gtk_menu_popup( (GtkMenu*)popup, NULL, NULL, NULL, NULL, evt->button, evt->time );
+}
+
+void crop_image (GtkWidget* widget, MainWin* mw, GdkEventMotion *event)
+{
+	Win *win;
+	win = (Win*)win_new (mw);
+	show_window(NULL, win);
 }
 
 void on_about( GtkWidget* menu, MainWin* mw )
@@ -1237,7 +1249,7 @@ static void open_url( GtkAboutDialog *dlg, const gchar *url, gpointer data)
 }
 
 gboolean set_as_gnome_wallpaper( const gchar *image_path, WallpaperAlign align )
-{
+{	
     GConfClient *client;
     char        *options = "none";
 
@@ -1264,6 +1276,7 @@ gboolean set_as_gnome_wallpaper( const gchar *image_path, WallpaperAlign align )
         NULL);
     g_object_unref( G_OBJECT(client) );
 
-    return result;
+    return result; 
 }
+
 //=========================================================

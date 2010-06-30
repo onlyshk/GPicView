@@ -110,6 +110,24 @@ typedef struct _MainWin
 	GList     *displaing_thumbnail_list;
 	gint      prev_pos;
 	gboolean  thumb_bar_hide;
+	
+	//Drawing area
+	GtkWidget*      image;
+	gdouble sub_x;
+    gdouble sub_y;
+    gdouble sub_width;
+    gdouble sub_height;
+
+    gboolean drawing_rectangle;
+    gboolean do_redraw;
+    gdouble start_x;
+    gdouble start_y;
+	
+	GdkGC *gc;
+	
+	gdouble zoom;
+    gdouble width;
+    gdouble height;
 
 } MainWin;
 
@@ -139,6 +157,8 @@ void main_win_center_image( MainWin* mw );
 gboolean main_win_scale_image(  MainWin* mw, double new_scale, GdkInterpType type );
 
 void build_thumbnails(GtkWidget* widget, MainWin *mw);
+
+void gtk_view_set_static (GtkAnimView *aview, GdkPixbuf *pixbuf);
 
 GType main_win_get_type();
 

@@ -27,7 +27,7 @@
 #define UTILS_H
 
 void
-gtk_anim_view_set_static (GtkAnimView *aview, GdkPixbuf * pixbuf)
+gtk_anim_view_set_static (GtkAnimView *aview, GdkPixbuf *pixbuf)
 {
     GdkPixbufSimpleAnim *s_anim;
 
@@ -55,7 +55,7 @@ gtk_anim_view_set_static (GtkAnimView *aview, GdkPixbuf * pixbuf)
 }
 
 GdkPixbuf* scale_pix(GdkPixbuf* ori_pix, int size)
-  {
+{
       GdkPixbuf* scaled_pix;
       int width = gdk_pixbuf_get_width(ori_pix);
       int height = gdk_pixbuf_get_height(ori_pix);

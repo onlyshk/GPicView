@@ -1,294 +1,413 @@
+/***************************************************************************
+ *   Copyright (C) 2007, 2008 by PCMan (Hong Jen Yee)                      *
+ *   pcman.tw@gmail.com                                                    *
+ *   2010 Kuleshov Alexander <kuleshovmail@gmail.com>                      *
+ *                                                                         *
+ *   Based on code by Siyan Panayotov <xsisqox@gmail.com>                  *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ ***************************************************************************/
+
 #include "crop.h"
 
-static void spin_x_cb       (GtkSpinButton *spinbutton, Crop *crop);
-static void spin_width_cb   (GtkSpinButton *spinbutton, Crop *crop);
-static void spin_y_cb       (GtkSpinButton *spinbutton, Crop *crop);
-static void spin_height_cb  (GtkSpinButton *spinbutton, Crop *crop);
+G_DEFINE_TYPE (Win, win_crop, G_TYPE_OBJECT);
 
-static gboolean drawable_expose_cb (GtkWidget *widget, GdkEventExpose *event, Crop *crop);
-static gboolean drawable_button_press_cb (GtkWidget *widget, GdkEventButton *event, Crop *crop);
-static gboolean drawable_button_release_cb (GtkWidget *widget, GdkEventButton *event, Crop *crop);
-static gboolean drawable_motion_cb (GtkWidget *widget, GdkEventMotion *event, Crop *crop);
-
-static void
-vnr_crop_clear_rectangle(Crop *crop)
+void show_window(GtkWidget* widget, Win *win)
 {
-    if(crop->do_redraw)
-        gdk_draw_rectangle (GDK_DRAWABLE(crop->image->window), crop->gc, FALSE,
-                            crop->sub_x, crop->sub_y,
-                            crop->sub_width, crop->sub_height);
-}
-
-static void
-vnr_crop_draw_rectangle(Crop *crop)
-{
-    if(crop->do_redraw)
-        gdk_draw_rectangle (GDK_DRAWABLE(crop->image->window), crop->gc, FALSE,
-                            crop->sub_x, crop->sub_y,
-                            crop->sub_width, crop->sub_height);
-}
-
-static void
-vnr_crop_update_spin_button_values (Crop *crop)
-{
-    gtk_spin_button_set_value (crop->spin_height, crop->sub_height / crop->zoom);
-    gtk_spin_button_set_value (crop->spin_width, crop->sub_width / crop->zoom);
-
-    gtk_spin_button_set_value (crop->spin_x, crop->sub_x / crop->zoom);
-    gtk_spin_button_set_value (crop->spin_y, crop->sub_y / crop->zoom);
-}
-
-static void
-spin_x_cb (GtkSpinButton *spinbutton, Crop *crop)
-{
-    if(crop->drawing_rectangle)
-        return;
-
-    vnr_crop_clear_rectangle (crop);
-
-    gboolean old_do_redraw = crop->do_redraw;
-    crop->do_redraw = FALSE;
-
-    crop->do_redraw = old_do_redraw;
-
-    crop->sub_x = gtk_spin_button_get_value (spinbutton) * crop->zoom;
-
-    vnr_crop_draw_rectangle (crop);
-}
-
-static void
-spin_width_cb (GtkSpinButton *spinbutton, Crop *crop)
-{
-    if(crop->drawing_rectangle)
-        return;
-
-    vnr_crop_clear_rectangle (crop);
-
-    crop->sub_width = gtk_spin_button_get_value (spinbutton) * crop->zoom;
-
-    if(crop->sub_width <1)
-        crop->sub_width = 1;
-
-    vnr_crop_draw_rectangle (crop);
-}
-
-static void
-spin_y_cb (GtkSpinButton *spinbutton, Crop *crop)
-{
-    if(crop->drawing_rectangle)
-        return;
-
-    vnr_crop_clear_rectangle (crop);
-
-    gboolean old_do_redraw = crop->do_redraw;
-    crop->do_redraw = FALSE;
-
-    crop->do_redraw = old_do_redraw;
-
-    crop->sub_y = gtk_spin_button_get_value(spinbutton) * crop->zoom;
-
-    vnr_crop_draw_rectangle (crop);
-}
-
-static void
-spin_height_cb (GtkSpinButton *spinbutton, Crop  *crop)
-{
-    if(crop->drawing_rectangle)
-        return;
-
-    vnr_crop_clear_rectangle (crop);
-
-    crop->sub_height = gtk_spin_button_get_value(spinbutton) * crop->zoom;
-
-    if(crop->sub_height <1)
-        crop->sub_height = 1;
-
-    vnr_crop_draw_rectangle (crop);
-}
-
-static GtkWidget*
-crop_build_dialog (Crop *crop)
-{
-	GtkWindow* window;
-    GdkPixbuf *original;
-    GdkPixbuf *preview;
-    GError *error = NULL;
+	const char* current_image;
+    	   
+	gdouble width, height;
 	
-	window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_resizable(window,FALSE);
-	gtk_window_set_position(window,GTK_WIN_POS_CENTER);
-	gtk_window_set_title(window, "Crop");
+	win->image = NULL;
+	win->drawing_rectangle = FALSE;
+    win->do_redraw = TRUE;
+    win->sub_x = 10;
+    win->sub_y = -1;
+    win->sub_height = -1;
+    win->sub_width = -1;
+    win->height = -1;
+    win->width = -1;
+    win->gc = NULL;
+		
+    win->crop_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_window_set_default_size (win->crop_window, 450, 370);
+	gtk_window_set_resizable (win->crop_window, FALSE);
+	gtk_window_set_transient_for(GTK_WINDOW(win->crop_window), GTK_WINDOW(win->mw));
+    gtk_window_set_position(win->crop_window,GTK_WIN_POS_CENTER);
+    gtk_window_set_title(win->crop_window, "Crop Image");
 	
-	gtk_widget_show_all(window);
+	win->box = gtk_vbox_new (FALSE,0);
+	win->hbox = gtk_hbox_new (FALSE, 0);
 	
-	return window;
+	win->image = gtk_drawing_area_new();
+	gtk_widget_set_events (win->image, GDK_BUTTON_PRESS_MASK|GDK_BUTTON_RELEASE_MASK|GDK_BUTTON_MOTION_MASK);
+	
+	win->crop_button = gtk_button_new();
+	gtk_button_set_label(win->crop_button, "Crop");
+	
+	win->original = gtk_image_view_get_pixbuf(GTK_IMAGE_VIEW(win->mw->aview));
+		
+    width = gdk_pixbuf_get_width(  gtk_image_view_get_pixbuf (win->mw->aview) );
+    height = gdk_pixbuf_get_height( gtk_image_view_get_pixbuf ( win->mw->aview) );
+	
+   	fit_to_size_double(&height, &width, 450,450);	
+	win->width = width;
+	win->height = height;
+	win->zoom = (width/gdk_pixbuf_get_width(  gtk_image_view_get_pixbuf (win->mw->aview))
+				 + height/gdk_pixbuf_get_height(  gtk_image_view_get_pixbuf (win->mw->aview))) / 2;
+		
+	win->preview =        gdk_pixbuf_new (gdk_pixbuf_get_colorspace (win->original),
+                          gdk_pixbuf_get_has_alpha (win->original),
+                          gdk_pixbuf_get_bits_per_sample (win->original),
+                          width, height);
+		
+	gtk_pixbuf_scale_blend(win->original, win->preview, 0, 0, width, height, 0, 0,
+                        win->zoom, GDK_INTERP_BILINEAR, 0, 0);
+		
+	win->preview_pixbuf = win->preview;
+		
+	
+	gtk_widget_set_size_request(win->image, width, height);
+	gtk_box_pack_start(win->box, win->image, TRUE, TRUE, 1);
+	gtk_box_pack_start(win->box, win->crop_button, TRUE, TRUE, 1);
+	
+	g_signal_connect (win->image, "motion-notify-event", G_CALLBACK (drawable_motion_cb), win);
+	g_signal_connect (win->image, "expose-event", G_CALLBACK (drawable_expose_cb), win);
+	g_signal_connect (win->image, "button-press-event", G_CALLBACK (drawable_button_press_cb), win);
+	g_signal_connect (win->image, "button-release-event", G_CALLBACK (drawable_button_release_cb), win);
+	
+	g_signal_connect (win->crop_button, "clicked", G_CALLBACK(crop_click), win);
+	
+	gtk_container_add (win->crop_window, win->box);
+	gtk_widget_show_all(win->crop_window);
 }
 
-static gboolean
-drawable_expose_cb (GtkWidget *widget, GdkEventExpose *event, Crop *crop)
+void
+gtk_view_set_static (GtkAnimView *aview, GdkPixbuf *pixbuf)
 {
-    gdk_draw_pixbuf (GDK_DRAWABLE(widget->window), NULL, crop->preview_pixbuf,
+    GdkPixbufSimpleAnim *s_anim;
+
+    s_anim = gdk_pixbuf_simple_anim_new (gdk_pixbuf_get_width(pixbuf),
+                                         gdk_pixbuf_get_height(pixbuf),
+                                         -1);
+    gdk_pixbuf_simple_anim_add_frame(s_anim, pixbuf);
+
+    /* Simple version of uni_anim_view_set_anim */
+    if (aview->anim)
+        g_object_unref (aview->anim);
+
+    aview->anim = (GdkPixbufAnimation*)s_anim;
+
+    g_object_ref (aview->anim);
+    if (aview->iter)
+        g_object_unref (aview->iter);
+
+    gtk_image_view_set_pixbuf (GTK_IMAGE_VIEW (aview), pixbuf, TRUE);
+    gtk_anim_view_set_is_playing (aview, FALSE);
+    aview->delay = -1;
+    aview->iter = NULL;
+
+    g_object_unref(pixbuf);
+}
+
+void
+crop_click(GtkWidget* widget, Win* win)
+{
+  GdkPixbuf *cropped;
+  GdkPixbuf *original;
+	
+  win->area.x = win->sub_x;
+  win->area.y = win->sub_y;
+  win->area.width = win->sub_width;
+  win->area.height = win->sub_height;
+ 
+  original = gtk_image_view_get_pixbuf(GTK_IMAGE_VIEW(win->mw->aview));
+
+  cropped = gdk_pixbuf_new (gdk_pixbuf_get_colorspace (original),
+                            gdk_pixbuf_get_has_alpha (original),
+                            gdk_pixbuf_get_bits_per_sample (original),
+                            win->area.width, win->area.height);
+	
+  gdk_pixbuf_copy_area((const GdkPixbuf*)original, win->area.x, win->area.y,
+                        win->area.width, win->area.height, cropped, 0, 0);
+	
+  gtk_view_set_static(GTK_ANIM_VIEW(win->mw->aview), cropped);
+	
+  g_object_unref(cropped);
+
+  win->mw->modifications |= 8;
+	
+  win->mw->current_image_width = win->area.width;
+  win->mw->current_image_height = win->area.height;
+	
+  g_object_unref(win);
+}
+
+void
+gtk_pixbuf_scale_blend (GdkPixbuf * src,
+                        GdkPixbuf * dst,
+                        int dst_x,
+                        int dst_y,
+                        int dst_width,
+                        int dst_height,
+                        gdouble offset_x,
+                        gdouble offset_y,
+                        gdouble zoom,
+                        GdkInterpType interp, int check_x, int check_y)
+{
+    if (gdk_pixbuf_get_has_alpha (src))
+        gdk_pixbuf_composite_color (src, dst,
+                                    dst_x, dst_y, dst_width, dst_height,
+                                    offset_x, offset_y,
+                                    zoom, zoom,
+                                    interp,
+                                    255,
+                                    check_x, check_y,
+                                    CHECK_SIZE, CHECK_LIGHT, CHECK_DARK);
+    else
+        gdk_pixbuf_scale (src, dst,
+                          dst_x, dst_y, dst_width, dst_height,
+                          offset_x, offset_y, zoom, zoom, interp);
+}
+
+void
+fit_to_size_double (gdouble * width, gdouble * height, gint max_width, gint max_height)
+{
+    gdouble ratio, max_ratio;
+
+    if (*width < max_width && *height < max_height)
+        return;
+
+    if (*width == 0 || max_height == 0)
+        return;
+
+    ratio = 1. * (*height) / (*width);
+    max_ratio = 1. * max_height / max_width;
+
+    if (max_ratio > ratio)
+    {
+        *width = max_width;
+        *height = ratio * (*width);
+    }
+    else if (ratio > max_ratio)
+    {
+        *height = max_height;
+        *width = (*height) / ratio;
+    }
+    else
+    {
+        *width = max_width;
+        *height = max_height;
+    }
+
+    return;
+}
+
+static void
+clear_rectangle(GtkWidget* widget, Win* win)
+{	
+    if(win->do_redraw)
+        gdk_draw_rectangle (GDK_DRAWABLE(win->image->window), win->gc, FALSE,
+                            win->sub_x, win->sub_y,
+                            win->sub_width, win->sub_height);
+}
+
+static void
+draw_rectangle(GtkWidget* widget, Win* win)
+{		
+    if(win->do_redraw)
+        gdk_draw_rectangle (GDK_DRAWABLE(win->image->window), win->gc, FALSE,
+                            win->sub_x, win->sub_y,
+                            win->sub_width, win->sub_height);
+}
+
+gboolean
+drawable_button_release_cb (GtkWidget *widget, GdkEventButton *event, Win* win)
+{	
+    if(event->button == 1)
+    {
+        win->drawing_rectangle = FALSE;
+    }
+    return FALSE;
+}
+
+
+gboolean
+drawable_expose_cb (GtkWidget *widget, GdkEventExpose *event, Win* win)
+{	
+    gdk_draw_pixbuf (GDK_DRAWABLE(widget->window), NULL, win->preview_pixbuf,
                      0, 0, 0, 0, -1, -1, GDK_RGB_DITHER_NORMAL, 0, 0);
-
-    crop->gc = gdk_gc_new(GDK_DRAWABLE(widget->window));
-    gdk_gc_set_function (crop->gc, GDK_INVERT);
-    gdk_gc_set_line_attributes (crop->gc,
+    
+    win->gc = gdk_gc_new(GDK_DRAWABLE(widget->window));
+	
+    gdk_gc_set_function (win->gc, GDK_INVERT);
+    gdk_gc_set_line_attributes (win->gc,
                                 2,
                                 GDK_LINE_SOLID, GDK_CAP_BUTT, GDK_JOIN_MITER);
 
-    if(crop->sub_width == -1)
+    if(win->sub_width == -1)
     {
-        crop->sub_x = 0;
-        crop->sub_y = 0;
-        crop->sub_width = crop->width;
-        crop->sub_height = crop->height;
+        win->sub_x = 0;
+        win->sub_y = 0;
+        win->sub_width =  win->width;
+        win->sub_height = win->height;
     }
-    vnr_crop_clear_rectangle (crop);
-
+	
+	clear_rectangle (NULL, win);
+	
     return FALSE;
 }
 
-static gboolean
-drawable_button_press_cb (GtkWidget *widget, GdkEventButton *event, Crop *crop)
+gboolean
+drawable_button_press_cb (GtkWidget *widget, GdkEventButton *event, Win* win)
 {
     if(event->button == 1)
     {
-        crop->drawing_rectangle = TRUE;
-        crop->start_x =  event->x;
-        crop->start_y =  event->y;
-    }
-
-    return FALSE;
-}
-
-static gboolean
-drawable_button_release_cb (GtkWidget *widget, GdkEventButton *event, Crop *crop)
-{
-    if(event->button == 1)
-    {
-        crop->drawing_rectangle = FALSE;
-
-        gtk_spin_button_set_range(crop->spin_width, 1,
-                                  (crop->width - crop->sub_x) / crop->zoom);
-        gtk_spin_button_set_range(crop->spin_height, 1,
-                                  (crop->height - crop->sub_y) / crop->zoom);
-
-        vnr_crop_update_spin_button_values (crop);
+        win->drawing_rectangle = TRUE;
+        win->start_x =  event->x;
+        win->start_y =  event->y;
     }
     return FALSE;
 }
 
-static gboolean
-drawable_motion_cb (GtkWidget *widget, GdkEventMotion *event, Crop *crop)
-{
-    if(!crop->drawing_rectangle)
+gboolean
+drawable_motion_cb (GtkWidget *widget, GdkEventMotion *event, Win *win)
+{	
+    if(!win->drawing_rectangle)
         return FALSE;
-
+	
     gdouble x, y;
     x = event->x;
     y = event->y;
 
-    x = CLAMP(x, 0, crop->width);
-    y = CLAMP(y, 0, crop->height);
+    x = CLAMP(x, 0, 100000);
+    y = CLAMP(y, 0, 100000);
+	
+	clear_rectangle (NULL, win);
 
-    vnr_crop_clear_rectangle (crop);
-
-    if(x > crop->start_x)
+    if(x > win->start_x)
     {
-        crop->sub_x = crop->start_x;
-        crop->sub_width = x - crop->start_x;
+        win->sub_x = win->start_x;
+        win->sub_width = x - win->start_x;
     }
-    else if(x == crop->start_x)
+    else if(x == win->start_x)
     {
-        crop->sub_x = x;
-        crop->sub_width = 1;
-    }
-    else
-    {
-        crop->sub_x = x;
-        crop->sub_width = crop->start_x - x;
-    }
-
-    if(y > crop->start_y)
-    {
-        crop->sub_y = crop->start_y;
-        crop->sub_height = y - crop->start_y;
-    }
-    else if(y == crop->start_y)
-    {
-        crop->sub_y = y;
-        crop->sub_height = 1;
+        win->sub_x = x;
+        win->sub_width = 1;
     }
     else
     {
-        crop->sub_y = y;
-        crop->sub_height = crop->start_y - y;
+        win->sub_x = x;
+        win->sub_width = win->start_x - x;
     }
 
-    crop->drawing_rectangle = FALSE;
-    crop->do_redraw= FALSE;
+    if(y > win->start_y)
+    {
+        win->sub_y = win->start_y;
+        win->sub_height = y - win->start_y;
+    }
+    else if(y == win->start_y)
+    {
+        win->sub_y = y;
+        win->sub_height = 1;
+    }
+    else
+    {
+        win->sub_y = y;
+        win->sub_height = win->start_y - y;
+    }
 
-    vnr_crop_update_spin_button_values (crop);
+    win->drawing_rectangle = FALSE;
+    win->do_redraw= FALSE;
 
-    crop->drawing_rectangle = TRUE;
-    crop->do_redraw= TRUE;
+    win->drawing_rectangle = TRUE;
+    win->do_redraw= TRUE;
 
-    vnr_crop_draw_rectangle (crop);
+    draw_rectangle (NULL, win);
 
     return FALSE;
+    
 }
 
-static void
-vnr_crop_dispose (GObject *gobject)
+/*************/
+// INIT CLASS*/
+/*************/
+GType
+crop_win_get_type (void)
 {
+  static GType type = 0;
+  if (type == 0) {
+    static const GTypeInfo info = {
+      sizeof (WinClass),
+      NULL,   /* base_init */
+      NULL,   /* base_finalize */
+      NULL,   /* class_init */
+      NULL,   /* class_finalize */
+      NULL,   /* class_data */
+      sizeof (Win),
+      0,      /* n_preallocs */
+      NULL    /* instance_init */
+      };
+      type = g_type_register_static (G_TYPE_OBJECT,
+                                     "CropBarType",
+                                     &info, 0);
+    }
+    return type;
 }
 
 static void
-vnr_crop_class_init (CropClass *klass)
+crop_dispose (GObject *gobject)
+{}
+
+static void
+win_crop_class_init (WinClass *klass)
 {
     GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
+    gobject_class->dispose = crop_dispose;
+}
+
+GtkWidget* win_new(MainWin* mw)
+{
+	Win *win;
+	
+    win = (GObject*)g_object_new (CROP_WIN_TYPE, NULL );
+ 
+	win->mw = mw;
+	
+	return (GObject *) win;
 }
 
 static void
-vnr_crop_init (Crop *crop)
+win_crop_init (Win *win)
 {
-    crop->drawing_rectangle = FALSE;
-    crop->do_redraw = TRUE;
+    win->drawing_rectangle = FALSE;
+    win->do_redraw = TRUE;
 
-    crop->sub_x = -1;
-    crop->sub_y = -1;
-    crop->sub_height = -1;
-    crop->sub_width = -1;
-    crop->height = -1;
-    crop->width = -1;
+    win->sub_x = -1;
+    win->sub_y = -1;
+    win->sub_height = -1;
+    win->sub_width = -1;
+    win->height = -1;
+    win->width = -1;
 
-    crop->gc = NULL;
-    crop->image = NULL;
-    crop->spin_x = NULL;
-    crop->spin_y = NULL;
-    crop->spin_width = NULL;
-    crop->spin_height = NULL;
-    crop->preview_pixbuf = NULL;
+    win->gc = NULL;
+    win->image = NULL;
+    win->spin_x = NULL;
+    win->spin_y = NULL;
+    win->spin_width = NULL;
+    win->spin_height = NULL;
 }
 
-gboolean
-crop_run ()
-{
-	Crop* crop;
-    GtkWidget *dialog;
-    gint crop_dialog_response;
-
-    dialog = crop_build_dialog(crop);
-
-    if(dialog == NULL)
-        return FALSE;
-
-    crop_dialog_response = gtk_dialog_run (GTK_DIALOG (dialog));
-
-    crop->area.x = gtk_spin_button_get_value_as_int (crop->spin_x);
-    crop->area.y = gtk_spin_button_get_value_as_int (crop->spin_y);
-    crop->area.width = gtk_spin_button_get_value_as_int (crop->spin_width);
-    crop->area.height = gtk_spin_button_get_value_as_int (crop->spin_height);
-
-    gtk_widget_destroy (dialog);
-}
