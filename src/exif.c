@@ -1306,16 +1306,16 @@ int Exif2tm(struct tm * timeptr, char * ExifTime)
 //--------------------------------------------------------------------------
 void ShowImageInfo(int ShowFileInfo)
 {
-    if (ShowFileInfo){
+    //if (ShowFileInfo){
         printf("File name    : %s\n",ImageInfo.FileName);
         printf("File size    : %d bytes\n",ImageInfo.FileSize);
 
-        {
+    //    {
             char Temp[20];
             FileTimeAsString(Temp);
             printf("File date    : %s\n",Temp);
-        }
-    }
+    //    }
+   // }
 
     if (ImageInfo.CameraMake[0]){
         printf("Camera make  : %s\n",ImageInfo.CameraMake);

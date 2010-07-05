@@ -48,8 +48,6 @@ int main(int argc, char *argv[])
     GOptionContext *context = NULL;
     MainWin* win;
 	
-    gtk_init (&argc, &argv);
-	
 #ifdef ENABLE_NLS
     bindtextdomain ( GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR );
     bind_textdomain_codeset ( GETTEXT_PACKAGE, "UTF-8" );
@@ -79,22 +77,9 @@ int main(int argc, char *argv[])
      * We must show the window now in case the file open needs to put up an error dialog. */
     win = (MainWin*)main_win_new();
     gtk_widget_show( GTK_WIDGET(win) );
-
+	
     if ( pref.open_maximized )
         gtk_window_maximize( (GtkWindow*)win );
-
-    // FIXME: need to process multiple files...
-    if( files )
-    {
-        if( G_UNLIKELY( *files[0] != '/' && strstr( files[0], "://" )) )    // This is an URI
-        {
-            char* path = g_filename_from_uri( files[0], NULL, NULL );
-            main_win_open( win, path, ZOOM_NONE );
-            g_free( path );
-        }
-        else 
-           main_win_open( (MainWin*)win, files[0], ZOOM_NONE );
-    }
 
 	gtk_main();
 

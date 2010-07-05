@@ -34,7 +34,9 @@ gpicview_SOURCES = \
 	crop.c   \
 	crop.h   \
 	wallpaper.c   \
-	wallpaper.h
+	wallpaper.h   \
+	loader.c   \
+	loader.h
 
 gpicview_CFLAGS = \
 	$(GTK_CFLAGS) \

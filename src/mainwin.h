@@ -31,6 +31,10 @@
 
 #include "image-list.h"
 #include "exif.h"
+#include "loader.h"
+
+
+#define LOAD_BUFFER_SIZE 65536 
 
 /**
     @author PCMan (Hong Jen Yee) <pcman.tw@gmail.com>
@@ -90,6 +94,7 @@ typedef struct _MainWin
 	
 	//Thumbnail
 	GtkIconView*  view;
+	GList*        disp_list;
 	ImageList* thmb_list;
 	GtkIconView*  view1;
     GtkWidget* thumb_box;
@@ -120,19 +125,20 @@ typedef struct _MainWin
 	gdouble zoom;
     gdouble width;
     gdouble height;
+	
+	GCancellable* generator_cancellable;
 
 } MainWin;
 
 typedef struct _JobParam
 {
   GtkWidget* widget;
-  char*  file_path;
-  struct MainWin  *mw;
+  MainWin  *mw;
 }JobParam;
 
 GtkWidget* main_win_new();
 
-gboolean main_win_open( MainWin* mw, const char* file_path, ZoomMode zoom );
+gboolean main_win_open( MainWin* mw, ZoomMode zoom );
 
 void main_win_close( MainWin* mw );
 
