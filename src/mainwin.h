@@ -108,6 +108,8 @@ typedef struct _MainWin
 	gint      prev_pos;
 	gboolean  thumb_bar_hide;
 	
+	GFile* loading_file;
+	
 	//Drawing area
 	GtkWidget*      image;
 	gdouble sub_x;

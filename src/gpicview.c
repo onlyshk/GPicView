@@ -81,6 +81,26 @@ int main(int argc, char *argv[])
     if ( pref.open_maximized )
         gtk_window_maximize( (GtkWindow*)win );
 
+	if( files )
+    {
+        if( G_UNLIKELY( *files[0] != '/' && strstr( files[0], "://" )) )    // This is an URI
+        {
+			g_io_scheduler_cancel_all_jobs();
+			
+            char* path = g_filename_from_uri( files[0], NULL, NULL );			
+            main_win_open((MainWin*)win, ZOOM_NONE );
+			
+            g_free( path );
+        }
+        else 
+		   g_io_scheduler_cancel_all_jobs();
+		   
+		   GFile* file = g_file_new_for_path(files[0]);
+		   win->loading_file = file;
+												   
+           main_win_open( (MainWin*)win, ZOOM_NONE );
+    }
+	
 	gtk_main();
 
     save_preferences();

@@ -53,8 +53,6 @@ GList* list;
 GList* list1;
 GList* list2;
 
-static GFile* loading_file;
-
 /* For drag & drop */
 static GtkTargetEntry drop_targets[] =
 {
@@ -340,7 +338,7 @@ static void update_title(const char *filename, MainWin *mw )
 void loading(GtkWidget* widget ,MainWin* mw)
 {	
 	GInputStream* input_stream = NULL;
-	input_stream = g_file_read(loading_file, mw->generator_cancellable, NULL);
+	input_stream = g_file_read(mw->loading_file, mw->generator_cancellable, NULL);
 	mw->animation = load_image_from_stream(G_INPUT_STREAM(input_stream), mw->generator_cancellable);	
 	
 	g_input_stream_close(input_stream, mw->generator_cancellable, NULL);
@@ -376,14 +374,14 @@ gboolean job_func1(GIOSchedulerJob *job, GCancellable *cancellable, gpointer use
 
 void on_open( GtkWidget* widget, MainWin* mw )
 {		
-	loading_file = NULL;
+	mw->loading_file = NULL;
 	
     char* file = get_open_filename( mw, image_list_get_dir( mw->img_list ) ); 	
-	loading_file = g_file_new_for_path(file);
+	mw->loading_file = g_file_new_for_path(file);
 	
 	main_win_open (mw, ZOOM_NONE);
 	
-	char* file_path =  g_file_get_path (loading_file);
+	char* file_path =  g_file_get_path (mw->loading_file);
 	char* dir_path = g_path_get_dirname( file_path );
     image_list_open_dir(mw->img_list, dir_path, NULL );
     image_list_sort_by_name( mw->img_list, GTK_SORT_ASCENDING );
@@ -439,7 +437,6 @@ void thumbnail_selected(GtkWidget* widget, MainWin* mw)
   int n = atoi(b);
   const char* c = g_list_nth_data(list,n);
   
-  //loading(NULL, c, mw);  
 }
 
 void main_win_show_error( MainWin* mw, const char* message )
@@ -497,7 +494,7 @@ void on_prev( GtkWidget* btn, MainWin* mw )
         const char* file_path = image_list_get_current_file_path( mw->img_list );
 		GFile* file = g_file_new_for_path(file_path);
 		
-		loading_file = file;
+		mw->loading_file = file;
         main_win_open (mw,ZOOM_NONE);
 	
 		g_free( file_path ); 
@@ -519,7 +516,7 @@ void on_next( GtkWidget* bnt, MainWin* mw )
     {
         const char* file_path = image_list_get_current_file_path( mw->img_list );
 	    GFile* file = g_file_new_for_path(file_path);
-		loading_file = file;
+		mw->loading_file = file;
 		main_win_open (mw,ZOOM_NONE);
         g_free( file_path );
     }
@@ -546,7 +543,7 @@ void next_for_slide_show( MainWin* mw )
         char* file_path = image_list_get_current_file_path( mw->img_list );
 				
 		GFile* file = g_file_new_for_path(file_path);
-		loading_file = file;
+		mw->loading_file = file;
 		
         main_win_open( mw,  ZOOM_FIT );
         g_free( file_path );
@@ -583,7 +580,7 @@ gboolean on_button_press( GtkWidget* widget, GdkEventButton* evt, MainWin* mw )
 
     if( evt->type == GDK_BUTTON_PRESS)
     {
-        if( evt->button == 3 )   // right button
+        if( evt->button == 3 ) 
         {
             show_popup_menu( mw, evt );
         }
@@ -874,7 +871,7 @@ void on_save( GtkWidget* btn, MainWin* mw )
 
     if(strcmp(type,"jpeg")==0)
     {
-        if(!pref.rotate_exif_only) //|| ExifRotate(file_name, mw->rotation_angle) == FALSE)
+        if(!pref.rotate_exif_only)
         {
 #ifdef HAVE_LIBJPEG
             int status = rotate_and_save_jpeg_lossless(file_name,mw->rotation_angle);
@@ -1047,7 +1044,6 @@ void show_popup_menu( MainWin* mw, GdkEventButton* evt )
 		
     };
 	
-    // mw accel group is useless. It's only used to display accels in popup menu
     GtkAccelGroup* accel_group = gtk_accel_group_new();
     GtkMenuShell* popup = (GtkMenuShell*)ptk_menu_new_from_data( menu_def, mw, accel_group );
 
@@ -1120,4 +1116,3 @@ static void open_url( GtkAboutDialog *dlg, const gchar *url, gpointer data)
         }
     }
 }
-//=========================================================
