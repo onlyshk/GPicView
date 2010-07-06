@@ -245,6 +245,7 @@ void main_win_init( MainWin*mw )
 	mw->aview  =    GTK_IMAGE_VIEW(gtk_anim_view_new());
 	mw->generator_cancellable = g_cancellable_new();
 	mw->img_list = image_list_new();
+	mw->align = gtk_alignment_new( 0.5, 0,0,0);
 		
 	mw->thumb_bar_hide = TRUE;
 		
@@ -254,6 +255,7 @@ void main_win_init( MainWin*mw )
 	gtk_window_set_position((GtkWindow*)mw, GTK_WIN_POS_CENTER);
 
 	mw->box = gtk_vbox_new(FALSE, 0);
+	mw->toolbar_box = gtk_hpaned_new ();
 	mw->img_box =   gtk_hpaned_new ();
     mw->thumb_box = gtk_vbox_new (FALSE,0);
 	
@@ -292,7 +294,12 @@ void main_win_init( MainWin*mw )
 	  g_message ("building menus failed: %s", error->message);
 	  g_error_free (error);
 	}
-	gtk_box_pack_end(GTK_BOX (mw->box), gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"), FALSE, TRUE,0);
+	gtk_widget_set_size_request(mw->toolbar_box, 670,40);
+	
+    gtk_paned_add1(mw->toolbar_box,gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"));
+	gtk_container_add( (GtkContainer*)mw->align, mw->toolbar_box);
+	gtk_box_pack_end( (GtkBox*)mw->box, mw->align, FALSE, TRUE, 2 );
+	
 	gtk_toolbar_set_style(gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"), GTK_TOOLBAR_ICONS);
 	//end gtuimanager 
 			
@@ -368,7 +375,7 @@ void set_image(JobParam* param)
 gboolean job_func1(GIOSchedulerJob *job, GCancellable *cancellable, gpointer user_data)
 {
 	JobParam* param = (JobParam*)user_data;
-	param->mw->generator_cancellable = cancellable;
+	cancellable = param->mw->generator_cancellable;
 	loading(NULL, param->mw);		
 }
 

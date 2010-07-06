@@ -72,6 +72,8 @@ typedef struct _MainWin
     GtkWindow parent;
 	GtkWidget* scroll;
 	GtkWidget* box;
+	GtkWidget* align;
+	GtkWidget* toolbar_box;
     GtkUIManager *uimanager;
 	GtkAccelGroup *accels;
 	GtkWidget*  img_box;
