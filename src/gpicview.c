@@ -48,6 +48,8 @@ int main(int argc, char *argv[])
     GOptionContext *context = NULL;
     MainWin* win;
 	
+	gtk_init (&argc, &argv);
+	
 #ifdef ENABLE_NLS
     bindtextdomain ( GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR );
     bind_textdomain_codeset ( GETTEXT_PACKAGE, "UTF-8" );
@@ -71,8 +73,6 @@ int main(int argc, char *argv[])
 
     gtk_icon_theme_append_search_path(gtk_icon_theme_get_default(), PIXMAP_DIR);
 
-	load_preferences();
-
     /* Allocate and show the window.
      * We must show the window now in case the file open needs to put up an error dialog. */
     win = (MainWin*)main_win_new();
@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
 			g_io_scheduler_cancel_all_jobs();
 			
             char* path = g_filename_from_uri( files[0], NULL, NULL );			
-            main_win_open((MainWin*)win, ZOOM_NONE );
+            main_win_open((MainWin*)win);
 			
             g_free( path );
         }
@@ -96,15 +96,12 @@ int main(int argc, char *argv[])
 		   g_io_scheduler_cancel_all_jobs();
 		   
 		   GFile* file = g_file_new_for_path(files[0]);
-		   win->loading_file = file;
+		   //wiloading_file = file;
 												   
-           main_win_open( (MainWin*)win, ZOOM_NONE );
+           main_win_open( (MainWin*)win );
     }
 	
 	gtk_main();
-
-    save_preferences();
-
     return 0;
 }
 

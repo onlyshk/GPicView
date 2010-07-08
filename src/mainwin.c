@@ -94,16 +94,18 @@ static void show_popup_menu( MainWin* mw, GdkEventButton* evt );
 static void open_url( GtkAboutDialog *dlg, const gchar *url, gpointer data);
 static gboolean on_button_press( GtkWidget* widget, GdkEventButton* evt, MainWin* mw );
 static void thumbnail_selected(GtkWidget* widget, MainWin* mw);
-static void loading(GtkWidget* widget ,MainWin* mw);
+static void loading(JobParam* param);
 static void on_rotate_auto_save( GtkWidget* btn, MainWin* mw );
 static void set_wallpapaer(GtkWidget* widget, MainWin* mw);
 static void crop_image (GtkWidget* widget, MainWin* mw, GdkEventMotion *event);
 static void draw_rectangle(GtkWidget* widget, MainWin* mw);
-static void job_func (GIOSchedulerJob *job, GCancellable    *cancellable, gpointer user_data);
-static void set_image(JobParam* param);
+
+static gboolean set_image(JobParam* param);
 static gboolean load(GIOSchedulerJob *job, GCancellable *cancellable, gpointer user_data);
-static void load_thumbnails(GtkWidget* widget, MainWin* mw);static void job_func(GIOSchedulerJob *job, GCancellable *cancellable, gpointer user_data);
+static void load_thumbnails(JobParam* param);
+static gboolean job_func(GIOSchedulerJob *job, GCancellable *cancellable, gpointer user_data);
 static gboolean job_func1(GIOSchedulerJob *job, GCancellable *cancellable, gpointer user_data);
+static gboolean set_thumbnails(JobParam* param);
 
 /* signal handlers */
 static gboolean on_delete_event( GtkWidget* widget, GdkEventAny* evt );
@@ -246,9 +248,10 @@ void main_win_init( MainWin*mw )
 	mw->generator_cancellable = g_cancellable_new();
 	mw->img_list = image_list_new();
 	mw->align = gtk_alignment_new( 0.5, 0,0,0);
-		
+    mw->loader =    gdk_pixbuf_loader_new();
+	
 	mw->thumb_bar_hide = TRUE;
-		
+	
     gtk_window_set_title( (GtkWindow*)mw, _("Image Viewer"));
     gtk_window_set_icon_from_file( (GtkWindow*)mw, PACKAGE_DATA_DIR"/pixmaps/gpicview.png", NULL );
     gtk_window_set_default_size( (GtkWindow*)mw, 700, 480 );
@@ -310,7 +313,9 @@ void main_win_init( MainWin*mw )
 	gtk_icon_view_set_text_column(GTK_ICON_VIEW(mw->view),0);
     gtk_icon_view_set_pixbuf_column(GTK_ICON_VIEW(mw->view), 1);
     gtk_icon_view_set_selection_mode(GTK_ICON_VIEW(mw->view), GTK_SELECTION_SINGLE);
-				
+	
+	gtk_widget_modify_bg (mw->aview, GTK_STATE_NORMAL, &pref.bg);
+	
 	gtk_box_pack_start(mw->box, gtk_hseparator_new(), FALSE, TRUE,0);	
 	
 	gtk_container_add(mw, mw->box);
@@ -337,74 +342,47 @@ static void update_title(const char *filename, MainWin *mw )
 	  wid = gdk_pixbuf_get_width(  gtk_image_view_get_pixbuf (GTK_IMAGE_VIEW(mw->aview)) );
       hei = gdk_pixbuf_get_height( gtk_image_view_get_pixbuf ( GTK_IMAGE_VIEW(mw->aview)) );
     }
-    snprintf(buf, 100, "%s (%dx%d)", fname, wid, hei);
+    snprintf(buf, 100, "%s", fname);
     gtk_window_set_title( (GtkWindow*)mw, buf );
     return;
 }
 
-void loading(GtkWidget* widget ,MainWin* mw)
+void loading(JobParam* param)
 {	
 	GInputStream* input_stream = NULL;
-	input_stream = g_file_read(mw->loading_file, mw->generator_cancellable, NULL);
-	mw->animation = load_image_from_stream(G_INPUT_STREAM(input_stream), mw->generator_cancellable);	
+	input_stream = g_file_read(param->file, param->generator_cancellable, NULL);
+	param->animation = load_image_from_stream(G_INPUT_STREAM(input_stream), param->generator_cancellable);	
 	
-	g_input_stream_close(input_stream, mw->generator_cancellable, NULL);
+	g_input_stream_close(input_stream, param->generator_cancellable, NULL);
 	g_object_unref (input_stream);
 }
 
-gboolean main_win_open( MainWin* mw,  ZoomMode zoom )
-{        		
-	list = NULL;
-    
-	JobParam* param1 = malloc(sizeof(JobParam));
-	param1->widget = NULL;
-	param1->mw     = mw;
-	
-	g_io_scheduler_push_job (job_func1, param1, set_image, G_PRIORITY_HIGH, mw->generator_cancellable);	
-	gtk_anim_view_set_anim (param1->mw->aview, param1->mw->animation);
-		
-	gtk_list_store_clear(mw->model);
-	gtk_icon_view_unselect_all(mw->view);
-}
-
-void set_image(JobParam* param)
-{
-   gtk_anim_view_set_anim (param->mw->aview, param->mw->animation);
-}
-
-gboolean job_func1(GIOSchedulerJob *job, GCancellable *cancellable, gpointer user_data)
-{
-	JobParam* param = (JobParam*)user_data;
-	cancellable = param->mw->generator_cancellable;
-	loading(NULL, param->mw);		
-}
-
-void on_open( GtkWidget* widget, MainWin* mw )
-{		
-	mw->loading_file = NULL;
-	
-    char* file = get_open_filename( mw, image_list_get_dir( mw->img_list ) ); 	
-	mw->loading_file = g_file_new_for_path(file);
-	
-	main_win_open (mw, ZOOM_NONE);
-	
-	char* file_path =  g_file_get_path (mw->loading_file);
-	char* dir_path = g_path_get_dirname( file_path );
-    image_list_open_dir(mw->img_list, dir_path, NULL );
-    image_list_sort_by_name( mw->img_list, GTK_SORT_ASCENDING );
-    image_list_sort_by_name( mw->img_list, GTK_SORT_DESCENDING );
-        
-    char* base_name = g_path_get_basename( file_path );
-    image_list_set_current( mw->img_list, base_name );
-    char* disp_name = g_filename_display_name( base_name );
-	
-	g_free( dir_path );
-    g_free( base_name );
-    g_free( disp_name );	
-}
-
-void load_thumbnails(GtkWidget* widget, MainWin* mw)
+void load_thumbnails(JobParam* param)
 {				
+	GInputStream* input_stream = NULL;
+	GtkTreeIter iter;
+	
+	int i = 0;
+	int n = g_list_length(param->mw->img_list) - 1;
+	
+	for (i; i < n; ++i)
+	{
+	  char* file = image_list_get_current_file_path( param->mw->img_list );
+			
+	  param->mw->p1 = gdk_pixbuf_new_from_file(file,NULL);
+	  param->mw->p1 = scale_pix(param->mw->p1,128);
+      
+	  param->mw->disp_list = g_list_prepend (param->mw->disp_list, param->mw->p1);
+			  
+	  if (!param->mw->img_list->current->next )
+	      image_list_get_first(param->mw->img_list);
+	  else
+	      image_list_get_next(param->mw->img_list);
+		
+	  list = g_list_prepend(list,file);
+	}
+	
+	/*
 	GtkTreeIter iter;
 	
 	int i = 0;
@@ -428,6 +406,102 @@ void load_thumbnails(GtkWidget* widget, MainWin* mw)
 	}
 	
 	list2 = mw->disp_list;
+    */
+}
+
+gboolean main_win_open(MainWin* mw)
+{        		
+	mw->disp_list = NULL;
+		
+	JobParam* param;
+	param =  g_new (JobParam, 1);
+	
+    param->file                  = mw->loading_file;
+	param->generator_cancellable = mw->generator_cancellable;
+	param->animation             = mw->animation;
+	param->mw                    = mw;
+	
+	g_io_scheduler_push_job (job_func1, param, NULL, G_PRIORITY_DEFAULT, mw->generator_cancellable);
+	g_io_scheduler_push_job (job_func, param, NULL, G_PRIORITY_DEFAULT, mw->generator_cancellable);
+		
+	return TRUE;
+}
+
+gboolean job_func(GIOSchedulerJob *job, GCancellable *cancellable, gpointer user_data)
+{
+	JobParam* param = (JobParam*)user_data;
+	
+	load_thumbnails(param);
+	g_io_scheduler_job_send_to_mainloop(job, set_thumbnails, param, NULL);
+	
+	return FALSE;
+}
+
+gboolean job_func1(GIOSchedulerJob *job, GCancellable *cancellable, gpointer user_data)
+{
+	JobParam* param = (JobParam*)user_data;
+	
+	loading(param);
+	g_io_scheduler_job_send_to_mainloop(job, set_image, param, NULL);
+	
+	return FALSE;
+}
+
+gboolean set_thumbnails(JobParam* param)
+{  	
+  GtkTreeIter* iter;
+  GdkPixbuf* pixbuf;
+	
+  gtk_list_store_clear(param->mw->model);
+	
+  int i = 0;
+  int n = g_list_length(param->mw->disp_list);
+	
+  for (i; i < n; ++i)
+  {
+	char* s = image_list_get_current(param->mw->img_list);
+	  
+	pixbuf =  g_list_nth_data(param->mw->disp_list, i);
+	  
+	gtk_list_store_append(param->mw->model, &iter);
+	gtk_list_store_set(param->mw->model, &iter, COL_DISPLAY_NAME, s, COL_PIXBUF, pixbuf, -1);
+	  
+	if (!param->mw->img_list->current->next )
+	     image_list_get_first(param->mw->img_list);
+	else
+	     image_list_get_next(param->mw->img_list);
+  }
+}
+
+gboolean set_image(JobParam* param)
+{
+    param->mw->animation = g_object_ref(param->animation);
+
+	gtk_anim_view_set_anim (param->mw->aview, param->mw->animation);
+}
+
+void on_open( GtkWidget* widget, MainWin* mw )
+{		
+	char* file = get_open_filename( mw, image_list_get_dir( mw->img_list ) ); 	
+	mw->loading_file = g_file_new_for_path(file);
+
+	char* file_path =  g_file_get_path(mw->loading_file);
+	char* dir_path = g_path_get_dirname( file_path);
+    image_list_open_dir(mw->img_list, dir_path, NULL );
+    image_list_sort_by_name( mw->img_list, GTK_SORT_DESCENDING );
+    image_list_sort_by_name( mw->img_list, GTK_SORT_DESCENDING );
+        
+    char* base_name = g_path_get_basename( file_path );
+    image_list_set_current( mw->img_list, base_name );
+    char* disp_name = g_filename_display_name( base_name );
+	
+	update_title(file_path, mw);
+	
+	g_free( dir_path );
+    g_free( base_name );
+    g_free( disp_name );	
+  
+	main_win_open (mw);
 }
 
 void thumbnail_selected(GtkWidget* widget, MainWin* mw)
@@ -442,8 +516,10 @@ void thumbnail_selected(GtkWidget* widget, MainWin* mw)
   char* b = gtk_tree_path_to_string(list1->data); 
 
   int n = atoi(b);
-  const char* c = g_list_nth_data(list,n);
-  
+  const char* c = g_list_nth_data(list,n); // selected image file path
+
+  mw->loading_file = g_file_new_for_path(c);
+  main_win_open(mw);
 }
 
 void main_win_show_error( MainWin* mw, const char* message )
@@ -475,18 +551,12 @@ gboolean on_win_state_event( GtkWidget* widget, GdkEventWindowState* state )
 		gtk_widget_show(gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"));
     }
 	
-	int previous = pref.open_maximized;
-    pref.open_maximized = (state->new_window_state == GDK_WINDOW_STATE_MAXIMIZED);
-    if (previous != pref.open_maximized)
-        save_preferences();
-	
     return TRUE;
 }
 
 void on_prev( GtkWidget* btn, MainWin* mw )
-{
-	g_io_scheduler_cancel_all_jobs();
-	
+{		
+	g_cancellable_reset(mw->generator_cancellable);
     const char* name;	
     if( image_list_is_empty( mw->img_list ) )
         return;
@@ -499,19 +569,17 @@ void on_prev( GtkWidget* btn, MainWin* mw )
 	if( name )
     {
         const char* file_path = image_list_get_current_file_path( mw->img_list );
-		GFile* file = g_file_new_for_path(file_path);
+		mw->loading_file = g_file_new_for_path(file_path);
 		
-		mw->loading_file = file;
-        main_win_open (mw,ZOOM_NONE);
-	
+		update_title(file_path, mw);
+		
+        main_win_open (mw);
 		g_free( file_path ); 
     }
 }
 
 void on_next( GtkWidget* bnt, MainWin* mw )
-{	
-	g_io_scheduler_cancel_all_jobs();
-	
+{
     if( image_list_is_empty( mw->img_list ) )
         return;
 	
@@ -522,10 +590,12 @@ void on_next( GtkWidget* bnt, MainWin* mw )
     if( name )
     {
         const char* file_path = image_list_get_current_file_path( mw->img_list );
-	    GFile* file = g_file_new_for_path(file_path);
-		mw->loading_file = file;
-		main_win_open (mw,ZOOM_NONE);
-        g_free( file_path );
+		mw->loading_file = g_file_new_for_path(file_path);
+		
+		update_title(file_path, mw);
+		
+        main_win_open (mw);
+		g_free( file_path ); 
     }
 }
 
@@ -552,7 +622,7 @@ void next_for_slide_show( MainWin* mw )
 		GFile* file = g_file_new_for_path(file_path);
 		mw->loading_file = file;
 		
-        main_win_open( mw,  ZOOM_FIT );
+        main_win_open( mw );
         g_free( file_path );
     }
 }
@@ -560,8 +630,6 @@ void next_for_slide_show( MainWin* mw )
 void
 start_slideshow(GtkWidget* btn, MainWin* mw)
 {	
-	g_io_scheduler_cancel_all_jobs();
-	
 	if (mw->slideshow == TRUE)
 	{
         gtk_window_unfullscreen( (GtkWindow*)mw );
@@ -754,7 +822,7 @@ void on_delete( GtkWidget* btn, MainWin* mw )
 		if( next_name )
 		{
 		    char* next_file_path = image_list_get_current_file_path( mw->img_list );
-		    main_win_open( mw, ZOOM_FIT );
+		    //main_win_open( mw, ZOOM_FIT );
 			update_title(next_file_path, mw);
 		    g_free( next_file_path );
 		}
@@ -894,11 +962,6 @@ void on_save( GtkWidget* btn, MainWin* mw )
         main_win_save( mw, file_name, type, pref.ask_before_save );
     g_free( file_name );
     g_free( type );
-}
-
-static void on_preference(GtkWidget* widget, MainWin* mw)
-{
-   edit_preferences(widget,mw);
 }
 
 gboolean on_key_press_event(GtkWidget* widget, GdkEventKey * key)
@@ -1064,6 +1127,13 @@ void crop_image (GtkWidget* widget, MainWin* mw, GdkEventMotion *event)
 	Win *win;
 	win = (Win*)win_new (mw);
 	show_window(NULL, win);
+}
+
+void on_preference(GtkWidget* widget, MainWin* mw)
+{
+    Pref *win;
+	win = (Pref*)pref_win_new(mw);
+	edit_preferences(NULL, win);
 }
 
 void on_about( GtkWidget* menu, MainWin* mw )

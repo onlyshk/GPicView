@@ -68,9 +68,16 @@ char* get_open_filename( GtkWindow* parent, const char* cwd )
     gtk_file_chooser_add_filter( dlg, filter );
 
     if( gtk_dialog_run( (GtkDialog*)dlg ) == GTK_RESPONSE_OK )
+	{
         file = gtk_file_chooser_get_filename( dlg );
-    gtk_widget_destroy( (GtkWidget*)dlg );
-    return file;
+        gtk_widget_destroy( (GtkWidget*)dlg );
+	}
+	else
+	{
+	    gtk_widget_destroy( (GtkWidget*)dlg );
+	}
+    
+	return file;
 }
 
 static void on_int_val_changed(GtkRange* range, gpointer user_data)

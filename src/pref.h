@@ -22,11 +22,49 @@
 
 #include <gtk/gtk.h>
 
-G_BEGIN_DECLS
+#include "mainwin.h"
 
-typedef struct _Pref
+#include <gtk/gtk.h>
+#include <glib.h>
+#include <glib-object.h>
+#include <gio/gio.h>
+#include <gdk-pixbuf/gdk-pixbuf.h>
+#include <gtkimageview/gtkimageview.h>
+#include <gtkimageview/gtkanimview.h>
+#include <gtkimageview/gtkimagescrollwin.h>
+
+#define PREF_WIN_TYPE            (pref_win_get_type())
+#define PREF_WIN(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), PREF_WIN_TYPE, Win))
+#define PREF_WIN_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass),  PREF_WIN_TYPE, WinClass))
+#define IS_PREF_WIN(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), PREF_WIN_TYPE))
+#define IS_PREF_WIN_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  PREF_WIN_TYPE))
+#define PREF_WIN_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  PREF_WIN_TYPE, WinClass))
+
+
+typedef struct _Pref        Pref;
+typedef struct _PrefClass   PrefClass;
+
+struct _Pref
 {
-    gboolean auto_save_rotated; /* Save rotated images */
+	GObject parent;
+	MainWin*   mw;
+	GtkWindow *pref_window;
+    GtkWidget *auto_save_btn;
+    GtkWidget *ask_before_save_btn;
+    GtkWidget *set_default_btn;
+    GtkWidget *rotate_exif_only_btn;
+    GtkWidget *ask_before_del_btn;
+    GtkWidget *bg_btn;
+    GtkWidget *bg_full_btn;
+    GtkWidget *vbox;
+    GtkLabel  *bg_label;
+    GtkLabel  *bg_full_label;
+    GtkWidget *hbox1;
+    GtkLabel  *label2;
+    GtkLabel  *label3;
+    GtkButton *close_btn;
+	
+    gboolean auto_save_rotated; 
     gboolean ask_before_save;
     gboolean rotate_exif_only;
     gboolean ask_before_delete;
@@ -36,14 +74,22 @@ typedef struct _Pref
 
     int jpg_quality;
     int png_compression;
-}Pref;
+};
 
-extern Pref pref; /* global variable holding user prerefences */
+typedef struct _PrefClass {
+    GObjectClass parent_class;
+};
 
-void load_preferences(); /* load user preferences */
-void save_preferences(); /* save user preference s*/
-void edit_preferences(GtkWidget* widget, GtkWindow* parent );
+GType pref_win_get_type(void);
 
-G_END_DECLS
+extern Pref pref; 
+
+void load_preferences();
+
+void save_preferences(); 
+
+void edit_preferences(GtkWidget* widget, Pref *win );
+
+GtkWidget* pref_win_new(MainWin* mw);
 
 #endif

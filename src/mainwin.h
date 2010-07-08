@@ -110,8 +110,6 @@ typedef struct _MainWin
 	gint      prev_pos;
 	gboolean  thumb_bar_hide;
 	
-	GFile* loading_file;
-	
 	//Drawing area
 	GtkWidget*      image;
 	gdouble sub_x;
@@ -130,19 +128,22 @@ typedef struct _MainWin
     gdouble width;
     gdouble height;
 	
+	GFile* loading_file;
 	GCancellable* generator_cancellable;
 
 } MainWin;
 
 typedef struct _JobParam
 {
-  GtkWidget* widget;
-  MainWin  *mw;
+  GFile* file;
+  GCancellable* generator_cancellable;
+  GdkPixbufAnimation* animation;
+  MainWin* mw;
 }JobParam;
 
 GtkWidget* main_win_new();
 
-gboolean main_win_open( MainWin* mw, ZoomMode zoom );
+gboolean main_win_open( MainWin* mw );
 
 void main_win_close( MainWin* mw );
 
