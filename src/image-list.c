@@ -68,19 +68,6 @@ const char* image_list_get_current( ImageList* il )
     return il->current ? (char*)il->current->data : NULL;
 }
 
-const char* image_list_get_nth( ImageList* il, guint n)
-{
-  n = 0;
-  //int i =  g_list_length (il->current);
-  
-  //for (n; n < i;n++)
-  //{
-  //  image_list_get_next(il);
-  //}
-	
-  return il->current;
-}
-
 gboolean image_list_is_empty( ImageList* il )
 {
     return (il->list == NULL);

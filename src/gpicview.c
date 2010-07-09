@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
 		   g_io_scheduler_cancel_all_jobs();
 		   
 		   GFile* file = g_file_new_for_path(files[0]);
-		   //wiloading_file = file;
+		   win->loading_file = file;
 												   
            main_win_open( (MainWin*)win );
     }

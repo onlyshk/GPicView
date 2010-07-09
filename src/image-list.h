@@ -76,6 +76,4 @@ void image_list_add_sorted( ImageList* il, const char* name, gboolean set_curren
 
 char* image_list_get_first_file_path( ImageList* il);
 
-const char* image_list_get_nth( ImageList* il, guint n);
-
 #endif

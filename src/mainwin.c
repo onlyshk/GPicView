@@ -47,6 +47,10 @@
 #include "utils.h"
 #include "wallpaper.h"
 
+#include "jhead.h"
+#include "exif.h"
+
+
 static GtkActionGroup *actions;
 static GtkActionGroup *rotation_actions;
 GList* list;
@@ -381,38 +385,14 @@ void load_thumbnails(JobParam* param)
 		
 	  list = g_list_prepend(list,file);
 	}
-	
-	/*
-	GtkTreeIter iter;
-	
-	int i = 0;
-	int n = g_list_length(mw->img_list) - 1;
-
-	for (i; i < n; ++i)
-	{			  			
-	  char* file = image_list_get_current_file_path( mw->img_list );
-			
-	  mw->p1 = gdk_pixbuf_new_from_file(file,NULL);
-	  mw->p1 = scale_pix(mw->p1,128);
-      
-	  mw->disp_list = g_list_prepend (mw->disp_list, mw->p1);
-							 	
-	  if (!mw->img_list->current->next )
-	      image_list_get_first(mw->img_list);
-	  else
-	      image_list_get_next(mw->img_list);
-		
-	  list = g_list_prepend(list,file);
-	}
-	
-	list2 = mw->disp_list;
-    */
 }
 
 gboolean main_win_open(MainWin* mw)
 {        		
 	mw->disp_list = NULL;
 		
+	g_cancellable_reset(mw->generator_cancellable);
+	
 	JobParam* param;
 	param =  g_new (JobParam, 1);
 	
@@ -423,7 +403,7 @@ gboolean main_win_open(MainWin* mw)
 	
 	g_io_scheduler_push_job (job_func1, param, NULL, G_PRIORITY_DEFAULT, mw->generator_cancellable);
 	g_io_scheduler_push_job (job_func, param, NULL, G_PRIORITY_DEFAULT, mw->generator_cancellable);
-		
+	
 	return TRUE;
 }
 
@@ -556,7 +536,6 @@ gboolean on_win_state_event( GtkWidget* widget, GdkEventWindowState* state )
 
 void on_prev( GtkWidget* btn, MainWin* mw )
 {		
-	g_cancellable_reset(mw->generator_cancellable);
     const char* name;	
     if( image_list_is_empty( mw->img_list ) )
         return;
@@ -568,6 +547,7 @@ void on_prev( GtkWidget* btn, MainWin* mw )
       
 	if( name )
     {
+		g_cancellable_cancel(mw->generator_cancellable);
         const char* file_path = image_list_get_current_file_path( mw->img_list );
 		mw->loading_file = g_file_new_for_path(file_path);
 		
@@ -589,6 +569,8 @@ void on_next( GtkWidget* bnt, MainWin* mw )
 
     if( name )
     {
+		g_cancellable_cancel(mw->generator_cancellable);
+		
         const char* file_path = image_list_get_current_file_path( mw->img_list );
 		mw->loading_file = g_file_new_for_path(file_path);
 		

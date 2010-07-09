@@ -12,6 +12,8 @@
 #ifndef __EXIF_H__
 #define __EXIF_H__
 
+#include "mainwin.h"
+
 void ShowImageInfo(int ShowFileInfo);
 
 int Get32s(void * Long);

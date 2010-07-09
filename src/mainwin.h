@@ -30,9 +30,7 @@
 #include <gtkimageview/gtkimagescrollwin.h>
 
 #include "image-list.h"
-#include "exif.h"
 #include "loader.h"
-
 
 #define LOAD_BUFFER_SIZE 65536 
 
