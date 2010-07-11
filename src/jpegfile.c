@@ -64,6 +64,7 @@ static void process_COM (const uchar * Data, int length)
     }
 
     strcpy(ImageInfo.Comments,Comment);
+    ImageInfo.CommentWidthchars = 0;
 }
 
  
@@ -125,22 +126,28 @@ int ReadJpegSections (FILE * infile, ReadMode_t ReadMode)
     if (a != 0xff || fgetc(infile) != M_SOI){
         return FALSE;
     }
+
+    ImageInfo.JfifHeader.XDensity = ImageInfo.JfifHeader.YDensity = 300;
+    ImageInfo.JfifHeader.ResolutionUnits = 1;
+
     for(;;){
         int itemlen;
+        int prev;
         int marker = 0;
         int ll,lh, got;
         uchar * Data;
 
         CheckSectionsAllocated();
 
-        for (a=0;a<7;a++){
+        prev = 0;
+        for (a=0;;a++){
             marker = fgetc(infile);
-            if (marker != 0xff) break;
+            if (marker != 0xff && prev == 0xff) break;
+            prev = marker;
+        }
 
-            if (a >= 32){
-                fprintf(stderr,"too many padding bytes\n");
-                return FALSE;
-            }
+        if (a > 10){
+            ErrNonfatal("Extraneous %d padding bytes before section %02X",a-1,marker);
         }
 
         Sections[SectionsRead].Type = marker;
@@ -224,6 +231,35 @@ int ReadJpegSections (FILE * infile, ReadMode_t ReadMode)
                 // marker instead, althogh ACDsee will write images with both markers.
                 // this program will re-create this marker on absence of exif marker.
                 // hence no need to keep the copy from the file.
+                if (memcmp(Data+2, "JFIF\0",5)){
+                    fprintf(stderr,"Header missing JFIF marker\n");
+                }
+                if (itemlen < 16){
+                    fprintf(stderr,"Jfif header too short\n");
+                    goto ignore;
+                }
+
+                ImageInfo.JfifHeader.Present = TRUE;
+                ImageInfo.JfifHeader.ResolutionUnits = Data[9];
+                ImageInfo.JfifHeader.XDensity = (Data[10]<<8) | Data[11];
+                ImageInfo.JfifHeader.YDensity = (Data[12]<<8) | Data[13];
+                if (ShowTags){
+                    printf("JFIF SOI marker: Units: %d ",ImageInfo.JfifHeader.ResolutionUnits);
+                    switch(ImageInfo.JfifHeader.ResolutionUnits){
+                        case 0: printf("(aspect ratio)"); break;
+                        case 1: printf("(dots per inch)"); break;
+                        case 2: printf("(dots per cm)"); break;
+                        default: printf("(unknown)"); break;
+                    }
+                    printf("  X-density=%d Y-density=%d\n",ImageInfo.JfifHeader.XDensity, ImageInfo.JfifHeader.YDensity);
+
+                    if (Data[14] || Data[15]){
+                        fprintf(stderr,"Ignoring jfif header thumbnail\n");
+                    }
+                }
+
+                ignore:
+
                 free(Sections[--SectionsRead].Data);
                 break;
 
@@ -238,7 +274,7 @@ int ReadJpegSections (FILE * infile, ReadMode_t ReadMode)
                         if (ShowTags){
                             printf("Image cotains XMP section, %d bytes long\n", itemlen);
                             if (ShowTags){
-                                //ShowXmp(Sections[SectionsRead-1]);
+                                ShowXmp(Sections[SectionsRead-1]);
                             }
                         }
                         break;
@@ -317,6 +353,7 @@ int ReadJpegFile(const char * FileName, ReadMode_t ReadMode)
         return FALSE;
     }
 
+
     // Scan the JPEG headers.
     ret = ReadJpegSections(infile, ReadMode);
     if (!ret){
@@ -331,51 +368,7 @@ int ReadJpegFile(const char * FileName, ReadMode_t ReadMode)
     return ret;
 }
 
-//--------------------------------------------------------------------------
-// Write image data back to disk.
-//--------------------------------------------------------------------------
-void WriteJpegFile(const char * FileName)
-{
-    FILE * outfile;
-    int a;
 
-    if (!HaveAll){
-        ErrFatal("Can't write back - didn't read all");
-    }
-
-    outfile = fopen(FileName,"wb");
-    if (outfile == NULL){
-        ErrFatal("Could not open file for write");
-    }
-
-    // Initial static jpeg marker.
-    fputc(0xff,outfile);
-    fputc(0xd8,outfile);
-    
-    if (Sections[0].Type != M_EXIF && Sections[0].Type != M_JFIF){
-        // The image must start with an exif or jfif marker.  If we threw those away, create one.
-        static uchar JfifHead[18] = {
-            0xff, M_JFIF,
-            0x00, 0x10, 'J' , 'F' , 'I' , 'F' , 0x00, 0x01, 
-            0x01, 0x01, 0x01, 0x2C, 0x01, 0x2C, 0x00, 0x00 
-        };
-        fwrite(JfifHead, 18, 1, outfile);
-    }
-
-    // Write all the misc sections
-    for (a=0;a<SectionsRead-1;a++){
-        fputc(0xff,outfile);
-        fputc((unsigned char)Sections[a].Type, outfile);
-        fwrite(Sections[a].Data, Sections[a].Size, 1, outfile);
-    }
-
-    // Write the remaining image data.
-    fwrite(Sections[a].Data, Sections[a].Size, 1, outfile);
-       
-    fclose(outfile);
-}
-
-#if 0
 //--------------------------------------------------------------------------
 // Replace or remove exif thumbnail
 //--------------------------------------------------------------------------
@@ -534,6 +527,84 @@ void DiscardAllButExif(void)
 }    
 
 //--------------------------------------------------------------------------
+// Write image data back to disk.
+//--------------------------------------------------------------------------
+void WriteJpegFile(const char * FileName)
+{
+    FILE * outfile;
+    int a;
+
+    if (!HaveAll){
+        ErrFatal("Can't write back - didn't read all");
+    }
+
+    outfile = fopen(FileName,"wb");
+    if (outfile == NULL){
+        ErrFatal("Could not open file for write");
+    }
+
+    // Initial static jpeg marker.
+    fputc(0xff,outfile);
+    fputc(0xd8,outfile);
+    
+    if (Sections[0].Type != M_EXIF && Sections[0].Type != M_JFIF){
+        // The image must start with an exif or jfif marker.  If we threw those away, create one.
+        static uchar JfifHead[18] = {
+            0xff, M_JFIF,
+            0x00, 0x10, 'J' , 'F' , 'I' , 'F' , 0x00, 0x01, 
+            0x01, 0x01, 0x01, 0x2C, 0x01, 0x2C, 0x00, 0x00 
+        };
+
+        if (ImageInfo.ResolutionUnit == 2 || ImageInfo.ResolutionUnit == 3){
+            // Use the exif resolution info to fill out the jfif header.
+            // Usually, for exif images, there's no jfif header, so if wediscard
+            // the exif header, use info from the exif header for the jfif header.
+            
+            ImageInfo.JfifHeader.ResolutionUnits = (char)(ImageInfo.ResolutionUnit-1);
+            // Jfif is 1 and 2, Exif is 2 and 3 for In and cm respecively
+            ImageInfo.JfifHeader.XDensity = (int)ImageInfo.xResolution;
+            ImageInfo.JfifHeader.YDensity = (int)ImageInfo.yResolution;
+        }
+
+        JfifHead[11] = ImageInfo.JfifHeader.ResolutionUnits;
+        JfifHead[12] = (uchar)(ImageInfo.JfifHeader.XDensity >> 8);
+        JfifHead[13] = (uchar)ImageInfo.JfifHeader.XDensity;
+        JfifHead[14] = (uchar)(ImageInfo.JfifHeader.YDensity >> 8);
+        JfifHead[15] = (uchar)ImageInfo.JfifHeader.YDensity;
+        
+
+        fwrite(JfifHead, 18, 1, outfile);
+
+        // use the values from the exif data for the jfif header, if we have found values
+        if (ImageInfo.ResolutionUnit != 0) { 
+            // JFIF.ResolutionUnit is {1,2}, EXIF.ResolutionUnit is {2,3}
+            JfifHead[11] = (uchar)ImageInfo.ResolutionUnit - 1; 
+        }
+        if (ImageInfo.xResolution > 0.0 && ImageInfo.yResolution > 0.0) { 
+            JfifHead[12] = (uchar)((int)ImageInfo.xResolution>>8);
+            JfifHead[13] = (uchar)((int)ImageInfo.xResolution);
+
+            JfifHead[14] = (uchar)((int)ImageInfo.yResolution>>8);
+            JfifHead[15] = (uchar)((int)ImageInfo.yResolution);
+        }
+    }
+
+
+    // Write all the misc sections
+    for (a=0;a<SectionsRead-1;a++){
+        fputc(0xff,outfile);
+        fputc((unsigned char)Sections[a].Type, outfile);
+        fwrite(Sections[a].Data, Sections[a].Size, 1, outfile);
+    }
+
+    // Write the remaining image data.
+    fwrite(Sections[a].Data, Sections[a].Size, 1, outfile);
+       
+    fclose(outfile);
+}
+
+
+//--------------------------------------------------------------------------
 // Check if image has exif header.
 //--------------------------------------------------------------------------
 Section_t * FindSection(int SectionType)
@@ -650,7 +721,7 @@ Section_t * CreateSection(int SectionType, unsigned char * Data, int Size)
 
     return NewSection;
 }
-#endif
+
 
 //--------------------------------------------------------------------------
 // Initialisation.

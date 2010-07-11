@@ -358,7 +358,7 @@ static void DoCommand(const char * FileName, int ShowIt)
     // as mktemp - that is, that between getting the random name, and making the file
     // some other program could snatch that exact same name!
     // also, not all pltforms support mkstemp.
-    mkstemp(TempName);
+    mktemp(TempName);
 
 
     if(!TempName[0]) {
@@ -839,6 +839,8 @@ void ProcessFile(const char * FileName)
             return;
         }
 
+        DiscardAllButExif();
+
         if (AutoRotate){
             if (DoAutoRotate(FileName)){
                 Modified = TRUE;
@@ -885,6 +887,21 @@ void ProcessFile(const char * FileName)
 
     if (ShowConcise){
         ShowConciseImageInfo();
+    }else{
+        if (!(DoModify || DoReadAction) || ShowTags){
+            ShowImageInfo(ShowFileInfo);
+
+            {
+                // if IPTC section is present, show it also.
+                Section_t * IptcSection;
+                IptcSection = FindSection(M_IPTC);
+            
+                if (IptcSection){
+                    show_IPTC(IptcSection->Data, IptcSection->Size);
+                }
+            }
+            printf("\n");
+        }
     }
 
     if (ThumbSaveName){
@@ -1372,11 +1389,10 @@ time_t ParseCmdDate(char * DateSpecified)
     
     return UnixTime;    
 }
-
+/*
 //--------------------------------------------------------------------------
 // The main program.
 //--------------------------------------------------------------------------
-/*
 int main (int argc, char **argv)
 {
     int argn;

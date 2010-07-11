@@ -6,8 +6,6 @@
 //
 // Matthias Wandel
 //--------------------------------------------------------------------------
-// Modified by hialan Liu <hialan.liu@gamil.com>
-//--------------------------------------------------------------------------
 #include "jhead.h"
 
 #include <math.h>
@@ -16,7 +14,7 @@ static unsigned char * DirWithThumbnailPtrs;
 static double FocalplaneXRes;
 static double FocalplaneUnits;
 static int ExifImageWidth;
-static int MotorolaOrder = 0;
+int MotorolaOrder = 0;
 
 // for fixing the rotation.
 static void * OrientationPtr[2];
@@ -145,15 +143,23 @@ const int BytesPerFormat[] = {0,1,1,2,4,8,1,1,2,4,8,4,8};
 #define TAG_LIGHT_SOURCE           0x9208
 #define TAG_FLASH                  0x9209
 #define TAG_FOCALLENGTH            0x920A
+#define TAG_SUBJECTAREA            0x9214
 #define TAG_MAKER_NOTE             0x927C
 #define TAG_USERCOMMENT            0x9286
 #define TAG_SUBSEC_TIME            0x9290
 #define TAG_SUBSEC_TIME_ORIG       0x9291
 #define TAG_SUBSEC_TIME_DIG        0x9292
+
+#define TAG_WINXP_TITLE            0x9c9b // Windows XP - not part of exif standard.
+#define TAG_WINXP_COMMENT          0x9c9c // Windows XP - not part of exif standard.
+#define TAG_WINXP_AUTHOR           0x9c9d // Windows XP - not part of exif standard.
+#define TAG_WINXP_KEYWORDS         0x9c9e // Windows XP - not part of exif standard.
+#define TAG_WINXP_SUBJECT          0x9c9f // Windows XP - not part of exif standard.
+
 #define TAG_FLASH_PIX_VERSION      0xA000
 #define TAG_COLOR_SPACE            0xA001
-#define TAG_EXIF_IMAGEWIDTH        0xA002
-#define TAG_EXIF_IMAGELENGTH       0xA003
+#define TAG_PIXEL_X_DIMENSION      0xA002
+#define TAG_PIXEL_Y_DIMENSION      0xA003
 #define TAG_RELATED_AUDIO_FILE     0xA004
 #define TAG_INTEROP_OFFSET         0xA005
 #define TAG_FLASH_ENERGY           0xA20B
@@ -178,6 +184,7 @@ const int BytesPerFormat[] = {0,1,1,2,4,8,1,1,2,4,8,4,8};
 #define TAG_SATURATION             0xA409
 #define TAG_SHARPNESS              0xA40A
 #define TAG_DISTANCE_RANGE         0xA40C
+#define TAG_IMAGE_UNIQUE_ID        0xA420
 
 static const TagTable_t TagTable[] = {
   { TAG_INTEROP_INDEX,          "InteropIndex"},
@@ -251,10 +258,15 @@ static const TagTable_t TagTable[] = {
   { TAG_SUBSEC_TIME,            "SubSecTime"},
   { TAG_SUBSEC_TIME_ORIG,       "SubSecTimeOriginal"},
   { TAG_SUBSEC_TIME_DIG,        "SubSecTimeDigitized"},
+  { TAG_WINXP_TITLE,            "Windows-XP Title"},
+  { TAG_WINXP_COMMENT,          "Windows-XP comment"},
+  { TAG_WINXP_AUTHOR,           "Windows-XP author"},
+  { TAG_WINXP_KEYWORDS,         "Windows-XP keywords"},
+  { TAG_WINXP_SUBJECT,          "Windows-XP subject"},
   { TAG_FLASH_PIX_VERSION,      "FlashPixVersion"},
   { TAG_COLOR_SPACE,            "ColorSpace"},
-  { TAG_EXIF_IMAGEWIDTH,        "ExifImageWidth"},
-  { TAG_EXIF_IMAGELENGTH,       "ExifImageLength"},
+  { TAG_PIXEL_X_DIMENSION,      "ExifImageWidth"},
+  { TAG_PIXEL_Y_DIMENSION,      "ExifImageLength"},
   { TAG_RELATED_AUDIO_FILE,     "RelatedAudioFile"},
   { TAG_INTEROP_OFFSET,         "InteroperabilityOffset"},
   { TAG_FLASH_ENERGY,           "FlashEnergy"},              
@@ -273,12 +285,14 @@ static const TagTable_t TagTable[] = {
   { TAG_WHITEBALANCE,           "WhiteBalance"},
   { TAG_DIGITALZOOMRATIO,       "DigitalZoomRatio"},
   { TAG_FOCALLENGTH_35MM,       "FocalLengthIn35mmFilm"},
+  { TAG_SUBJECTAREA,            "SubjectArea"},
   { TAG_SCENE_CAPTURE_TYPE,     "SceneCaptureType"},
   { TAG_GAIN_CONTROL,           "GainControl"},
   { TAG_CONTRAST,               "Contrast"},
   { TAG_SATURATION,             "Saturation"},
   { TAG_SHARPNESS,              "Sharpness"},
   { TAG_DISTANCE_RANGE,         "SubjectDistanceRange"},
+  { TAG_IMAGE_UNIQUE_ID,        "ImageUniqueId"},
 } ;
 
 #define TAG_TABLE_SIZE  (sizeof(TagTable) / sizeof(TagTable_t))
@@ -424,7 +438,7 @@ double ConvertAnyFormat(void * ValuePtr, int Format)
         case FMT_DOUBLE:    Value = *(double *)ValuePtr;             break;
 
         default:
-            ErrNonfatal("Illegal format code %d",Format,0);
+            ErrNonfatal("Illegal format code %d in Exif header",Format,0);
     }
     return Value;
 }
@@ -443,7 +457,7 @@ static void ProcessExifDir(unsigned char * DirStart, unsigned char * OffsetBase,
     char IndentString[25];
 
     if (NestingLevel > 4){
-        ErrNonfatal("Maximum directory nesting exceeded (corrupt exif header)", 0,0);
+        ErrNonfatal("Maximum Exif directory nesting exceeded (corrupt Exif header)", 0,0);
         return;
     }
 
@@ -462,12 +476,12 @@ static void ProcessExifDir(unsigned char * DirStart, unsigned char * OffsetBase,
                 // Version 1.3 of jhead would truncate a bit too much.
                 // This also caught later on as well.
             }else{
-                ErrNonfatal("Illegally sized directory",0,0);
+                ErrNonfatal("Illegally sized Exif subdirectory (%d entries)",NumDirEntries,0);
                 return;
             }
         }
         if (DumpExifMap){
-            printf("Map: %05d-%05d: Directory\n",DirStart-OffsetBase, DirEnd+4-OffsetBase);
+            printf("Map: %05d-%05d: Directory\n",(int)(DirStart-OffsetBase), (int)(DirEnd+4-OffsetBase));
         }
 
 
@@ -490,12 +504,12 @@ static void ProcessExifDir(unsigned char * DirStart, unsigned char * OffsetBase,
 
         if ((Format-1) >= NUM_FORMATS) {
             // (-1) catches illegal zero case as unsigned underflows to positive large.
-            ErrNonfatal("Illegal number format %d for tag %04x", Format, Tag);
+            ErrNonfatal("Illegal number format %d for tag %04x in Exif", Format, Tag);
             continue;
         }
 
         if ((unsigned)Components > 0x10000){
-            ErrNonfatal("Illegal number of components %d for tag %04x", Components, Tag);
+            ErrNonfatal("Too many components %d for tag %04x in Exif", Components, Tag);
             continue;
         }
 
@@ -507,7 +521,7 @@ static void ProcessExifDir(unsigned char * DirStart, unsigned char * OffsetBase,
             // If its bigger than 4 bytes, the dir entry contains an offset.
             if (OffsetVal+ByteCount > ExifLength){
                 // Bogus pointer offset and / or bytecount value
-                ErrNonfatal("Illegal value pointer for tag %04x", Tag,0);
+                ErrNonfatal("Illegal value pointer for tag %04x in Exif", Tag,0);
                 continue;
             }
             ValuePtr = OffsetBase+OffsetVal;
@@ -528,7 +542,7 @@ static void ProcessExifDir(unsigned char * DirStart, unsigned char * OffsetBase,
             if (ShowTags){
                 printf("%s    Maker note: ",IndentString);
             }
-            //ProcessMakerNote(ValuePtr, ByteCount, OffsetBase, ExifLength);
+            ProcessMakerNote(ValuePtr, ByteCount, OffsetBase, ExifLength);
             continue;
         }
 
@@ -536,12 +550,12 @@ static void ProcessExifDir(unsigned char * DirStart, unsigned char * OffsetBase,
             // Show tag name
             for (a=0;;a++){
                 if (a >= TAG_TABLE_SIZE){
-                    printf("%s",IndentString);
+                    printf(IndentString);
                     printf("    Unknown Tag %04x Value = ", Tag);
                     break;
                 }
                 if (TagTable[a].Tag == Tag){
-                    printf("%s",IndentString);
+                    printf(IndentString);
                     printf("    %s = ",TagTable[a].Desc);
                     break;
                 }
@@ -615,16 +629,35 @@ static void ProcessExifDir(unsigned char * DirStart, unsigned char * OffsetBase,
                 }
 
                 if (ImageInfo.numDateTimeTags >= MAX_DATE_COPIES){
-                    ErrNonfatal("More than %d date fields!  This is nuts", MAX_DATE_COPIES, 0);
+                    ErrNonfatal("More than %d date fields in Exif.  This is nuts", MAX_DATE_COPIES, 0);
                     break;
                 }
                 ImageInfo.DateTimeOffsets[ImageInfo.numDateTimeTags++] = 
                     (char *)ValuePtr - (char *)OffsetBase;
                 break;
 
+            case TAG_WINXP_COMMENT:
+                if (ImageInfo.Comments[0]){ // We already have a jpeg comment.
+                    // Already have a comment (probably windows comment), skip this one.
+                    if (ShowTags) printf("Windows XP commend and other comment in header\n");
+                    break; // Already have a windows comment, skip this one.
+                }
+
+                if (ByteCount > 1){
+                    if (ByteCount > MAX_COMMENT_SIZE) ByteCount = MAX_COMMENT_SIZE;
+                    memcpy(ImageInfo.Comments, ValuePtr, ByteCount);
+                    ImageInfo.CommentWidthchars = ByteCount/2;
+                }
+                break;
 
             case TAG_USERCOMMENT:
-                // Olympus has this padded with trailing spaces.  Remove these first.
+                if (ImageInfo.Comments[0]){ // We already have a jpeg comment.
+                    // Already have a comment (probably windows comment), skip this one.
+                    if (ShowTags) printf("Multiple comments in exif header\n");
+                    break; // Already have a windows comment, skip this one.
+                }
+
+                // Comment is often padded with trailing spaces.  Remove these first.
                 for (a=ByteCount;;){
                     a--;
                     if ((ValuePtr)[a] == ' '){
@@ -636,18 +669,21 @@ static void ProcessExifDir(unsigned char * DirStart, unsigned char * OffsetBase,
                 }
 
                 // Copy the comment
-                if (memcmp(ValuePtr, "ASCII",5) == 0){
-                    for (a=5;a<10;a++){
-                        int c;
-                        c = (ValuePtr)[a];
-                        if (c != '\0' && c != ' '){
-                            strncpy(ImageInfo.Comments, (char *)ValuePtr+a, 199);
-                            break;
+                {
+                    int msiz = ExifLength - (ValuePtr-OffsetBase);
+                    if (msiz > ByteCount) msiz = ByteCount;
+                    if (msiz > MAX_COMMENT_SIZE-1) msiz = MAX_COMMENT_SIZE-1;
+                    if (msiz > 5 && memcmp(ValuePtr, "ASCII",5) == 0){
+                        for (a=5;a<10 && a < msiz;a++){
+                            int c = (ValuePtr)[a];
+                            if (c != '\0' && c != ' '){
+                                strncpy(ImageInfo.Comments, (char *)ValuePtr+a, msiz-a);
+                                break;
+                            }
                         }
+                    }else{
+                        strncpy(ImageInfo.Comments, (char *)ValuePtr, msiz);
                     }
-                    
-                }else{
-                    strncpy(ImageInfo.Comments, (char *)ValuePtr, 199);
                 }
                 break;
 
@@ -703,7 +739,7 @@ static void ProcessExifDir(unsigned char * DirStart, unsigned char * OffsetBase,
                 if (NumOrientations >= 2){
                     // Can have another orientation tag for the thumbnail, but if there's
                     // a third one, things are stringae.
-                    ErrNonfatal("More than two orientation tags!",0,0);
+                    ErrNonfatal("More than two orientation in Exif",0,0);
                     break;
                 }
                 OrientationPtr[NumOrientations] = ValuePtr;
@@ -712,14 +748,14 @@ static void ProcessExifDir(unsigned char * DirStart, unsigned char * OffsetBase,
                     ImageInfo.Orientation = (int)ConvertAnyFormat(ValuePtr, Format);
                 }
                 if (ImageInfo.Orientation < 0 || ImageInfo.Orientation > 8){
-                    ErrNonfatal("Undefined rotation value %d", ImageInfo.Orientation, 0);
+                    ErrNonfatal("Undefined rotation value %d in Exif", ImageInfo.Orientation, 0);
                     ImageInfo.Orientation = 0;
                 }
                 NumOrientations += 1;
                 break;
 
-            case TAG_EXIF_IMAGELENGTH:
-            case TAG_EXIF_IMAGEWIDTH:
+            case TAG_PIXEL_Y_DIMENSION:
+            case TAG_PIXEL_X_DIMENSION:
                 // Use largest of height and width to deal with images that have been
                 // rotated to portrait format.
                 a = (int)ConvertAnyFormat(ValuePtr, Format);
@@ -810,7 +846,7 @@ static void ProcessExifDir(unsigned char * DirStart, unsigned char * OffsetBase,
                     unsigned char * SubdirStart;
                     SubdirStart = OffsetBase + Get32u(ValuePtr);
                     if (SubdirStart < OffsetBase || SubdirStart > OffsetBase+ExifLength){
-                        ErrNonfatal("Illegal exif or interop ofset directory link",0,0);
+                        ErrNonfatal("Illegal Exif or interop ofset directory link",0,0);
                     }else{
                         ProcessExifDir(SubdirStart, OffsetBase, ExifLength, NestingLevel+1);
                     }
@@ -824,9 +860,9 @@ static void ProcessExifDir(unsigned char * DirStart, unsigned char * OffsetBase,
                     unsigned char * SubdirStart;
                     SubdirStart = OffsetBase + Get32u(ValuePtr);
                     if (SubdirStart < OffsetBase || SubdirStart > OffsetBase+ExifLength){
-                        ErrNonfatal("Illegal GPS directory link",0,0);
+                        ErrNonfatal("Illegal GPS directory link in Exif",0,0);
                     }else{
-                        //ProcessGpsInfo(SubdirStart, ByteCount, OffsetBase, ExifLength);
+                        ProcessGpsInfo(SubdirStart, ByteCount, OffsetBase, ExifLength);
                     }
                     continue;
                 }
@@ -844,6 +880,31 @@ static void ProcessExifDir(unsigned char * DirStart, unsigned char * OffsetBase,
                 //   1 = macro, 2 = close, 3 = distant
                 ImageInfo.DistanceRange = (int)ConvertAnyFormat(ValuePtr, Format);
                 break;
+
+
+
+            case TAG_X_RESOLUTION:
+                if (NestingLevel==0) {// Only use the values from the top level directory
+                    ImageInfo.xResolution = (float)ConvertAnyFormat(ValuePtr,Format);
+                    // if yResolution has not been set, use the value of xResolution
+                    if (ImageInfo.yResolution == 0.0) ImageInfo.yResolution = ImageInfo.xResolution;
+                }
+                break;
+
+            case TAG_Y_RESOLUTION:
+                if (NestingLevel==0) {// Only use the values from the top level directory
+                    ImageInfo.yResolution = (float)ConvertAnyFormat(ValuePtr,Format);
+                    // if xResolution has not been set, use the value of yResolution
+                    if (ImageInfo.xResolution == 0.0) ImageInfo.xResolution = ImageInfo.yResolution;
+                }
+                break;
+
+            case TAG_RESOLUTION_UNIT:
+                if (NestingLevel==0) {// Only use the values from the top level directory
+                    ImageInfo.ResolutionUnit = (int) ConvertAnyFormat(ValuePtr,Format);
+                }
+                break;
+
         }
     }
 
@@ -866,7 +927,7 @@ static void ProcessExifDir(unsigned char * DirStart, unsigned char * OffsetBase,
                         // I'll just let it pass silently
                         if (ShowTags) printf("Thumbnail removed with Jhead 1.3 or earlier\n");
                     }else{
-                        ErrNonfatal("Illegal subdirectory link",0,0);
+                        ErrNonfatal("Illegal subdirectory link in Exif header",0,0);
                     }
                 }else{
                     if (SubdirStart <= OffsetBase+ExifLength){
@@ -917,7 +978,7 @@ static void ProcessExifDir(unsigned char * DirStart, unsigned char * OffsetBase,
 //--------------------------------------------------------------------------
 void process_EXIF (unsigned char * ExifSection, unsigned int length)
 {
-    int FirstOffset;
+    unsigned int FirstOffset;
 
     FocalplaneXRes = 0;
     FocalplaneUnits = 0;
@@ -957,8 +1018,12 @@ void process_EXIF (unsigned char * ExifSection, unsigned int length)
 
     FirstOffset = Get32u(ExifSection+12);
     if (FirstOffset < 8 || FirstOffset > 16){
+        if (FirstOffset < 16 || FirstOffset > length-16){
+            ErrNonfatal("invalid offset for first Exif IFD value",0,0);
+            return;
+        }
         // Usually set to 8, but other values valid too.
-        ErrNonfatal("Suspicious offset of first IFD value",0,0);
+        ErrNonfatal("Suspicious offset of first Exif IFD value",0,0);
     }
 
     DirWithThumbnailPtrs = NULL;
@@ -996,7 +1061,7 @@ void process_EXIF (unsigned char * ExifSection, unsigned int length)
     }
 }
 
-#if 0
+
 //--------------------------------------------------------------------------
 // Create minimal exif header - just date and thumbnail pointers,
 // so that date and thumbnail may be filled later.
@@ -1188,7 +1253,7 @@ int RemoveThumbnail(unsigned char * ExifSection)
         return 0;
     }
     if (ImageInfo.ThumbnailAtEnd == FALSE){
-        ErrNonfatal("Thumbnail is not at end of header, can't chop it off", 0, 0);
+        ErrNonfatal("Thumbnail not at end of Exif header, can't remove it", 0, 0);
         return 0;
     }
 
@@ -1206,7 +1271,7 @@ int RemoveThumbnail(unsigned char * ExifSection)
                 // Set length to zero.
                 if (Get16u(DirEntry+2) != FMT_ULONG){
                     // non standard format encoding.  Can't do it.
-                    ErrNonfatal("Can't remove thumbnail", 0, 0);
+                    ErrNonfatal("Can't remove Exif thumbnail", 0, 0);
                     return 0;
                 }
                 Put32u(DirEntry+8, 0);
@@ -1232,12 +1297,24 @@ int Exif2tm(struct tm * timeptr, char * ExifTime)
     // Check for format: YYYY:MM:DD HH:MM:SS format.
     // Date and time normally separated by a space, but also seen a ':' there, so
     // skip the middle space with '%*c' so it can be any character.
+    timeptr->tm_sec = 0;
     a = sscanf(ExifTime, "%d%*c%d%*c%d%*c%d:%d:%d",
             &timeptr->tm_year, &timeptr->tm_mon, &timeptr->tm_mday,
             &timeptr->tm_hour, &timeptr->tm_min, &timeptr->tm_sec);
 
+    if (a >= 5){
+        if (timeptr->tm_year <= 12 && timeptr->tm_mday > 2000 && ExifTime[2] == '.'){
+            // LG Electronics VX-9700 seems to encode the date as 'MM.DD.YYYY HH:MM'
+            // can't these people read the standard?  At least they left enough room
+            // in the header to put an Exif format date in there.
+            int tmp;
+            tmp = timeptr->tm_year;
+            timeptr->tm_year = timeptr->tm_mday;
+            timeptr->tm_mday = timeptr->tm_mon;
+            timeptr->tm_mon = tmp;
+        }
 
-    if (a == 6){
+        // Accept five or six parameters.  Some cameras do not store seconds.
         timeptr->tm_isdst = -1;  
         timeptr->tm_mon -= 1;      // Adjust for unix zero-based months 
         timeptr->tm_year -= 1900;  // Adjust for year starting at 1900 
@@ -1398,17 +1475,17 @@ void ShowImageInfo(int ShowFileInfo)
             // don't bother showing it - it doesn't add any useful information.
     }
 
-    if (ImageInfo.MeteringMode){ // 05-jan-2001 vcs
+    if (ImageInfo.MeteringMode > 0){ // 05-jan-2001 vcs
+        printf("Metering Mode: ");
         switch(ImageInfo.MeteringMode) {
-        case 2:
-            printf("Metering Mode: center weight\n");
-            break;
-        case 3:
-            printf("Metering Mode: spot\n");
-            break;
-        case 5:
-            printf("Metering Mode: matrix\n");
-            break;
+        case 1: printf("average\n"); break;
+        case 2: printf("center weight\n"); break;
+        case 3: printf("spot\n"); break;
+        case 4: printf("multi spot\n");  break;
+        case 5: printf("pattern\n"); break;
+        case 6: printf("partial\n");  break;
+        case 255: printf("other\n");  break;
+        default: printf("unknown (%d)\n",ImageInfo.MeteringMode); break;
         }
     }
 
@@ -1496,21 +1573,25 @@ void ShowImageInfo(int ShowFileInfo)
     if (ImageInfo.Comments[0]){
         int a,c;
         printf("Comment      : ");
-        for (a=0;a<MAX_COMMENT_SIZE;a++){
-            c = ImageInfo.Comments[a];
-            if (c == '\0') break;
-            if (c == '\n'){
-                // Do not start a new line if the string ends with a carriage return.
-                if (ImageInfo.Comments[a+1] != '\0'){
-                    printf("\nComment      : ");
+        if (!ImageInfo.CommentWidthchars){
+            for (a=0;a<MAX_COMMENT_SIZE;a++){
+                c = ImageInfo.Comments[a];
+                if (c == '\0') break;
+                if (c == '\n'){
+                    // Do not start a new line if the string ends with a carriage return.
+                    if (ImageInfo.Comments[a+1] != '\0'){
+                        printf("\nComment      : ");
+                    }else{
+                        printf("\n");
+                    }
                 }else{
-                    printf("\n");
+                    putchar(c);
                 }
-            }else{
-                putchar(c);
             }
+            printf("\n");
+        }else{
+            printf("%.*ls\n", ImageInfo.CommentWidthchars, (wchar_t *)ImageInfo.Comments);
         }
-        printf("\n");
     }
 }
 
@@ -1549,102 +1630,4 @@ void ShowConciseImageInfo(void)
     }
 
     printf("\n");
-}
-#endif
-
-//--------------------------------------------------------------------------
-// use EXIF Orientation to Rotate image
-//--------------------------------------------------------------------------
-
-// ExifRotateFlipMapping [orig_angle][new_angle]
-int ExifRotateFlipMapping[9][9]=
-{
-//0 undef
-0, 0, 0, 0, 0, 0, 0, 0, 0,
-//1 normal
-0, 1, 2, 3, 4, 5, 6, 7, 8,
-//2 flip horizontal
-0, 2, 1, 4, 3, 6, 5, 8, 7,
-//3 rotate 180
-0, 3, 4, 1, 2, 7, 8, 5, 6,
-//4 flip vertical 
-0, 4, 3, 2, 1, 8, 7, 6, 5,
-//5 transpose: Flipped about top-left <--> bottom-right axis. 
-0, 5, 8, 7, 6, 1, 4, 3, 2,
-//6 rotate 90
-0, 6, 7, 8, 5, 2, 3, 4, 1,
-//7 transverse: flipped about top-right <--> bottom-left axis
-0, 7, 6, 5, 8, 3, 2, 1, 4, 
-//8 rotate 270
-0, 8, 5, 6, 7, 4, 1, 2, 3
-};
-
-int ExifRotate(const char * fname, int new_angle)
-{
-    int fail = FALSE;
-    int exif_angle = 0;
-    int a;
-    
-    if(new_angle == 0)
-      return TRUE;
-    
-    // use jhead functions
-    ResetJpgfile();
-
-    // Start with an empty image information structure.
-    memset(&ImageInfo, 0, sizeof(ImageInfo));
-
-    if (!ReadJpegFile( fname, READ_ALL)) return FALSE;
-    
-    if (NumOrientations != 0)
-    {
-        if(new_angle == 0) 		new_angle = 1;
-        else if(new_angle == 90)	new_angle = 6;
-        else if(new_angle == 180)	new_angle = 3;
-        else if(new_angle == 270)	new_angle = 8;
-        else if(new_angle == -45)	new_angle = 7;
-        else if(new_angle == -90)	new_angle = 2;
-        else if(new_angle == -135)	new_angle = 5;
-        else if(new_angle == -180)	new_angle = 4;
-        
-        exif_angle = ExifRotateFlipMapping[ImageInfo.Orientation][new_angle];
-
-        for (a=0;a<NumOrientations;a++){
-            switch(OrientationNumFormat[a]){
-                case FMT_SBYTE:
-                case FMT_BYTE:      
-                    *(uchar *)(OrientationPtr[a]) = (uchar) exif_angle;
-                    break;
-
-                case FMT_USHORT:    
-                    Put16u(OrientationPtr[a], exif_angle);
-                    break;
-
-                case FMT_ULONG:     
-                case FMT_SLONG:     
-                    memset(OrientationPtr, 0, 4);
-                    // Can't be bothered to write  generic Put32 if I only use it once.
-                    if (MotorolaOrder){
-                        ((uchar *)OrientationPtr[a])[3] = exif_angle;
-                    }else{
-                        ((uchar *)OrientationPtr[a])[0] = exif_angle;
-                    }
-                    break;
-
-                default:
-                    fail = TRUE;
-                    break;
-            }
-        }
-    }
-    
-    if(fail == FALSE)
-    {
-        WriteJpegFile(fname);
-    }
-    
-    // free jhead structure
-    DiscardData();
-    
-    return (NumOrientations != 0) ? TRUE : FALSE;
 }

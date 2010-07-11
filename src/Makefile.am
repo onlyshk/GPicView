@@ -36,7 +36,11 @@ gpicview_SOURCES = \
 	wallpaper.c   \
 	wallpaper.h   \
 	loader.c   \
-	loader.h
+	loader.h   \
+	gpsinfo.c   \
+	iptc.c   \
+	makernote.c   \
+	paths.c
 
 gpicview_CFLAGS = \
 	$(GTK_CFLAGS) \

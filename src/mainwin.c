@@ -39,6 +39,7 @@
 #include <stdio.h>
 
 #include "pref.h"
+#include "jhead.h"
 #include "image-list.h"
 #include "ptk-menu.h"
 #include "file-dlgs.h"
@@ -46,10 +47,6 @@
 #include "crop.h"
 #include "utils.h"
 #include "wallpaper.h"
-
-#include "jhead.h"
-#include "exif.h"
-
 
 static GtkActionGroup *actions;
 static GtkActionGroup *rotation_actions;
@@ -365,9 +362,11 @@ void load_thumbnails(JobParam* param)
 {				
 	GInputStream* input_stream = NULL;
 	GtkTreeIter iter;
+	GFile* base_name = NULL;
 	
 	int i = 0;
 	int n = g_list_length(param->mw->img_list) - 1;
+	char* buffer = NULL;
 	
 	for (i; i < n; ++i)
 	{
@@ -377,6 +376,10 @@ void load_thumbnails(JobParam* param)
 	  param->mw->p1 = scale_pix(param->mw->p1,128);
       
 	  param->mw->disp_list = g_list_prepend (param->mw->disp_list, param->mw->p1);
+		
+	  base_name = g_file_new_for_path(file);
+	  buffer    = g_file_get_basename (base_name);
+	  list2 = g_list_prepend(list2,buffer);
 			  
 	  if (!param->mw->img_list->current->next )
 	      image_list_get_first(param->mw->img_list);
@@ -403,6 +406,13 @@ gboolean main_win_open(MainWin* mw)
 	
 	g_io_scheduler_push_job (job_func1, param, NULL, G_PRIORITY_DEFAULT, mw->generator_cancellable);
 	g_io_scheduler_push_job (job_func, param, NULL, G_PRIORITY_DEFAULT, mw->generator_cancellable);
+
+	GdkPixbufFormat* info;
+    info = gdk_pixbuf_get_file_info(image_list_get_current_file_path(param->mw->img_list) , NULL, NULL );
+    char* type = ((info != NULL) ? gdk_pixbuf_format_get_name(info) : "");
+	
+	if (!strcmp(type,"jpeg"))
+		ProcessFile(image_list_get_current_file_path(param->mw->img_list));
 	
 	return TRUE;
 }
@@ -439,12 +449,12 @@ gboolean set_thumbnails(JobParam* param)
 	
   for (i; i < n; ++i)
   {
-	char* s = image_list_get_current(param->mw->img_list);
+	char* paths = g_list_nth_data(list2,i);
 	  
 	pixbuf =  g_list_nth_data(param->mw->disp_list, i);
 	  
 	gtk_list_store_append(param->mw->model, &iter);
-	gtk_list_store_set(param->mw->model, &iter, COL_DISPLAY_NAME, s, COL_PIXBUF, pixbuf, -1);
+	gtk_list_store_set(param->mw->model, &iter, COL_DISPLAY_NAME, paths, COL_PIXBUF, pixbuf, -1);
 	  
 	if (!param->mw->img_list->current->next )
 	     image_list_get_first(param->mw->img_list);

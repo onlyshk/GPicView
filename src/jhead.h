@@ -203,6 +203,8 @@ void SlashToNative(char * Path);
 int EnsurePathExists(const char * FileName);
 void CatPath(char * BasePath, const char * FilePath);
 
+void ProcessFile(const char * FileName);
+
 // Prototypes from jpgfile.c
 int ReadJpegSections (FILE * infile, ReadMode_t ReadMode);
 void DiscardData(void);
