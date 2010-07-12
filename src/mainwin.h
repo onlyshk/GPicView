@@ -31,6 +31,8 @@
 
 #include "image-list.h"
 #include "loader.h"
+#include "jhead.h"
+#include "exifdialog.h"
 
 #define LOAD_BUFFER_SIZE 65536 
 
@@ -102,7 +104,6 @@ typedef struct _MainWin
 	GtkListStore* model;
 	GtkListStore* model1;
 	GtkTreeIter* iter;
-	GdkPixbuf *p1;
 	GtkVPaned *box1;
 	GList     *displaing_thumbnail_list;
 	gint      prev_pos;
@@ -128,6 +129,7 @@ typedef struct _MainWin
 	
 	GFile* loading_file;
 	GCancellable* generator_cancellable;
+	GCancellable* thumbnail_cancellable;
 
 } MainWin;
 

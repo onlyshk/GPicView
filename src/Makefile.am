@@ -40,7 +40,9 @@ gpicview_SOURCES = \
 	gpsinfo.c   \
 	iptc.c   \
 	makernote.c   \
-	paths.c
+	paths.c   \
+	exifdialog.c   \
+	exifdialog.h
 
 gpicview_CFLAGS = \
 	$(GTK_CFLAGS) \

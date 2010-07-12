@@ -18,17 +18,38 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-#ifndef LOADER_H
-#define LOADER_H
-
-#include <glib.h>
-#include <gio/gio.h>
-#include <gdk-pixbuf/gdk-pixbuf.h>
+#ifndef EXIFDIALOG_H
+#define EXIFDIALOG_H
 
 #include "mainwin.h"
 
-GdkPixbufAnimation* load_animation_from_stream(GInputStream* input_stream, GCancellable* generator_cancellable);
+#define EXIF_WIN_TYPE              (exif_win_get_type ())
+#define EXIF_WIN(obj)              (G_TYPE_CHECK_INSTANCE_CAST ((obj), EXIF_WIN_TYPE, ExifWin))
+#define EXIF_WIN_CLASS(klass)      (G_TYPE_CHECK_CLASS_CAST ((klass), EXIF_WIN_TYPE, ExifWinClass))
+#define IS_EXIF_WIN(obj)           (G_TYPE_CHECK_INSTANCE_TYPE ((obj), EXIF_WIN_TYPE))
+#define IS_EXIF_WIN_CLASS(klass)   (G_TYPE_CHECK_CLASS_TYPE ((klass), EXIF_WIN_TYPE))
+#define EXIF_WIN_GET_CLASS(obj)    (G_TYPE_INSTANCE_GET_CLASS ((obj), EXIF_WIN_TYPE, ExifWinClass))
 
-GdkPixbuf* load_image_from_stream(GInputStream* input_stream, GCancellable* generator_cancellable);
+typedef struct _ExifWinClass
+{
+    GtkWindowClass parent_class;
+} ExifWinClass;
+
+typedef struct _ExifWin
+{
+    GObject parent;
+	struct MainWin*   mw;
+	GtkWindow* exif_window;
+	GtkVBox   *box;
+}ExifWin;
+
+GType exif_win_get_type(void);
+
+GObject  *exif_new (struct MainWin *mw);
+
+void show_exif(ExifWin * win);
+
+GtkWidget* exif_win_new(struct MainWin* mw);
+
 
 #endif
