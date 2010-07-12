@@ -46,6 +46,7 @@
 #include "crop.h"
 #include "utils.h"
 #include "wallpaper.h"
+#include "exifdialog.h"
 
 static GtkActionGroup *actions;
 static GtkActionGroup *rotation_actions;
@@ -107,7 +108,7 @@ static void load_thumbnails(JobParam* param);
 static gboolean job_func(GIOSchedulerJob *job, GCancellable *cancellable, gpointer user_data);
 static gboolean job_func1(GIOSchedulerJob *job, GCancellable *cancellable, gpointer user_data);
 static gboolean set_thumbnails(JobParam* param);
-static void exif_information(MainWin* mw);
+static void exif_information(GtkWidget* widget, MainWin* mw);
 
 /* signal handlers */
 static gboolean on_delete_event( GtkWidget* widget, GdkEventAny* evt );
@@ -1195,9 +1196,9 @@ static void open_url( GtkAboutDialog *dlg, const gchar *url, gpointer data)
     }
 }
 
-void exif_information(MainWin* mw)
+void exif_information(GtkWidget* widget, MainWin* mw)
 {
-  	//ExifWin *win;
-	//win = (ExifWin*)exif_win_new (mw);
-	//show_exif(win);
+  	ExifWin *win;
+	win = (ExifWin*)exif_win_new (mw);
+	show_exif_window(widget,win);
 }

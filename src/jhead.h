@@ -8,6 +8,8 @@
 //--------------------------------------------------------------------------
 #define _CRT_SECURE_NO_DEPRECATE 1
 
+#include <glib.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -151,7 +153,7 @@ void FileTimeAsString(char * TimeStr);
 int Exif2tm(struct tm * timeptr, char * ExifTime);
 void process_EXIF (unsigned char * CharBuf, unsigned int length);
 int RemoveThumbnail(unsigned char * ExifSection);
-void ShowImageInfo(int ShowFileInfo);
+GList* ShowImageInfo(int ShowFileInfo);
 void ShowConciseImageInfo(void);
 const char * ClearOrientation(void);
 void PrintFormatNumber(void * ValuePtr, int Format, int ByteCount);
@@ -203,7 +205,7 @@ void SlashToNative(char * Path);
 int EnsurePathExists(const char * FileName);
 void CatPath(char * BasePath, const char * FilePath);
 
-void ProcessFile(const char * FileName);
+char* ProcessFile(const char * FileName);
 
 // Prototypes from jpgfile.c
 int ReadJpegSections (FILE * infile, ReadMode_t ReadMode);

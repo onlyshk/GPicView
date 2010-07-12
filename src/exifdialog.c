@@ -59,7 +59,7 @@ win_exif_class_init (ExifWinClass *klass)
     gobject_class->dispose = exif_dispose;
 }
 
-GtkWidget* exif_win_new(struct MainWin* mw)
+GtkWidget* exif_win_new( MainWin* mw)
 {
 	ExifWin *win;
 	
@@ -76,14 +76,73 @@ win_exif_init (ExifWin *win)
 	win->exif_window = NULL;
 }
 
-void show_exif(ExifWin * win)
+static void
+init_list(GtkWidget *list)
+{
+
+  GtkCellRenderer *renderer;
+  GtkTreeViewColumn *column;
+  GtkListStore *store;
+
+  renderer = gtk_cell_renderer_text_new();
+  column = gtk_tree_view_column_new_with_attributes("List Items",
+          renderer, "text", LIST_ITEM, NULL);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(list), column);
+
+  store = gtk_list_store_new(N_COLUMNS, G_TYPE_STRING);
+
+  gtk_tree_view_set_model(GTK_TREE_VIEW(list), 
+      GTK_TREE_MODEL(store));
+
+  g_object_unref(store);
+}
+
+static void
+add_to_list(GtkWidget *list, const char *str, char *str2)
+{
+  GtkListStore *store;
+  GtkTreeIter iter;
+	
+  char* result = NULL;
+  int max = 65535;
+  char temp1[max];
+	
+  strncpy (temp1, str, max);
+  result = strncat (temp1, str2, max);
+
+  store = GTK_LIST_STORE(gtk_tree_view_get_model
+      (GTK_TREE_VIEW(list)));
+
+  gtk_list_store_append(store, &iter);
+  gtk_list_store_set(store, &iter, LIST_ITEM, result, -1);
+}
+
+void show_exif_window(GtkWidget* widget, ExifWin * win)
 {	
 	GError* error = NULL;
 	
+	const char* current_image = image_list_get_current_file_path(win->mw->img_list);
+		
 	win->exif_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_resizable (win->exif_window, FALSE);
     gtk_window_set_position(win->exif_window,GTK_WIN_POS_CENTER);
     gtk_window_set_title(win->exif_window, "Exif information");
 	
-	gtk_widget_show_all(win);;
+	win->box = gtk_vbox_new (FALSE,0);
+	
+	win->exif_label = gtk_label_new("Exif data");
+	gtk_label_set_justify(GTK_LABEL(win->exif_label), GTK_JUSTIFY_CENTER);
+    gtk_box_pack_start(GTK_BOX(win->box), win->exif_label, FALSE, FALSE, 5);
+	
+	win->list = gtk_tree_view_new();
+    gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(win->list), FALSE);
+	gtk_box_pack_start(GTK_BOX(win->box), win->list, TRUE, TRUE, 5);
+	
+	ProcessFile(current_image);
+	
+	init_list(win->list);
+    add_to_list(win->list, "FileName:   ", ImageInfo.FileName);
+
+	gtk_container_add(win->exif_window, win->box);
+	gtk_widget_show_all(win->exif_window);
 }

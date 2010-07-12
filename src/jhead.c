@@ -774,7 +774,7 @@ void FileTimeAsString(char * TimeStr)
 //--------------------------------------------------------------------------
 // Do selected operations to one file at a time.
 //--------------------------------------------------------------------------
-void ProcessFile(const char * FileName)
+char* ProcessFile(const char * FileName)
 {
     int Modified = FALSE;
     ReadMode_t ReadMode;

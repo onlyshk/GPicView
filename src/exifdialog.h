@@ -23,33 +23,54 @@
 
 #include "mainwin.h"
 
+#include <gtk/gtk.h>
+#include <glib.h>
+#include <glib-object.h>
+#include <gio/gio.h>
+#include <gdk-pixbuf/gdk-pixbuf.h>
+#include <gtkimageview/gtkimageview.h>
+#include <gtkimageview/gtkanimview.h>
+#include <gtkimageview/gtkimagescrollwin.h>
+
 #define EXIF_WIN_TYPE              (exif_win_get_type ())
 #define EXIF_WIN(obj)              (G_TYPE_CHECK_INSTANCE_CAST ((obj), EXIF_WIN_TYPE, ExifWin))
-#define EXIF_WIN_CLASS(klass)      (G_TYPE_CHECK_CLASS_CAST ((klass), EXIF_WIN_TYPE, ExifWinClass))
+#define EXIF_WIN_CLASS(klass)      (G_TYPE_CHECK_CLASS_CAST ((klass), EXIF_WIN_TYPE,  ExifWinClass))
 #define IS_EXIF_WIN(obj)           (G_TYPE_CHECK_INSTANCE_TYPE ((obj), EXIF_WIN_TYPE))
 #define IS_EXIF_WIN_CLASS(klass)   (G_TYPE_CHECK_CLASS_TYPE ((klass), EXIF_WIN_TYPE))
 #define EXIF_WIN_GET_CLASS(obj)    (G_TYPE_INSTANCE_GET_CLASS ((obj), EXIF_WIN_TYPE, ExifWinClass))
 
-typedef struct _ExifWinClass
+enum
+{
+  LIST_ITEM = 0,
+  N_COLUMNS
+};
+
+typedef struct _ExifWin        ExifWin;
+typedef struct _ExifWinClass   ExifWinClass;
+
+struct _ExifWinClass
 {
     GtkWindowClass parent_class;
-} ExifWinClass;
+};
 
-typedef struct _ExifWin
+struct _ExifWin
 {
     GObject parent;
-	struct MainWin*   mw;
+	MainWin*   mw;
 	GtkWindow* exif_window;
 	GtkVBox   *box;
-}ExifWin;
+	GtkLabel  *exif_label;
+	GtkButton *exit_button;
+	GtkWidget *list;
+};
 
 GType exif_win_get_type(void);
 
-GObject  *exif_new (struct MainWin *mw);
+GObject  *exif_new (MainWin *mw);
 
-void show_exif(ExifWin * win);
+void show_exif_window(GtkWidget* widget, ExifWin * win);
 
-GtkWidget* exif_win_new(struct MainWin* mw);
+GtkWidget* exif_win_new(MainWin* mw);
 
 
 #endif
