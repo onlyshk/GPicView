@@ -1,4 +1,17 @@
 //--------------------------------------------------------------------------
+// Program to pull the information out of various types of EXIF digital 
+// camera files and show it in a reasonably consistent way
+//
+// Version 2.90
+//
+// Compiling under Windows:  
+//   Make sure you have Microsoft's compiler on the path, then run make.bat
+//
+// Dec 1999 - Feb 2010
+//
+// by Matthias Wandel   www.sentex.net/~mwandel
+//--------------------------------------------------------------------------
+//--------------------------------------------------------------------------
 //  Process IPTC data and XMP data.
 //--------------------------------------------------------------------------
 #include "jhead.h"

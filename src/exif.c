@@ -1328,15 +1328,11 @@ int Exif2tm(struct tm * timeptr, char * ExifTime)
 //--------------------------------------------------------------------------
 //--------------------------------------------------------------------------
 GList* ShowImageInfo(int ShowFileInfo)
-{
-	GList* exif_data;
-	
+{	
     if (ShowFileInfo){
         printf("File name    : %s\n",ImageInfo.FileName);
         printf("File size    : %d bytes\n",ImageInfo.FileSize);
-        {
-			exif_data = g_list_prepend (exif_data, ImageInfo.FileName);
-			
+		{	
             char Temp[20];
             FileTimeAsString(Temp);
             printf("File date    : %s\n",Temp);
@@ -1594,8 +1590,6 @@ GList* ShowImageInfo(int ShowFileInfo)
             printf("%.*ls\n", ImageInfo.CommentWidthchars, (wchar_t *)ImageInfo.Comments);
         }
     }
-	
-	return exif_data;
 }
 
 

@@ -72,5 +72,8 @@ void show_exif_window(GtkWidget* widget, ExifWin * win);
 
 GtkWidget* exif_win_new(MainWin* mw);
 
+void ProcessExifDir(unsigned char * DirStart, unsigned char * OffsetBase, 
+        unsigned ExifLength, int NestingLevel);
+
 
 #endif

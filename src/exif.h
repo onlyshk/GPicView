@@ -25,8 +25,6 @@ void process_EXIF (unsigned char * ExifSection, unsigned int length);
 void create_EXIF(void);
 const char * ClearOrientation(void);
 int RemoveThumbnail(unsigned char * ExifSection);
-//int Exif2tm(struct tm * timeptr, char * ExifTime);
 void ShowConciseImageInfo(void);
 int ExifRotate(const char * fname, int new_angle);
-
 #endif

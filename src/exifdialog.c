@@ -20,6 +20,9 @@
 
 #include "exifdialog.h"
 
+#include <string.h>
+
+
 G_DEFINE_TYPE (ExifWin, win_exif, G_TYPE_OBJECT);
 
 /*************/
@@ -75,6 +78,38 @@ win_exif_init (ExifWin *win)
 {
 	win->exif_window = NULL;
 }
+
+static void
+reverse(char s[])
+{
+    int i, j;
+    char c;
+
+    for (i = 0, j = strlen(s)-1; i<j; i++, j--) {
+        c = s[i];
+        s[i] = s[j];
+        s[j] = c;
+    }
+}
+
+static char*
+itoa(int n, char s[])
+{
+    int i, sign;
+
+    if ((sign = n) < 0)  /* записываем знак */
+        n = -n;          /* делаем n положительным числом */
+    i = 0;
+    do {       /* генерируем цифры в обратном порядке */
+        s[i++] = n % 10 + '0';   /* берем следующую цифру */
+    } while ((n /= 10) > 0);     /* удаляем */
+    if (sign < 0)
+        s[i++] = '-';
+    s[i] = '\0';
+    reverse(s);
+	
+	return s;
+} 
 
 static void
 init_list(GtkWidget *list)
@@ -138,11 +173,90 @@ void show_exif_window(GtkWidget* widget, ExifWin * win)
     gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(win->list), FALSE);
 	gtk_box_pack_start(GTK_BOX(win->box), win->list, TRUE, TRUE, 5);
 	
-	ProcessFile(current_image);
+	
+	int Modified = FALSE;
+    ReadMode_t ReadMode;
+    ReadMode = READ_METADATA;
+    CurrentFile = current_image;
+    FilesMatched = 1; 
+
+    ResetJpgfile();
+
+    memset(&ImageInfo, 0, sizeof(ImageInfo));
+    ImageInfo.FlashUsed = -1;
+    ImageInfo.MeteringMode = -1;
+    ImageInfo.Whitebalance = -1;
+	
+	    {
+        struct stat st;
+        if (stat(current_image, &st) >= 0){
+            ImageInfo.FileDateTime = st.st_mtime;
+            ImageInfo.FileSize = st.st_size;
+        }else{
+            printf("No such file");
+        }
+    }
+	
+	strncpy(ImageInfo.FileName, current_image, PATH_MAX);
+		
+    if (!ReadJpegFile(current_image, READ_METADATA)) return;
+        #ifdef MATTHIAS
+            if (AutoResize){
+                // Automatic resize computation - to customize for each run...
+                if (AutoResizeCmdStuff() == 0){
+                    DiscardData();
+                    return;
+                }
+            }
+        #endif // MATTHIAS
+	
+	DiscardAllButExif();
+
+    Modified = TRUE;
+    ReadMode = READ_IMAGE;
+
+    if (!ReadJpegFile(current_image, ReadMode)) return;
+	
+    ShowConciseImageInfo();
+	ShowTags = TRUE;
+    ShowImageInfo(TRUE);
+	
+	char  buf[35];
+	char  buf1[35];
+	char  buf2[35];
+	char* size = itoa(ImageInfo.FileSize,buf);
+	
+	char* width = itoa(ImageInfo.Width, buf1);
+	char* height = itoa(ImageInfo.Height, buf2);
+	
+	char Temp[20];
+    FileTimeAsString(Temp);
 	
 	init_list(win->list);
-    add_to_list(win->list, "FileName:   ", ImageInfo.FileName);
 
+	add_to_list(win->list, "File name:   ", ImageInfo.FileName);
+	add_to_list(win->list, "File size (bytes)   :", size);
+	add_to_list(win->list, "File date:   ", Temp);
+	
+	if (ImageInfo.CameraMake[0]){
+	    add_to_list(win->list, "Camera make:   ", ImageInfo.CameraMake);
+	    add_to_list(win->list, "Camer model:   ", ImageInfo.CameraModel);
+    }
+
+	add_to_list(win->list, "Date time:   ", ctime(&ImageInfo.FileDateTime));
+	
+	if (ImageInfo.IsColor == 0)
+	{
+        add_to_list(win->list, "Color/bw:   ", "Black and White");
+    }
+	else
+	{
+	    add_to_list(win->list, "Color/bw:   ", "Non Black and White");
+	}
+	
+	add_to_list(win->list, "Image Width:   ", width);
+	add_to_list(win->list, "Image Height:   ",height);
+		
 	gtk_container_add(win->exif_window, win->box);
 	gtk_widget_show_all(win->exif_window);
 }

@@ -82,7 +82,7 @@ typedef struct {
         short YDensity;
     }JfifHeader;
 
-    unsigned FileSize;
+    int FileSize;
     char  CameraMake   [32];
     char  CameraModel  [40];
     char  DateTime     [20];
@@ -200,6 +200,9 @@ void ShowXmp(Section_t XmpSection);
 void MyGlob(const char * Pattern , void (*FileFuncParm)(const char * FileName));
 void SlashToNative(char * Path);
 #endif
+
+int FilesMatched;
+const char *CurrentFile;
 
 // Prototypes for paths.c module
 int EnsurePathExists(const char * FileName);

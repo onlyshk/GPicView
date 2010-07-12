@@ -25,10 +25,7 @@
     #include <io.h>
 #endif
 
-static int FilesMatched;
 static int FileSequence;
-
-static const char * CurrentFile;
 
 static const char * progname;   // program name for error messages
 
@@ -358,7 +355,7 @@ static void DoCommand(const char * FileName, int ShowIt)
     // as mktemp - that is, that between getting the random name, and making the file
     // some other program could snatch that exact same name!
     // also, not all pltforms support mkstemp.
-    mktemp(TempName);
+    mkstemp(TempName);
 
 
     if(!TempName[0]) {
@@ -413,7 +410,7 @@ static void DoCommand(const char * FileName, int ShowIt)
 //--------------------------------------------------------------------------
 // check if this file should be skipped based on contents.
 //--------------------------------------------------------------------------
-static int CheckFileSkip(void)
+int CheckFileSkip(void)
 {
     // I sometimes add code here to only process images based on certain
     // criteria - for example, only to convert non progressive Jpegs to progressives, etc..
