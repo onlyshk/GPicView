@@ -38,15 +38,14 @@ static int RenameAssociatedFiles = FALSE;
 #endif
 static char * strftime_args = NULL; // Format for new file name.
 static int Exif2FileTime  = FALSE;
-static int DoModify     = FALSE;
+//int DoModify     = FALSE;
 static int DoReadAction = FALSE;
        int ShowTags     = FALSE;    // Do not show raw by default.
-static int Quiet        = FALSE;    // Be quiet on success (like unix programs)
+       int Quiet        = FALSE;    // Be quiet on success (like unix programs)
        int DumpExifMap  = FALSE;
-static int ShowConcise  = FALSE;
+       int ShowConcise  = FALSE;
 static int CreateExifSection = FALSE;
 static char * ApplyCommand = NULL;  // Apply this command to all images.
-static char * FilterModel = NULL;
 static int    ExifOnly    = FALSE;
 static int    PortraitOnly = FALSE;
 static time_t ExifTimeAdjust = 0;   // Timezone adjust
@@ -1201,7 +1200,7 @@ badtime:
 //--------------------------------------------------------------------------
 // complain about bad state of the command line.
 //--------------------------------------------------------------------------
-static void Usage (void)
+void Usage (void)
 {
     printf("Jhead is a program for manipulating settings and thumnails in Exif jpeg headers\n"
            "used by most Digital Cameras.  v"JHEAD_VERSION" Matthias Wandel, Feb 05 2010.\n"

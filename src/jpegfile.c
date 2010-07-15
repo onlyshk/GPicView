@@ -16,6 +16,7 @@ static Section_t * Sections = NULL;
 static int SectionsAllocated;
 static int SectionsRead;
 static int HaveAll;
+int data_precision, num_components;
 
 
 
@@ -67,13 +68,12 @@ static void process_COM (const uchar * Data, int length)
     ImageInfo.CommentWidthchars = 0;
 }
 
- 
 //--------------------------------------------------------------------------
 // Process a SOFn marker.  This is useful for the image dimensions
 //--------------------------------------------------------------------------
 static void process_SOFn (const uchar * Data, int marker)
 {
-    int data_precision, num_components;
+
 
     data_precision = Data[2];
     ImageInfo.Height = Get16m(Data+3);

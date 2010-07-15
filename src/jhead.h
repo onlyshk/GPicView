@@ -59,9 +59,8 @@ typedef struct {
 }Section_t;
 
 extern int ExifSectionIndex;
-
+static int DoModify     = FALSE;
 extern int DumpExifMap;
-
 #define MAX_DATE_COPIES 10
 
 //--------------------------------------------------------------------------
@@ -131,10 +130,15 @@ typedef struct {
     char GpsAlt[20];
 }ImageInfo_t;
 
+int CheckFileSkip(void);
+static char * FilterModel = NULL;
 
+#define PROCESS_TABLE_SIZE  (sizeof(ProcessTable) / sizeof(TagTable_t))
 
 #define EXIT_FAILURE  1
 #define EXIT_SUCCESS  0
+
+void Usage (void);
 
 // jpgfile.c functions
 typedef enum {

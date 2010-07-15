@@ -152,6 +152,8 @@ crop_click(GtkWidget* widget, Win* win)
 	
   win->mw->current_image_width = win->area.width;
   win->mw->current_image_height = win->area.height;
+
+  gtk_widget_destroy((GtkWidget*)win->crop_window);
 	
   g_object_unref(win);
 }
@@ -370,12 +372,16 @@ crop_win_get_type (void)
 
 static void
 crop_dispose (GObject *gobject)
-{}
+{
+   
+}
 
 static void
 win_crop_class_init (WinClass *klass)
 {
     GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
+    GtkWidgetClass *widget_class =  GTK_WIDGET_CLASS ( klass );
+
     gobject_class->dispose = crop_dispose;
 }
 

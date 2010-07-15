@@ -59,8 +59,11 @@ struct _ExifWin
 	MainWin*   mw;
 	GtkWindow* exif_window;
 	GtkVBox   *box;
+	GtkHBox   *hbox;
+	GtkWidget* align;
+	GtkScrolledWindow* scroll;
 	GtkLabel  *exif_label;
-	GtkButton *exit_button;
+	GtkButton *exif_button;
 	GtkWidget *list;
 };
 

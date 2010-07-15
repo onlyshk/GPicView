@@ -7,6 +7,7 @@
 // Matthias Wandel
 //--------------------------------------------------------------------------
 #include "jhead.h"
+
 #include <glib.h>
 #include <math.h>
 
@@ -29,7 +30,7 @@ typedef struct {
 
 //--------------------------------------------------------------------------
 // Table of Jpeg encoding process names
-static const TagTable_t ProcessTable[] = {
+const TagTable_t ProcessTable[] = {
     { M_SOF0,   "Baseline"},
     { M_SOF1,   "Extended sequential"},
     { M_SOF2,   "Progressive"},
@@ -45,7 +46,6 @@ static const TagTable_t ProcessTable[] = {
     { M_SOF15,  "Differential lossless, arithmetic coding"},
 };
 
-#define PROCESS_TABLE_SIZE  (sizeof(ProcessTable) / sizeof(TagTable_t))
 
 // 1 - "The 0th row is at the visual top of the image,    and the 0th column is the visual left-hand side."
 // 2 - "The 0th row is at the visual top of the image,    and the 0th column is the visual right-hand side."
@@ -60,7 +60,7 @@ static const TagTable_t ProcessTable[] = {
 // Note: The descriptions here are the same as the name of the command line
 // option to pass to jpegtran to right the image
 
-static const char * OrientTab[9] = {
+const char * OrientTab[9] = {
     "Undefined",
     "Normal",           // 1
     "flip horizontal",  // left right reversed mirror
@@ -446,7 +446,7 @@ double ConvertAnyFormat(void * ValuePtr, int Format)
 //--------------------------------------------------------------------------
 // Process one of the nested EXIF directories.
 //--------------------------------------------------------------------------
-static void ProcessExifDir(unsigned char * DirStart, unsigned char * OffsetBase, 
+void ProcessExifDir(unsigned char * DirStart, unsigned char * OffsetBase, 
         unsigned ExifLength, int NestingLevel)
 {
     int de;
@@ -1329,6 +1329,7 @@ int Exif2tm(struct tm * timeptr, char * ExifTime)
 //--------------------------------------------------------------------------
 GList* ShowImageInfo(int ShowFileInfo)
 {	
+	GList *data_list;
     if (ShowFileInfo){
         printf("File name    : %s\n",ImageInfo.FileName);
         printf("File size    : %d bytes\n",ImageInfo.FileSize);
@@ -1541,8 +1542,6 @@ GList* ShowImageInfo(int ShowFileInfo)
         printf("\n");
     }
 
-
-
     if (ImageInfo.Process != M_SOF0){
         // don't show it if its the plain old boring 'baseline' process, but do
         // show it if its something else, like 'progressive' (used on web sometimes)
@@ -1590,6 +1589,8 @@ GList* ShowImageInfo(int ShowFileInfo)
             printf("%.*ls\n", ImageInfo.CommentWidthchars, (wchar_t *)ImageInfo.Comments);
         }
     }
+	
+	return data_list;
 }
 
 
