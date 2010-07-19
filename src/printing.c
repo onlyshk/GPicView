@@ -17,64 +17,39 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+ 
+#include "printing.h"
 
-#ifndef IMAGELIST_H
-#define IMAGELIST_H
-
-#include <glib.h>
-#include <gtk/gtk.h>
-
-/* for stat and time_t */
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
-/**
-    @author PCMan (Hong Jen Yee) <pcman.tw@gmail.com>
-*/
-typedef struct _ImageList
+static void draw_page (GtkPrintOperation * oper, GtkPrintContext * context, 
+            			  gint nr, gpointer user_data)
 {
-    gchar* dir_path;
-    GList* list;
-    GList* current;
-	GStaticMutex mutex;
-    time_t mtime;
-} ImageList;
+   MainWin* mw = (MainWin*)user_data;
+   GdkPixbuf* pixbuf = gdk_pixbuf_new_from_file(image_list_get_current_file_path (mw->img_list),NULL);
+	
+   pixbuf =  gdk_pixbuf_scale_simple (pixbuf, 
+                                      197, 210, 
+                                      GDK_INTERP_HYPER); 
+ 
+	
+   cairo_t *cr = gtk_print_context_get_cairo_context (context);
+   cairo_surface_t *image;
+  
+   gdk_cairo_set_source_pixbuf(cr, pixbuf, 0, 0);
+   cairo_paint (cr);
+   cairo_surface_destroy (image);
+   g_object_unref (pixbuf);   
+}
 
-ImageList* image_list_new();
+void   print_pixbuf(GtkWidget* widget, MainWin* mw)
+{	
+    GtkPrintOperation *op;
+    GtkPrintOperationResult res;
+    GtkPrintSettings *settings;
 
-const char* image_list_get_dir( ImageList* il );
+    op = gtk_print_operation_new ();
 
-gboolean image_list_open_dir( ImageList* il, const char* path, GError** error);
-
-gboolean image_list_set_current( ImageList* il, const char* name );
-
-const char* image_list_get_current( ImageList* il );
-
-const char* image_list_get_first( ImageList* il );
-
-const char* image_list_get_next( ImageList* il );
-
-const char* image_list_get_prev( ImageList* il );
-
-const char* image_list_get_last( ImageList* il );
-
-void image_list_free( ImageList* il );
-
-void image_list_close( ImageList* il );
-
-gboolean image_list_is_empty( ImageList* il );
-
-gboolean image_list_has_multiple_files( ImageList* il );
-
-char* image_list_get_current_file_path( ImageList* il );
-
-void image_list_sort_by_name( ImageList* il, GtkSortType type );
-
-void image_list_remove( ImageList* il, const char* name );
-
-void image_list_add_sorted( ImageList* il, const char* name, gboolean set_current );
-
-char* image_list_get_first_file_path( ImageList* il);
-
-#endif
+    gtk_print_operation_set_n_pages (op, g_list_length (mw->img_list->list));
+    gtk_print_operation_set_unit (op, GTK_UNIT_MM);
+    g_signal_connect (op, "draw_page", G_CALLBACK (draw_page), mw);
+    res = gtk_print_operation_run (op, GTK_PRINT_OPERATION_ACTION_PRINT_DIALOG, mw, NULL);
+}

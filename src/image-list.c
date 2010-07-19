@@ -45,9 +45,10 @@ ImageList* image_list_new()
             char** ext;
             for( ext  = exts; *ext ; ++ext )
                 supported_formats = g_slist_prepend( supported_formats, *ext );
-            g_free( exts ); // g_strfreev is not needed since we stole its stirngs
+            g_free( exts );
+			
+            g_static_mutex_init(&il->mutex);
         }
-        // supported_formats = g_slist_reverse( supported_formats, *ext );
     }
 
     return il;
@@ -56,6 +57,7 @@ ImageList* image_list_new()
 void image_list_free( ImageList* il )
 {
     g_slice_free( ImageList, il );
+	g_static_mutex_free(&il->mutex);
 }
 
 const char* image_list_get_dir( ImageList* il )
@@ -70,7 +72,7 @@ const char* image_list_get_current( ImageList* il )
 
 gboolean image_list_is_empty( ImageList* il )
 {
-    return (il->list == NULL);
+   return (il->list == NULL);
 }
 
 gboolean image_list_has_multiple_files( ImageList* il )
@@ -101,15 +103,16 @@ gboolean image_list_open_dir( ImageList* il, const char* path, GError** error )
 
     while( ( name = g_dir_read_name ( dir ) ) )
     {
-//        char* file_path = g_build_filename( dir_path, name, NULL );
         if( image_list_is_file_supported( name ) )
             il->list = g_list_prepend( il->list, g_strdup(name) );
-//        g_free( file_path );
     }
+	
     g_dir_close( dir );
-    il->list = g_list_reverse( il->list );
+    
+	il->list = g_list_reverse( il->list );
     il->current = il->list;
-    return TRUE;
+    
+	return TRUE;
 }
 
 gboolean image_list_set_current(  ImageList* il,const char* name )
@@ -126,33 +129,47 @@ gboolean image_list_set_current(  ImageList* il,const char* name )
 
 const char* image_list_get_first( ImageList* il )
 {
+	g_static_mutex_lock (&il->mutex);
     il->current = il->list;
+	g_static_mutex_unlock (&il->mutex);
+	
     return image_list_get_current( il );
 }
 
 const char* image_list_get_next( ImageList* il )
 {
+	g_static_mutex_lock (&il->mutex);
     if( il->current && il->current->next )
     {
         il->current = il->current->next;
+		g_static_mutex_unlock (&il->mutex);
         return image_list_get_current( il );
     }
+	
+	g_static_mutex_unlock (&il->mutex);
     return NULL;
 }
 
 const char* image_list_get_prev( ImageList* il )
 {
+	g_static_mutex_lock (&il->mutex);
     if( il->current && il->current->prev )
     {
         il->current = il->current->prev;
-        return image_list_get_current( il );
+	    g_static_mutex_unlock (&il->mutex);
+		return image_list_get_current( il );
     }
+
+	g_static_mutex_unlock (&il->mutex);
     return NULL;
 }
 
 const char* image_list_get_last( ImageList* il )
 {
+	g_static_mutex_lock(&il->mutex);
     il->current = g_list_last( il->list );
+	g_static_mutex_unlock (&il->mutex);
+	
     return image_list_get_current( il );
 }
 

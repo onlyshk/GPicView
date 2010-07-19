@@ -37,6 +37,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <cairo/cairo.h>
 
 #include "pref.h"
 #include "image-list.h"
@@ -95,7 +96,6 @@ static void show_popup_menu( MainWin* mw, GdkEventButton* evt );
 static void open_url( GtkAboutDialog *dlg, const gchar *url, gpointer data);
 static gboolean on_button_press( GtkWidget* widget, GdkEventButton* evt, MainWin* mw );
 static void thumbnail_selected(GtkWidget* widget, MainWin* mw);
-//static void thumbnail_selected( JobParam* param);
 static void loading(JobParam* param);
 static void on_rotate_auto_save( GtkWidget* btn, MainWin* mw );
 static void set_wallpapaer(GtkWidget* widget, MainWin* mw);
@@ -166,6 +166,7 @@ gchar *ui_info =
            "<toolitem  action='Open File'/>"
            "<toolitem  action='Save File'/>"
            "<toolitem  action='Save as File'/>"
+           "<toolitem  action='Print image' />"
            "<toolitem  action='Delete File'/>"
              "<separator  action='Sep4' />"
            "<toolitem   action='Preferences'/>"
@@ -206,6 +207,9 @@ static const GtkActionEntry entries[] = {
 	},
 	{"Save as File",GTK_STOCK_SAVE_AS,"Save as File",
 	  NULL,"Save as File", G_CALLBACK(on_save_as)
+	},
+	{"Print image",GTK_STOCK_PRINT, "Print image",
+	  "<control>p","Print image", G_CALLBACK(printing_image)
 	},
 	{"Delete File",GTK_STOCK_DELETE,"Delete File",
      "<control>r","Delete File", G_CALLBACK(on_delete)
@@ -258,7 +262,7 @@ void main_win_init( MainWin*mw )
 	
     gtk_window_set_title( (GtkWindow*)mw, _("Image Viewer"));
     gtk_window_set_icon_from_file( (GtkWindow*)mw, PACKAGE_DATA_DIR"/pixmaps/gpicview.png", NULL );
-    gtk_window_set_default_size( (GtkWindow*)mw, 700, 480 );
+    gtk_window_set_default_size( (GtkWindow*)mw, 720, 480 );
 	gtk_window_set_position((GtkWindow*)mw, GTK_WIN_POS_CENTER);
 
 	mw->box = gtk_vbox_new(FALSE, 0);
@@ -301,7 +305,7 @@ void main_win_init( MainWin*mw )
 	  g_message ("building menus failed: %s", error->message);
 	  g_error_free (error);
 	}
-	gtk_widget_set_size_request(mw->toolbar_box, 670,40);
+	gtk_widget_set_size_request(mw->toolbar_box, 720,40);
 	
     gtk_paned_add1(mw->toolbar_box,gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"));
 	gtk_container_add( (GtkContainer*)mw->align, mw->toolbar_box);
@@ -321,7 +325,7 @@ void main_win_init( MainWin*mw )
 	gtk_widget_modify_bg (mw->aview, GTK_STATE_NORMAL, &pref.bg);
 	
 	gtk_box_pack_start(mw->box, gtk_hseparator_new(), FALSE, TRUE,0);	
-	
+
 	gtk_container_add(mw, mw->box);
     gtk_widget_show_all( mw->box );
 }
@@ -422,6 +426,23 @@ gboolean main_win_open(MainWin* mw)
 	return TRUE;
 }
 
+gboolean main_win_open_withou_thumbnails_loading(MainWin* mw)
+{        			
+	g_cancellable_reset(mw->generator_cancellable);
+	
+	JobParam* param;
+	param =  g_new (JobParam, 1);
+	
+    param->file                  = mw->loading_file;
+	param->generator_cancellable = mw->generator_cancellable;
+	param->animation             = mw->animation;
+	param->mw                    = mw;
+	
+	g_io_scheduler_push_job (job_func1, param, NULL, G_PRIORITY_DEFAULT, mw->generator_cancellable);
+
+	return TRUE;
+}
+
 gboolean job_func(GIOSchedulerJob *job, GCancellable *cancellable, gpointer user_data)
 {
 	JobParam* param = (JobParam*)user_data;
@@ -510,15 +531,24 @@ void thumbnail_selected( GtkWidget* widget, MainWin* mw)
 	
   if (thumbnail_selected_list == NULL)
  	   return;
-
-  gchar* path_to_string = gtk_tree_path_to_string(thumbnail_selected_list->data); 
-	
-  int n = atoi(path_to_string); 
-  char* c = g_list_nth_data(thumbnail_loaded_list,n);
-	
-  mw->loading_file = g_file_new_for_path(c);
-  main_win_open(mw);
  
+  gchar* path_to_string = gtk_tree_path_to_string(thumbnail_selected_list->data); 
+  
+  int n = atoi(path_to_string); 
+  const char* selecting_path = g_list_nth_data(thumbnail_loaded_list,n);
+
+  if (strcmp(selecting_path , g_file_get_path(mw->loading_file)) == 0)	
+	  return;
+
+  char* base_name = g_path_get_basename( selecting_path );
+  image_list_set_current( mw->img_list, base_name );
+  char* disp_name = g_filename_display_name( base_name );
+	
+  mw->loading_file = g_file_new_for_path(selecting_path);
+  main_win_open_withou_thumbnails_loading(mw);
+	
+  g_free(base_name);
+  g_free(selecting_path);
 }
 
 void main_win_show_error( MainWin* mw, const char* message )
@@ -572,7 +602,7 @@ void on_prev( GtkWidget* btn, MainWin* mw )
 		
 		update_title(file_path, mw);
 		
-        main_win_open (mw);
+        main_win_open_withou_thumbnails_loading(mw);
 		g_free( file_path ); 
     }
 }
@@ -595,7 +625,7 @@ void on_next( GtkWidget* bnt, MainWin* mw )
 		
 		update_title(file_path, mw);
 		
-        main_win_open (mw);
+        main_win_open_withou_thumbnails_loading(mw);
 		g_free( file_path ); 
     }
 }
@@ -623,7 +653,7 @@ void next_for_slide_show( MainWin* mw )
 		GFile* file = g_file_new_for_path(file_path);
 		mw->loading_file = file;
 		
-        main_win_open( mw );
+        main_win_open_withou_thumbnails_loading(mw);;
         g_free( file_path );
     }
 }
@@ -1194,6 +1224,11 @@ static void open_url( GtkAboutDialog *dlg, const gchar *url, gpointer data)
              break;
         }
     }
+}
+
+void printing_image(MainWin* mw)
+{
+  print_pixbuf(mw);
 }
 
 void exif_information(GtkWidget* widget, MainWin* mw)

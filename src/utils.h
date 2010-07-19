@@ -26,6 +26,10 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include <gtk/gtk.h>
+#include <gtkimageview/gtkimageview.h>
+#include <gtkimageview/gtkanimview.h>
+
 void
 gtk_anim_view_set_static (GtkAnimView *aview, GdkPixbuf *pixbuf)
 {

@@ -32,6 +32,7 @@
 #include "image-list.h"
 #include "loader.h"
 #include "jhead.h"
+#include "printing.h"
 
 #define LOAD_BUFFER_SIZE 65536 
 
@@ -144,6 +145,8 @@ GtkWidget* main_win_new();
 
 gboolean main_win_open( MainWin* mw );
 
+gboolean main_win_open_withou_thumbnails_loading(MainWin* mw);
+
 void main_win_close( MainWin* mw );
 
 gboolean main_win_save( MainWin* mw, const char* file_path, const char* type, gboolean confirm );
@@ -159,6 +162,8 @@ void main_win_center_image( MainWin* mw );
 gboolean main_win_scale_image(  MainWin* mw, double new_scale, GdkInterpType type );
 
 void build_thumbnails(GtkWidget* widget, MainWin *mw);
+
+void printing_image(MainWin* mw);
 
 void gtk_view_set_static (GtkAnimView *aview, GdkPixbuf *pixbuf);
 

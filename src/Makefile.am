@@ -42,7 +42,9 @@ gpicview_SOURCES = \
 	makernote.c   \
 	paths.c   \
 	exifdialog.c   \
-	exifdialog.h
+	exifdialog.h   \
+	printing.c   \
+	printing.h
 
 gpicview_CFLAGS = \
 	$(GTK_CFLAGS) \

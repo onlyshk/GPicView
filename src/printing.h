@@ -17,64 +17,13 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+ 
+#ifndef PRINTING_H
+#define PRINTING_H
 
-#ifndef IMAGELIST_H
-#define IMAGELIST_H
-
-#include <glib.h>
+#include "mainwin.h"  
 #include <gtk/gtk.h>
 
-/* for stat and time_t */
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
-/**
-    @author PCMan (Hong Jen Yee) <pcman.tw@gmail.com>
-*/
-typedef struct _ImageList
-{
-    gchar* dir_path;
-    GList* list;
-    GList* current;
-	GStaticMutex mutex;
-    time_t mtime;
-} ImageList;
-
-ImageList* image_list_new();
-
-const char* image_list_get_dir( ImageList* il );
-
-gboolean image_list_open_dir( ImageList* il, const char* path, GError** error);
-
-gboolean image_list_set_current( ImageList* il, const char* name );
-
-const char* image_list_get_current( ImageList* il );
-
-const char* image_list_get_first( ImageList* il );
-
-const char* image_list_get_next( ImageList* il );
-
-const char* image_list_get_prev( ImageList* il );
-
-const char* image_list_get_last( ImageList* il );
-
-void image_list_free( ImageList* il );
-
-void image_list_close( ImageList* il );
-
-gboolean image_list_is_empty( ImageList* il );
-
-gboolean image_list_has_multiple_files( ImageList* il );
-
-char* image_list_get_current_file_path( ImageList* il );
-
-void image_list_sort_by_name( ImageList* il, GtkSortType type );
-
-void image_list_remove( ImageList* il, const char* name );
-
-void image_list_add_sorted( ImageList* il, const char* name, gboolean set_current );
-
-char* image_list_get_first_file_path( ImageList* il);
+void   print_pixbuf();
 
 #endif
