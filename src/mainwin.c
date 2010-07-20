@@ -412,6 +412,7 @@ gboolean main_win_open(MainWin* mw)
 {        		
 	mw->disp_list                  = NULL;
 	thumbnail_loaded_list          = NULL;	
+	thumbnail_selected_list        = NULL;
 	
 	g_cancellable_reset(mw->generator_cancellable);
 	g_cancellable_reset(mw->thumbnail_cancellable);
@@ -430,7 +431,7 @@ gboolean main_win_open(MainWin* mw)
 	return TRUE;
 }
 
-gboolean main_win_open_withou_thumbnails_loading(MainWin* mw)
+gboolean main_win_open_without_thumbnails_loading(MainWin* mw)
 {        			
 	g_cancellable_reset(mw->generator_cancellable);
 	
@@ -500,17 +501,15 @@ gboolean set_image(JobParam* param)
     param->mw->animation = g_object_ref(param->animation);
 
 	gtk_anim_view_set_anim (param->mw->aview, param->mw->animation);
-	
-	g_object_unref(param);
-	g_free(param);
 }
 
 void on_open( GtkWidget* widget, MainWin* mw )
-{		
-	g_list_free(mw->disp_list);
-	g_list_free(thumbnail_loaded_list);
-		
-	char* file = get_open_filename( mw, NULL); 	
+{	
+	char* file;
+	
+	if ((file = get_open_filename( mw, NULL)) == NULL)  	
+	     return;
+	
 	mw->loading_file = g_file_new_for_path(file);
     
 	char* file_path =  g_file_get_path(mw->loading_file);
@@ -556,7 +555,7 @@ void thumbnail_selected( GtkWidget* widget, MainWin* mw)
   char* disp_name = g_filename_display_name( base_name );
 	
   mw->loading_file = g_file_new_for_path(selecting_path);
-  main_win_open_withou_thumbnails_loading(mw);
+  main_win_open_without_thumbnails_loading(mw);
 	
   g_free(base_name);
   g_free(selecting_path);
@@ -608,12 +607,13 @@ void on_prev( GtkWidget* btn, MainWin* mw )
 	if( name )
     {
 		g_cancellable_cancel(mw->generator_cancellable);
+		
         const char* file_path = image_list_get_current_file_path( mw->img_list );
 		mw->loading_file = g_file_new_for_path(file_path);
 		
 		update_title(file_path, mw);
 		
-        main_win_open_withou_thumbnails_loading(mw);
+        main_win_open_without_thumbnails_loading(mw);
 		g_free( file_path ); 
     }
 }
@@ -636,7 +636,7 @@ void on_next( GtkWidget* bnt, MainWin* mw )
 		
 		update_title(file_path, mw);
 		
-        main_win_open_withou_thumbnails_loading(mw);
+        main_win_open_without_thumbnails_loading(mw);
 		g_free( file_path ); 
     }
 }
@@ -664,7 +664,7 @@ void next_for_slide_show( MainWin* mw )
 		GFile* file = g_file_new_for_path(file_path);
 		mw->loading_file = file;
 		
-        main_win_open_withou_thumbnails_loading(mw);;
+        main_win_open_without_thumbnails_loading(mw);;
         g_free( file_path );
     }
 }

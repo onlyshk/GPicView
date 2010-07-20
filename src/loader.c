@@ -53,7 +53,6 @@ GdkPixbufAnimation* load_animation_from_stream(GInputStream* input_stream, GCanc
 	  {
 		  res = FALSE;
 		  error = NULL;
-		  g_input_stream_close(input_stream, generator_cancellable, error);
 		  break;
 	  }
 	}
@@ -113,7 +112,6 @@ GdkPixbuf* load_image_from_stream(GInputStream* input_stream, GCancellable* gene
 	  {
 		  res = FALSE;
 		  error = NULL;
-		  g_input_stream_close(input_stream, generator_cancellable, error);
 		  break;
 	  }
 	}

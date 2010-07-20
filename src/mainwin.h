@@ -145,7 +145,7 @@ GtkWidget* main_win_new();
 
 gboolean main_win_open( MainWin* mw );
 
-gboolean main_win_open_withou_thumbnails_loading(MainWin* mw);
+gboolean main_win_open_without_thumbnails_loading(MainWin* mw);
 
 void main_win_close( MainWin* mw );
 
