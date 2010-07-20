@@ -23,33 +23,69 @@
 static void draw_page (GtkPrintOperation * oper, GtkPrintContext * context, 
             			  gint nr, gpointer user_data)
 {
+   GList* list =     NULL;
+   GdkPixbuf* pixbuf = NULL;
+
    MainWin* mw = (MainWin*)user_data;
-   GdkPixbuf* pixbuf = gdk_pixbuf_new_from_file(image_list_get_current_file_path (mw->img_list),NULL);
 	
-   pixbuf =  gdk_pixbuf_scale_simple (pixbuf, 
-                                      197, 210, 
-                                      GDK_INTERP_HYPER); 
- 
+   int n = g_list_length (mw->img_list);
+   int i = 0;
+	
+   for (i; i < n; ++i)
+   {
+	   pixbuf = gdk_pixbuf_new_from_file(image_list_get_current_file_path (mw->img_list),NULL);
+	   
+       pixbuf =  gdk_pixbuf_scale_simple (pixbuf, 
+                                         197, 210, 
+                                         GDK_INTERP_HYPER); 
+	  
+	   list = g_list_prepend (list, pixbuf);
+	   	  
+	   if (!mw->img_list->current->next )
+	      image_list_get_first(mw->img_list);
+	   else
+	      image_list_get_next(mw->img_list);
+   }
 	
    cairo_t *cr = gtk_print_context_get_cairo_context (context);
    cairo_surface_t *image;
   
-   gdk_cairo_set_source_pixbuf(cr, pixbuf, 0, 0);
+   i = 0;
+	
+  for (i; i < n; ++i)
+         gdk_cairo_set_source_pixbuf(cr, g_list_nth_data(list,i), 0, 0);
+	
    cairo_paint (cr);
-   cairo_surface_destroy (image);
+   
    g_object_unref (pixbuf);   
+   g_list_free(list);
+}
+
+static void end_print(GtkPrintOperation *operation,GtkPrintContext   *context,
+                       gpointer           user_data)
+{
+   GtkWidget* dlg = gtk_message_dialog_new( NULL,
+                                            GTK_DIALOG_MODAL,
+                                            GTK_MESSAGE_ERROR,
+                                            GTK_BUTTONS_OK,
+                                            "%s", "Printing is fininsh" );
+    gtk_dialog_run( (GtkDialog*)dlg );
+    gtk_widget_destroy( dlg );
 }
 
 void   print_pixbuf(GtkWidget* widget, MainWin* mw)
 {	
     GtkPrintOperation *op;
     GtkPrintOperationResult res;
-    GtkPrintSettings *settings;
-
+	
     op = gtk_print_operation_new ();
 
     gtk_print_operation_set_n_pages (op, g_list_length (mw->img_list->list));
     gtk_print_operation_set_unit (op, GTK_UNIT_MM);
     g_signal_connect (op, "draw_page", G_CALLBACK (draw_page), mw);
+	g_signal_connect(op, "end-print", G_CALLBACK (end_print),mw);
+	
     res = gtk_print_operation_run (op, GTK_PRINT_OPERATION_ACTION_PRINT_DIALOG, mw, NULL);
+	
+	g_object_unref (op);
 }

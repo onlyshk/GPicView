@@ -46,6 +46,7 @@ char* get_open_filename( GtkWindow* parent, const char* cwd )
     GtkFileChooser* dlg = (GtkFileChooser*)gtk_file_chooser_dialog_new( NULL, parent,
             GTK_FILE_CHOOSER_ACTION_OPEN, GTK_STOCK_CANCEL,
             GTK_RESPONSE_CANCEL, GTK_STOCK_OPEN, GTK_RESPONSE_OK, NULL );
+	
     GtkWidget* img;
     GtkFileFilter *filter;
 
@@ -75,8 +76,9 @@ char* get_open_filename( GtkWindow* parent, const char* cwd )
 	else
 	{
 	    gtk_widget_destroy( (GtkWidget*)dlg );
+		return NULL;
 	}
-    
+   
 	return file;
 }
 

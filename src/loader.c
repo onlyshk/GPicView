@@ -23,17 +23,15 @@
 GdkPixbufAnimation* load_animation_from_stream(GInputStream* input_stream, GCancellable* generator_cancellable)
 {	
   	GError** error = NULL; 
-	gboolean res;
-	gssize n_read;
+	gboolean res = TRUE;
+	gssize n_read = 0;
 	guchar buffer[65535];
 	
-	GdkPixbufAnimation* animation;
+	GdkPixbufAnimation* animation = NULL;
+	GdkPixbufLoader*    loader    = NULL;
 	
-	GdkPixbufLoader*    loader;
 	loader = gdk_pixbuf_loader_new();
 	
-	res = TRUE;
-
 	while (1)
 	{
       n_read = g_input_stream_read (input_stream, buffer, sizeof (buffer), generator_cancellable, error);
@@ -43,6 +41,7 @@ GdkPixbufAnimation* load_animation_from_stream(GInputStream* input_stream, GCanc
 		  res = FALSE;
 		  error = NULL; 
 	  	  break;
+		  return NULL;
 	  }
 	
 	  if (n_read == 0)
@@ -54,6 +53,7 @@ GdkPixbufAnimation* load_animation_from_stream(GInputStream* input_stream, GCanc
 	  {
 		  res = FALSE;
 		  error = NULL;
+		  g_input_stream_close(input_stream, generator_cancellable, error);
 		  break;
 	  }
 	}
@@ -84,16 +84,14 @@ GdkPixbufAnimation* load_animation_from_stream(GInputStream* input_stream, GCanc
 GdkPixbuf* load_image_from_stream(GInputStream* input_stream, GCancellable* generator_cancellable)
 {	
   	GError** error = NULL; 
-	gboolean res;
-	gssize n_read;
+	gboolean res   = TRUE;
+	gssize n_read  = NULL;
 	guchar buffer[65535];
 	
 	GdkPixbuf* image;
 	
 	GdkPixbufLoader*    loader;
 	loader = gdk_pixbuf_loader_new();
-	
-	res = TRUE;
 
 	while (1)
 	{
@@ -115,6 +113,7 @@ GdkPixbuf* load_image_from_stream(GInputStream* input_stream, GCancellable* gene
 	  {
 		  res = FALSE;
 		  error = NULL;
+		  g_input_stream_close(input_stream, generator_cancellable, error);
 		  break;
 	  }
 	}

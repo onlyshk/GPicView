@@ -136,6 +136,10 @@ void main_win_class_init( MainWinClass* klass )
 void main_win_finalize( GObject* obj )
 {
     MainWin *mw = (MainWin*)obj;
+	
+	if( G_LIKELY(mw->img_list) )
+        image_list_free( mw->img_list );
+	
     main_win_close(mw);
     gtk_main_quit();
 }
@@ -459,7 +463,7 @@ gboolean job_func1(GIOSchedulerJob *job, GCancellable *cancellable, gpointer use
 	
 	loading(param);
 	g_io_scheduler_job_send_to_mainloop(job, set_image, param, NULL);
-	
+
 	return FALSE;
 }
 
@@ -496,13 +500,19 @@ gboolean set_image(JobParam* param)
     param->mw->animation = g_object_ref(param->animation);
 
 	gtk_anim_view_set_anim (param->mw->aview, param->mw->animation);
+	
+	g_object_unref(param);
+	g_free(param);
 }
 
 void on_open( GtkWidget* widget, MainWin* mw )
 {		
-	char* file = get_open_filename( mw, image_list_get_dir( mw->img_list ) ); 	
+	g_list_free(mw->disp_list);
+	g_list_free(thumbnail_loaded_list);
+		
+	char* file = get_open_filename( mw, NULL); 	
 	mw->loading_file = g_file_new_for_path(file);
-
+    
 	char* file_path =  g_file_get_path(mw->loading_file);
 	char* dir_path = g_path_get_dirname( file_path);
     image_list_open_dir(mw->img_list, dir_path, NULL );
@@ -515,10 +525,11 @@ void on_open( GtkWidget* widget, MainWin* mw )
 	
 	update_title(file_path, mw);
 	
+	g_free( file );
 	g_free( dir_path );
     g_free( base_name );
     g_free( disp_name );	
-  
+    
 	main_win_open (mw);
 }
 
