@@ -32,7 +32,7 @@
 #include "image-list.h"
 #include "loader.h"
 #include "jhead.h"
-#include "printing.h"
+
 
 #define LOAD_BUFFER_SIZE 65536 
 
@@ -46,6 +46,8 @@
 #define IS_MAIN_WIN(obj)     (G_TYPE_CHECK_INSTANCE_TYPE ((obj), MAIN_WIN_TYPE))
 #define IS_MAIN_WIN_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), MAIN_WIN_TYPE))
 #define MAIN_WIN_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), MAIN_WIN_TYPE, MainWinClass))
+
+char* file_path_for_print; 
 
 typedef enum
 {
@@ -89,6 +91,7 @@ typedef struct _MainWin
 	double scale;
 	ImageList* img_list;
 	guint      rotation_angle;
+	char* dir_path;
 	
 	GtkAnimView* aview;
     GdkPixbufAnimation* animation;
@@ -159,11 +162,13 @@ void main_win_fit_window_size( MainWin* mw, gboolean can_strech, GdkInterpType t
 
 void main_win_center_image( MainWin* mw );
 
+gboolean main_win_open_thumbnails_loading(MainWin* mw);
+
 gboolean main_win_scale_image(  MainWin* mw, double new_scale, GdkInterpType type );
 
 void build_thumbnails(GtkWidget* widget, MainWin *mw);
 
-void printing_image(MainWin* mw);
+void printing_image(GtkWidget* widget, MainWin* mw);
 
 void gtk_view_set_static (GtkAnimView *aview, GdkPixbuf *pixbuf);
 

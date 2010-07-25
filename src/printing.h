@@ -21,9 +21,10 @@
 #ifndef PRINTING_H
 #define PRINTING_H
 
-#include "mainwin.h"  
 #include <gtk/gtk.h>
 
-void   print_pixbuf();
+#include "mainwin.h"  
+
+void   print_pixbuf(GtkWidget* widget, MainWin* mw);
 
 #endif

@@ -37,7 +37,6 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <cairo/cairo.h>
 
 #include "pref.h"
 #include "image-list.h"
@@ -48,6 +47,7 @@
 #include "utils.h"
 #include "wallpaper.h"
 #include "exifdialog.h"
+#include "printing.h"
 
 static GtkActionGroup *actions;
 static GtkActionGroup *rotation_actions;
@@ -103,6 +103,7 @@ static void crop_image (GtkWidget* widget, MainWin* mw, GdkEventMotion *event);
 static void draw_rectangle(GtkWidget* widget, MainWin* mw);
 
 static gboolean set_image(JobParam* param);
+static gboolean set_image_by_click(GtkWidget* widget, MainWin* mw);
 static gboolean load(GIOSchedulerJob *job, GCancellable *cancellable, gpointer user_data);
 static void load_thumbnails(JobParam* param);
 static gboolean job_func(GIOSchedulerJob *job, GCancellable *cancellable, gpointer user_data);
@@ -448,6 +449,21 @@ gboolean main_win_open_without_thumbnails_loading(MainWin* mw)
 	return TRUE;
 }
 
+gboolean main_win_open_thumbnails_loading(MainWin* mw)
+{        			
+	g_cancellable_reset(mw->generator_cancellable);
+	
+	JobParam* param;
+	param =  g_new (JobParam, 1);
+	
+    param->file                  = mw->loading_file;
+	param->generator_cancellable = mw->generator_cancellable;
+	param->mw                    = mw;
+	
+	g_io_scheduler_push_job (job_func, param, NULL, G_PRIORITY_DEFAULT, mw->generator_cancellable);
+	return TRUE;
+}
+
 gboolean job_func(GIOSchedulerJob *job, GCancellable *cancellable, gpointer user_data)
 {
 	JobParam* param = (JobParam*)user_data;
@@ -472,7 +488,7 @@ gboolean set_thumbnails(JobParam* param)
 {  	
   GtkTreeIter* iter;
   GdkPixbuf* pixbuf;
-	
+
   gtk_list_store_clear(param->mw->model);
   gtk_icon_view_set_model(param->mw->view,GTK_TREE_MODEL(param->mw->model));	
 	
@@ -499,13 +515,17 @@ gboolean set_thumbnails(JobParam* param)
 gboolean set_image(JobParam* param)
 {
     param->mw->animation = g_object_ref(param->animation);
-
 	gtk_anim_view_set_anim (param->mw->aview, param->mw->animation);
+}
+
+gboolean set_image_by_click(GtkWidget* widget, MainWin* mw)
+{
+   gtk_anim_view_set_anim (mw->aview, mw->animation);
 }
 
 void on_open( GtkWidget* widget, MainWin* mw )
 {	
-	char* file;
+	char* file = NULL;
 	
 	if ((file = get_open_filename( mw, NULL)) == NULL)  	
 	     return;
@@ -513,23 +533,63 @@ void on_open( GtkWidget* widget, MainWin* mw )
 	mw->loading_file = g_file_new_for_path(file);
     
 	char* file_path =  g_file_get_path(mw->loading_file);
-	char* dir_path = g_path_get_dirname( file_path);
-    image_list_open_dir(mw->img_list, dir_path, NULL );
-    image_list_sort_by_name( mw->img_list, GTK_SORT_DESCENDING );
-    image_list_sort_by_name( mw->img_list, GTK_SORT_DESCENDING );
+	char* dir       =  g_path_get_dirname( file_path );
+	
+	if (mw->dir_path == NULL)
+	{
+		mw->dir_path = g_path_get_dirname( file_path);
+	  
+		image_list_open_dir(mw->img_list, mw->dir_path, NULL );
+        image_list_sort_by_name( mw->img_list, GTK_SORT_DESCENDING );
+        image_list_sort_by_name( mw->img_list, GTK_SORT_DESCENDING );
         
-    char* base_name = g_path_get_basename( file_path );
-    image_list_set_current( mw->img_list, base_name );
-    char* disp_name = g_filename_display_name( base_name );
+        char* base_name = g_path_get_basename( file_path );
+        image_list_set_current( mw->img_list, base_name );
+        char* disp_name = g_filename_display_name( base_name );
+		    
+		update_title(file_path, mw);
+			    file_path_for_print = image_list_get_current_file_path (mw->img_list);
+		g_free(file);
+		g_free( base_name );
+        g_free( disp_name );
+		g_free(file_path);
+		
+		main_win_open (mw);	
+    }
 	
-	update_title(file_path, mw);
-	
-	g_free( file );
-	g_free( dir_path );
-    g_free( base_name );
-    g_free( disp_name );	
-    
-	main_win_open (mw);
+	else
+	{
+		if (strcmp (dir, mw->dir_path) == 0)
+ 		{
+            mw->animation = gdk_pixbuf_animation_new_from_file(file_path, NULL);
+		    set_image_by_click(widget, mw);
+		    g_object_unref(mw->animation);
+		}
+		else
+		{
+	      
+		  mw->dir_path = g_path_get_dirname( file_path);
+	  
+		  image_list_open_dir(mw->img_list, mw->dir_path, NULL );
+          image_list_sort_by_name( mw->img_list, GTK_SORT_DESCENDING );
+          image_list_sort_by_name( mw->img_list, GTK_SORT_DESCENDING );
+        
+          char* base_name = g_path_get_basename( file_path );
+          image_list_set_current( mw->img_list, base_name );
+          char* disp_name = g_filename_display_name( base_name );
+	      
+		  file_path_for_print = image_list_get_current_file_path (mw->img_list);	
+			
+		  update_title(file_path, mw);
+		  
+		  g_free(file);
+		  g_free( base_name );
+          g_free( disp_name );
+		  g_free(file_path);
+			
+		  main_win_open(mw);
+		}
+	}
 }
 
 void thumbnail_selected( GtkWidget* widget, MainWin* mw)
@@ -540,7 +600,7 @@ void thumbnail_selected( GtkWidget* widget, MainWin* mw)
 	   return;
 	
   if (thumbnail_selected_list == NULL)
- 	   return;
+		return;
  
   gchar* path_to_string = gtk_tree_path_to_string(thumbnail_selected_list->data); 
   
@@ -551,14 +611,21 @@ void thumbnail_selected( GtkWidget* widget, MainWin* mw)
 	  return;
 
   char* base_name = g_path_get_basename( selecting_path );
+	
   image_list_set_current( mw->img_list, base_name );
+  file_path_for_print = image_list_get_current_file_path (mw->img_list);
+	
   char* disp_name = g_filename_display_name( base_name );
+		
+  GFile* file = NULL;
+  file = g_file_new_for_path(selecting_path);
+  mw->loading_file = file;
 	
-  mw->loading_file = g_file_new_for_path(selecting_path);
-  main_win_open_without_thumbnails_loading(mw);
-	
+  mw->animation = gdk_pixbuf_animation_new_from_file(selecting_path, NULL);
+  set_image_by_click(NULL, mw);
+  g_object_unref(mw->animation);
+
   g_free(base_name);
-  g_free(selecting_path);
 }
 
 void main_win_show_error( MainWin* mw, const char* message )
@@ -593,7 +660,7 @@ gboolean on_win_state_event( GtkWidget* widget, GdkEventWindowState* state )
     return TRUE;
 }
 
-void on_prev( GtkWidget* btn, MainWin* mw )
+void on_prev( GtkWidget* widget, MainWin* mw )
 {		
     const char* name;	
     if( image_list_is_empty( mw->img_list ) )
@@ -613,12 +680,18 @@ void on_prev( GtkWidget* btn, MainWin* mw )
 		
 		update_title(file_path, mw);
 		
-        main_win_open_without_thumbnails_loading(mw);
+		mw->animation = gdk_pixbuf_animation_new_from_file(file_path, NULL);
+		set_image_by_click(widget, mw);
+		
+		file_path_for_print = image_list_get_current_file_path (mw->img_list);
+		
+		g_object_unref(mw->animation);
+		
 		g_free( file_path ); 
     }
 }
 
-void on_next( GtkWidget* bnt, MainWin* mw )
+void on_next( GtkWidget* widget, MainWin* mw )
 {
     if( image_list_is_empty( mw->img_list ) )
         return;
@@ -636,7 +709,12 @@ void on_next( GtkWidget* bnt, MainWin* mw )
 		
 		update_title(file_path, mw);
 		
-        main_win_open_without_thumbnails_loading(mw);
+        mw->animation = gdk_pixbuf_animation_new_from_file(file_path, NULL);
+		set_image_by_click(widget, mw);
+		
+		file_path_for_print = image_list_get_current_file_path (mw->img_list);
+		
+		g_object_unref(mw->animation);
 		g_free( file_path ); 
     }
 }
@@ -664,7 +742,7 @@ void next_for_slide_show( MainWin* mw )
 		GFile* file = g_file_new_for_path(file_path);
 		mw->loading_file = file;
 		
-        main_win_open_without_thumbnails_loading(mw);;
+        main_win_open_without_thumbnails_loading(mw);
         g_free( file_path );
     }
 }
@@ -1237,9 +1315,9 @@ static void open_url( GtkAboutDialog *dlg, const gchar *url, gpointer data)
     }
 }
 
-void printing_image(MainWin* mw)
+void printing_image(GtkWidget* widget, MainWin* mw)
 {
-  print_pixbuf(mw);
+  print_pixbuf(widget, mw);
 }
 
 void exif_information(GtkWidget* widget, MainWin* mw)
