@@ -25,6 +25,6 @@
 
 #include "mainwin.h"  
 
-void   print_pixbuf(GtkWidget* widget, MainWin* mw);
+void  print_pixbuf(GtkWidget* widget, MainWin* mw);
 
 #endif

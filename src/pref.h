@@ -57,6 +57,7 @@ struct _Pref
     GtkWidget *bg_btn;
     GtkWidget *bg_full_btn;
     GtkWidget *vbox;
+	GtkWidget *hbox;
     GtkLabel  *bg_label;
     GtkLabel  *bg_full_label;
     GtkWidget *hbox1;

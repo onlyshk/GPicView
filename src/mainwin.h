@@ -33,7 +33,6 @@
 #include "loader.h"
 #include "jhead.h"
 
-
 #define LOAD_BUFFER_SIZE 65536 
 
 /**

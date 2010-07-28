@@ -221,26 +221,27 @@ static void on_set_bg( GtkColorButton* btn, gpointer user_data )
     }
 }
 
+static void on_set_bg_full( GtkColorButton* btn, gpointer user_data )
+{
+    MainWin* parent =(MainWin*)user_data;
+    gtk_color_button_get_color(btn, &pref.bg_full);
+    if( !parent->full_screen )
+    {
+        gtk_widget_modify_bg( parent->aview, GTK_STATE_NORMAL, &pref.bg_full);
+        gtk_widget_queue_draw(parent);
+    }
+}
+
 static void on_delete_event(GtkWidget* widget, GdkEventAny* evt)
 { 
 	gtk_widget_hide(widget);	
 }
 
-static void on_set_bg_full( GtkColorButton* btn, gpointer user_data )
-{
-    MainWin* parent =(MainWin*)user_data;
-    gtk_color_button_get_color(btn, &pref.bg_full);
-    if( parent->full_screen)
-    {
-        gtk_widget_modify_bg (parent->aview, GTK_STATE_NORMAL, &pref.bg_full);
-        gtk_widget_queue_draw(parent->img_box);
-    }
-}
 
 void edit_preferences(GtkWidget* widget, Pref *win )
 {	
 	win->pref_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_resizable(win->pref_window,FALSE);
+	gtk_window_set_resizable (win->pref_window, FALSE);
 	gtk_window_set_position(win->pref_window,GTK_WIN_POS_CENTER);
 	gtk_window_set_title(win->pref_window, "Preferences");
 	    
@@ -264,6 +265,7 @@ void edit_preferences(GtkWidget* widget, Pref *win )
 	gtk_box_pack_start(win->vbox,win->rotate_exif_only_btn,FALSE,TRUE,3);
 	
 	win->hbox1 = gtk_hbox_new (FALSE,12);
+    win->hbox  = gtk_hbox_new (FALSE, 0);
 	
 	win->label2 = gtk_label_new("Normal:");
 	gtk_box_pack_start(GTK_BOX(win->hbox1), win->label2, FALSE, FALSE,40);
@@ -279,12 +281,15 @@ void edit_preferences(GtkWidget* widget, Pref *win )
 	gtk_color_button_set_color(win->bg_btn, &pref.bg);
 	gtk_box_pack_start(GTK_BOX(win->hbox1), win->bg_full_btn, FALSE, FALSE,0);
 	
-	gtk_box_pack_start(GTK_BOX(win->vbox), win->hbox1, TRUE, FALSE,0);
-			
+	gtk_box_pack_start(GTK_BOX(win->vbox), win->hbox1, FALSE, FALSE,0);
+
+	
 	win->set_default_btn = gtk_button_new();
 	gtk_button_set_label(win->set_default_btn,"Make GPicView the default viewer for images");
-	gtk_box_pack_start(GTK_BOX(win->vbox), win->set_default_btn, FALSE, FALSE,0);
-		
+	gtk_box_pack_start(GTK_BOX(win->hbox), win->set_default_btn, FALSE, FALSE, 180);
+	
+	gtk_box_pack_start(GTK_BOX(win->vbox), win->hbox, FALSE, FALSE,0);
+	
 	gtk_container_add(win->pref_window, win->vbox);
 	
 	g_signal_connect( win->bg_btn, "color-set", G_CALLBACK(on_set_bg), win );
