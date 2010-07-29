@@ -46,8 +46,6 @@
 #define IS_MAIN_WIN_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), MAIN_WIN_TYPE))
 #define MAIN_WIN_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), MAIN_WIN_TYPE, MainWinClass))
 
-char* file_path_for_print; 
-
 typedef enum
 {
      ZOOM_NONE = 0,
@@ -92,19 +90,18 @@ typedef struct _MainWin
 	guint      rotation_angle;
 	char* dir_path;
 	
+	GdkPixbuf* pixbuf;
+	
 	GtkAnimView* aview;
     GdkPixbufAnimation* animation;
-    GdkPixbufLoader* loader;
-	
+
 	//Thumbnail
 	GtkIconView*  view;
 	GList*        disp_list;
 	ImageList* thmb_list;
-	GtkIconView*  view1;
     GtkWidget* thumb_box;
 	GtkWidget* thumbnail_scroll;
 	GtkListStore* model;
-	GtkListStore* model1;
 	GtkTreeIter* iter;
 	GtkVPaned *box1;
 	GList     *displaing_thumbnail_list;
@@ -112,7 +109,7 @@ typedef struct _MainWin
 	gboolean  thumb_bar_hide;
 	
 	//Drawing area
-	GtkWidget*      image;
+	GtkWidget* image;
 	gdouble sub_x;
     gdouble sub_y;
     gdouble sub_width;
@@ -124,10 +121,6 @@ typedef struct _MainWin
     gdouble start_y;
 	
 	GdkGC *gc;
-	
-	gdouble zoom;
-    gdouble width;
-    gdouble height;
 	
 	GFile* loading_file;
 	GCancellable* generator_cancellable;
@@ -166,8 +159,6 @@ gboolean main_win_open_thumbnails_loading(MainWin* mw);
 gboolean main_win_scale_image(  MainWin* mw, double new_scale, GdkInterpType type );
 
 void build_thumbnails(GtkWidget* widget, MainWin *mw);
-
-void printing_image(GtkWidget* widget, MainWin* mw);
 
 void gtk_view_set_static (GtkAnimView *aview, GdkPixbuf *pixbuf);
 

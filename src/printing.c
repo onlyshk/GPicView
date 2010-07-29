@@ -20,25 +20,27 @@
  
 #include "printing.h"
 
-static GList* list;
+#include <math.h>
+
 static gboolean is_on = FALSE;
 
-static void begin_print (GtkPrintOperation * oper, GtkPrintContext * context, 
-            			  gint nr, gpointer user_data)
+static void begin_print (GtkPrintOperation *oper, GtkPrintContext *context, 
+						 gpointer user_data)
 {	
+	MainWin* mw = MAIN_WIN(user_data);
+	GdkPixbuf* pixbuf = gdk_pixbuf_animation_get_static_image(mw->animation);
+    
   	cairo_t *cr = gtk_print_context_get_cairo_context (context);
-	GtkPrintSettings* settings = gtk_print_operation_get_print_settings(oper);	
-	
-	GtkPageSetup* page_setup = gtk_page_setup_new();
-	GtkPaperSize* page_size = gtk_paper_size_new(gtk_page_setup_get_paper_size(page_setup)); 
-	    
-	GdkPixbuf* pixbuf = gdk_pixbuf_new_from_file(file_path_for_print,NULL);
-	
+		
 	int image_width = gdk_pixbuf_get_width(pixbuf);
     int image_height = gdk_pixbuf_get_height(pixbuf);
+
+	gint page_width =  (gint)gtk_print_context_get_width(context);
+	gint page_height = (gint)gtk_print_context_get_height(context);
 	
-	gint page_width = (gint)gtk_paper_size_get_width(page_size, GTK_UNIT_PIXEL);
-	gint page_height = (gint)gtk_paper_size_get_height(page_size, GTK_UNIT_PIXEL);
+	int n_xpages = ceil((double)image_width / page_width);
+	int n_ypages = ceil((double)image_height / page_height);
+	int n_all_pages = n_xpages * n_ypages;
 	
 	is_on = FALSE;
 	
@@ -77,42 +79,22 @@ static void begin_print (GtkPrintOperation * oper, GtkPrintContext * context,
 		else
 		{
 		   is_on = TRUE;
-		   guint count_h = 0;
-		   guint count_w = 0;
-			
-		   while (image_width > page_width)
-           {
-	          image_width = image_width - page_width;
-              count_w++;
-           }
-		  
-		   if (image_width != 0)
-		       count_w++;
-		   
-		   while (image_height > page_height)
-           {
-	          image_height = image_height - page_height;
-              count_h++;
-           }
-			
-	       if (image_height != 0)
-		       count_h++;
-			
-		   gtk_print_operation_set_n_pages(oper, count_w * count_h);
+		
+		   gtk_print_operation_set_n_pages(oper, n_all_pages);
 	       
 		   gtk_widget_destroy(dialog);
 		}
 	}
 	
 	g_object_unref(pixbuf);
-	g_object_unref(page_size);
 }
 
 static void draw_page (GtkPrintOperation * oper, GtkPrintContext * context, 
             			  gint nr, gpointer user_data)
 {
   cairo_t *cr = gtk_print_context_get_cairo_context (context);
-  GdkPixbuf* pixbuf = gdk_pixbuf_new_from_file(file_path_for_print,NULL);
+	
+  MainWin* mw = MAIN_WIN(user_data);
 	
   if (is_on == FALSE)
   {
@@ -124,30 +106,29 @@ static void draw_page (GtkPrintOperation * oper, GtkPrintContext * context,
 	int j = 0;
 	int k = 0;
 	  
-	GtkPageSetup* page_setup = gtk_page_setup_new();
-	GtkPaperSize* page_size = gtk_paper_size_new(gtk_page_setup_get_paper_size(page_setup)); 
-	    	
-	int image_width = gdk_pixbuf_get_width(pixbuf);
-    int image_height = gdk_pixbuf_get_height(pixbuf);
-	
-	gint page_width = (gint)gtk_paper_size_get_width(page_size, GTK_UNIT_PIXEL);
-	gint page_height = (gint)gtk_paper_size_get_height(page_size, GTK_UNIT_PIXEL);
+    GdkPixbuf* pixbuf = gdk_pixbuf_animation_get_static_image(mw->animation);
 	  
-	guint count_w = 0;
-			
-    while (image_width > page_width)
+	gint page_width =  (gint)gtk_print_context_get_width(context);
+	gint page_height = (gint)gtk_print_context_get_height(context);
+			  
+	int image_width = gdk_pixbuf_get_width(pixbuf);
+
+	int count_w = 0;
+	int count_h = 0;
+	  
+	while (image_width > page_width)
     {
 	   image_width = image_width - page_width;
        count_w++;
     }
-		  
+	     
 	if (image_width != 0)
 		count_w++;
-			  
+	  
 	for (i; i < nr + 1; i++)
 	{
 	    gdk_cairo_set_source_pixbuf(cr, pixbuf, j, k);
-		j -= page_width;
+		j -= page_width + 40;
 		
 		if (i == count_w - 1)
 		{
@@ -155,25 +136,53 @@ static void draw_page (GtkPrintOperation * oper, GtkPrintContext * context,
 	      k -= page_height;		
 		}	
 	}  
-	  
 	cairo_paint(cr);
-	  
-	g_object_unref (pixbuf);
-	g_object_unref (page_size);
-	g_object_unref (page_setup);
   }
+}
+
+static void  printing_done(GtkPrintOperation  *operation, GtkPrintOperationResult result,
+						   gpointer user_data)
+{
+    result = (GtkPrintOperationResult)user_data;
+   	
+	GtkWidget *dialog;
+	GtkResponseType dialog_result;
+	
+    if (result == GTK_PRINT_OPERATION_RESULT_ERROR)
+    {
+		GError    *error;
+		gtk_print_operation_get_error(operation, &error);
+		
+        dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_DESTROY_WITH_PARENT,
+                                       GTK_MESSAGE_ERROR, GTK_BUTTONS_OK,
+                                       error->message);
+		
+		dialog_result = gtk_dialog_run(GTK_DIALOG(dialog));
+		gtk_widget_destroy(dialog);
+	}
+	else
+	{
+     
+	   dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_DESTROY_WITH_PARENT,
+                                       GTK_MESSAGE_INFO, GTK_BUTTONS_OK,
+                                      "Printing done!");
+		
+       dialog_result = gtk_dialog_run(GTK_DIALOG(dialog));
+	   gtk_widget_destroy(dialog);
+	}
 }
 
 void  print_pixbuf(GtkWidget* widget, MainWin *mw)
 {	
     GtkPrintOperation *op;
     GtkPrintOperationResult res;
-   
+	
     op = gtk_print_operation_new ();
 	
     gtk_print_operation_set_unit (op, GTK_UNIT_PIXEL);
-    g_signal_connect (op, "begin-print", G_CALLBACK (begin_print),NULL);
-	g_signal_connect (op, "draw-page", G_CALLBACK (draw_page),  NULL);
+    g_signal_connect (op, "begin-print", G_CALLBACK (begin_print), mw);
+	g_signal_connect (op, "draw-page", G_CALLBACK (draw_page),  mw);
+	g_signal_connect (op, "done", G_CALLBACK (printing_done),  &res);
     res = gtk_print_operation_run (op, GTK_PRINT_OPERATION_ACTION_PRINT_DIALOG, NULL, NULL);
 	
 	g_object_unref (op);

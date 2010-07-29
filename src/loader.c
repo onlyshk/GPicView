@@ -62,7 +62,7 @@ GdkPixbufAnimation* load_animation_from_stream(GInputStream* input_stream, GCanc
 	if (res) 
 	{		
 		animation = gdk_pixbuf_loader_get_animation(loader);
-		
+
 		if (animation)
 		{
 			g_object_ref (animation);

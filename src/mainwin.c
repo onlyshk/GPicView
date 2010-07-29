@@ -101,6 +101,7 @@ static void on_rotate_auto_save( GtkWidget* btn, MainWin* mw );
 static void set_wallpapaer(GtkWidget* widget, MainWin* mw);
 static void crop_image (GtkWidget* widget, MainWin* mw, GdkEventMotion *event);
 static void draw_rectangle(GtkWidget* widget, MainWin* mw);
+static void printing_image( GtkWidget* widget, MainWin* mw);
 
 static gboolean set_image(JobParam* param);
 static gboolean set_image_by_click(GtkWidget* widget, MainWin* mw);
@@ -260,7 +261,6 @@ void main_win_init( MainWin*mw )
 	mw->generator_cancellable = g_cancellable_new();
     mw->thumbnail_cancellable = g_cancellable_new();
 	mw->img_list = image_list_new();
-    mw->loader =    gdk_pixbuf_loader_new();
 	
 	mw->align = gtk_alignment_new( 0.5, 0,0,0);
 	mw->thumb_bar_hide = TRUE;
@@ -414,7 +414,7 @@ gboolean main_win_open(MainWin* mw)
 	mw->disp_list                  = NULL;
 	thumbnail_loaded_list          = NULL;	
 	thumbnail_selected_list        = NULL;
-	
+
 	g_cancellable_reset(mw->generator_cancellable);
 	g_cancellable_reset(mw->thumbnail_cancellable);
 	
@@ -427,7 +427,7 @@ gboolean main_win_open(MainWin* mw)
 	param->mw                    = mw;
 	
 	g_io_scheduler_push_job (job_func1, param, NULL, G_PRIORITY_DEFAULT, mw->generator_cancellable);
-	g_io_scheduler_push_job (job_func, param, NULL, G_PRIORITY_DEFAULT,  mw->thumbnail_cancellable);
+	g_io_scheduler_push_job (job_func, param,  NULL, G_PRIORITY_DEFAULT,  mw->thumbnail_cancellable);
 
 	return TRUE;
 }
@@ -444,7 +444,7 @@ gboolean main_win_open_without_thumbnails_loading(MainWin* mw)
 	param->animation             = mw->animation;
 	param->mw                    = mw;
 	
-	g_io_scheduler_push_job (job_func1, param, NULL, G_PRIORITY_DEFAULT, mw->generator_cancellable);
+	g_io_scheduler_push_job (job_func1, param, NULL , G_PRIORITY_DEFAULT, mw->generator_cancellable);
 
 	return TRUE;
 }
@@ -548,7 +548,7 @@ void on_open( GtkWidget* widget, MainWin* mw )
         char* disp_name = g_filename_display_name( base_name );
 		    
 		update_title(file_path, mw);
-			    file_path_for_print = image_list_get_current_file_path (mw->img_list);
+		
 		g_free(file);
 		g_free( base_name );
         g_free( disp_name );
@@ -576,9 +576,7 @@ void on_open( GtkWidget* widget, MainWin* mw )
         
           char* base_name = g_path_get_basename( file_path );
           image_list_set_current( mw->img_list, base_name );
-          char* disp_name = g_filename_display_name( base_name );
-	      
-		  file_path_for_print = image_list_get_current_file_path (mw->img_list);	
+          char* disp_name = g_filename_display_name( base_name );	
 			
 		  update_title(file_path, mw);
 		  
@@ -613,7 +611,6 @@ void thumbnail_selected( GtkWidget* widget, MainWin* mw)
   char* base_name = g_path_get_basename( selecting_path );
 	
   image_list_set_current( mw->img_list, base_name );
-  file_path_for_print = image_list_get_current_file_path (mw->img_list);
 	
   char* disp_name = g_filename_display_name( base_name );
 		
@@ -626,6 +623,11 @@ void thumbnail_selected( GtkWidget* widget, MainWin* mw)
   g_object_unref(mw->animation);
 
   g_free(base_name);
+}
+
+void printing_image(GtkWidget* widget, MainWin* mw)
+{
+   print_pixbuf(NULL, mw);
 }
 
 void main_win_show_error( MainWin* mw, const char* message )
@@ -683,8 +685,6 @@ void on_prev( GtkWidget* widget, MainWin* mw )
 		mw->animation = gdk_pixbuf_animation_new_from_file(file_path, NULL);
 		set_image_by_click(widget, mw);
 		
-		file_path_for_print = image_list_get_current_file_path (mw->img_list);
-		
 		g_object_unref(mw->animation);
 		
 		g_free( file_path ); 
@@ -711,8 +711,6 @@ void on_next( GtkWidget* widget, MainWin* mw )
 		
         mw->animation = gdk_pixbuf_animation_new_from_file(file_path, NULL);
 		set_image_by_click(widget, mw);
-		
-		file_path_for_print = image_list_get_current_file_path (mw->img_list);
 		
 		g_object_unref(mw->animation);
 		g_free( file_path ); 
@@ -1294,6 +1292,13 @@ void on_about( GtkWidget* menu, MainWin* mw )
     gtk_widget_destroy( about_dlg );
 }
 
+void exif_information(GtkWidget* widget, MainWin* mw)
+{
+  	ExifWin *win;
+	win = (ExifWin*)exif_win_new (mw);
+	show_exif_window(widget,win);
+}
+
 static void open_url( GtkAboutDialog *dlg, const gchar *url, gpointer data)
 {
     /* FIXME: is there any better way to do this? */
@@ -1313,16 +1318,4 @@ static void open_url( GtkAboutDialog *dlg, const gchar *url, gpointer data)
              break;
         }
     }
-}
-
-void printing_image(GtkWidget* widget, MainWin* mw)
-{
-  print_pixbuf(widget, mw);
-}
-
-void exif_information(GtkWidget* widget, MainWin* mw)
-{
-  	ExifWin *win;
-	win = (ExifWin*)exif_win_new (mw);
-	show_exif_window(widget,win);
 }
