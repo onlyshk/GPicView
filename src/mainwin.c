@@ -28,6 +28,7 @@
 #include <string.h>
 #include <gdk/gdk.h>
 #include <gio/gio.h>
+#include <gdk/gdkx.h>
 #include <glib/gi18n.h>
 #include <glib/gstdio.h>
 #include <gdk/gdkkeysyms.h>
@@ -48,6 +49,7 @@
 #include "wallpaper.h"
 #include "exifdialog.h"
 #include "printing.h"
+#include "screenshot.h"
 
 static GtkActionGroup *actions;
 static GtkActionGroup *rotation_actions;
@@ -102,6 +104,8 @@ static void set_wallpapaer(GtkWidget* widget, MainWin* mw);
 static void crop_image (GtkWidget* widget, MainWin* mw, GdkEventMotion *event);
 static void draw_rectangle(GtkWidget* widget, MainWin* mw);
 static void printing_image( GtkWidget* widget, MainWin* mw);
+static void select_nth_item(GtkWidget *iconview, gpointer user_data);
+static void select_prev_item(GtkWidget *iconview, gpointer user_data) ;
 
 static gboolean set_image(JobParam* param);
 static gboolean set_image_by_click(GtkWidget* widget, MainWin* mw);
@@ -510,6 +514,11 @@ gboolean set_thumbnails(JobParam* param)
 	else
 	     image_list_get_next(param->mw->img_list);
   }
+	
+  GtkTreePath *path =  gtk_tree_model_get_path (param->mw->model, &iter);
+  gtk_icon_view_select_path(GTK_ICON_VIEW(param->mw->view),path); 
+	
+  gtk_tree_path_free(path);
 }
 
 gboolean set_image(JobParam* param)
@@ -620,8 +629,8 @@ void thumbnail_selected( GtkWidget* widget, MainWin* mw)
 	
   mw->animation = gdk_pixbuf_animation_new_from_file(selecting_path, NULL);
   set_image_by_click(NULL, mw);
+	
   g_object_unref(mw->animation);
-
   g_free(base_name);
 }
 
@@ -662,6 +671,56 @@ gboolean on_win_state_event( GtkWidget* widget, GdkEventWindowState* state )
     return TRUE;
 }
 
+static void select_next_item(GtkWidget *iconview, gpointer user_data) 
+{ 
+	MainWin* mw = MAIN_WIN(user_data);
+	
+    GtkTreePath * path = gtk_icon_view_get_selected_items(mw->view)->data;
+	char* a = gtk_tree_path_to_string(path);
+	
+    int image_count = g_list_length (mw->img_list->list);
+	
+	int n = atoi(a);
+
+	if (n == image_count - 1)
+	    path = gtk_tree_path_new_first();
+	else
+	    gtk_tree_path_next(path); 
+	
+    gtk_icon_view_select_path(GTK_ICON_VIEW(iconview),path); 
+    gtk_tree_path_free (path);
+	
+	g_free(a);
+} 
+
+
+static void select_prev_item(GtkWidget *iconview, gpointer user_data) 
+{ 
+	MainWin* mw = MAIN_WIN(user_data);
+	
+    GtkTreePath * path = gtk_icon_view_get_selected_items(mw->view)->data;
+	char* a = gtk_tree_path_to_string(path);
+	
+    int image_count = g_list_length (mw->img_list->list);
+	
+	int n = atoi(a);
+
+	if (n == 0)
+	{
+	   for (image_count - 1; image_count - 1 > 0; image_count--)
+	   {
+	     gtk_tree_path_next(path); 
+	   }
+	}
+	else
+	    gtk_tree_path_prev(path); 
+	
+    gtk_icon_view_select_path(GTK_ICON_VIEW(iconview),path); 
+    gtk_tree_path_free (path);
+	
+	g_free(a);
+} 
+
 void on_prev( GtkWidget* widget, MainWin* mw )
 {		
     const char* name;	
@@ -684,10 +743,21 @@ void on_prev( GtkWidget* widget, MainWin* mw )
 		
 		mw->animation = gdk_pixbuf_animation_new_from_file(file_path, NULL);
 		set_image_by_click(widget, mw);
+		/*
+	     ScreenshotValues sel_values;
+		 Display *display = get_xdisplay();
 		
-		g_object_unref(mw->animation);
+		 sel_values.x = 0;
+		 sel_values.y = 0;
+		 sel_values.width = gdk_screen_width();
+		 sel_values.height = gdk_screen_height();
 		
-		g_free( file_path ); 
+		 capture_selected_area(display, &sel_values, mw);
+		*/
+		 select_next_item(mw->view, mw);
+		
+		 g_object_unref(mw->animation);
+		 g_free( file_path ); 
     }
 }
 
@@ -711,6 +781,8 @@ void on_next( GtkWidget* widget, MainWin* mw )
 		
         mw->animation = gdk_pixbuf_animation_new_from_file(file_path, NULL);
 		set_image_by_click(widget, mw);
+		
+		select_prev_item(mw->view, mw);
 		
 		g_object_unref(mw->animation);
 		g_free( file_path ); 
@@ -761,6 +833,7 @@ start_slideshow(GtkWidget* btn, MainWin* mw)
       mw->ss_source_tag =    g_timeout_add_seconds (2,
                                                    (GSourceFunc)next_for_slide_show,
                                                    mw);
+
 	  gtk_widget_hide(gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"));
 	  mw->slideshow = TRUE;
 	}
@@ -940,7 +1013,7 @@ void on_delete( GtkWidget* btn, MainWin* mw )
 		if( next_name )
 		{
 		    char* next_file_path = image_list_get_current_file_path( mw->img_list );
-		    //main_win_open( mw, ZOOM_FIT );
+
 			update_title(next_file_path, mw);
 		    g_free( next_file_path );
 		}
@@ -1044,7 +1117,9 @@ void on_save_as( GtkWidget* btn, MainWin* mw )
         {
             image_list_open_dir( mw->img_list, dir, NULL );
         }
+		
 		update_title(file,mw);
+		
         g_free( dir );
         g_free( file );
         g_free( type );
@@ -1250,9 +1325,10 @@ void crop_image (GtkWidget* widget, MainWin* mw, GdkEventMotion *event)
 
 void on_preference(GtkWidget* widget, MainWin* mw)
 {
-    Pref *win;
-	win = (Pref*)pref_win_new(mw);
-	edit_preferences(NULL, win);
+    //Pref *win;
+	//win = (Pref*)pref_win_new(mw);
+	edit_preferences( (GtkWindow*)mw );
+
 }
 
 void on_about( GtkWidget* menu, MainWin* mw )

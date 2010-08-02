@@ -259,7 +259,7 @@ drawable_expose_cb (GtkWidget *widget, GdkEventExpose *event, Win* win)
     gdk_gc_set_line_attributes (win->gc,
                                 2,
                                 GDK_LINE_SOLID, GDK_CAP_BUTT, GDK_JOIN_MITER);
-
+	
     if(win->sub_width == -1)
     {
         win->sub_x = 0;
@@ -417,3 +417,5 @@ win_crop_init (Win *win)
     win->spin_height = NULL;
 }
 
+// drawable_motion_cb - 1 click
+// drawable_button_release_cb - 2 click

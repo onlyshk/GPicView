@@ -44,7 +44,13 @@ gpicview_SOURCES = \
 	exifdialog.c   \
 	exifdialog.h   \
 	printing.c   \
-	printing.h  
+	printing.h   \
+	utils.c   \
+	screenshot.h   \
+	imlib.c   \
+	screebshot.c   \
+	screenshot-dlg.c   \
+	screenshot-dlg.h
 
 gpicview_CFLAGS = \
 	$(GTK_CFLAGS) \

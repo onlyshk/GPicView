@@ -17,21 +17,3 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-
-/*
-* Scale pix from pcmanfm/libfm/thumbnail.c
-* Copyright 2010 Hong Jen Yee (PCMan) <pcman.tw@gmail.com>s
-*/
-
-#ifndef UTILS_H
-#define UTILS_H
-
-#include <gtk/gtk.h>
-#include <gtkimageview/gtkimageview.h>
-#include <gtkimageview/gtkanimview.h>
-
-void gtk_anim_view_set_static (GtkAnimView *aview, GdkPixbuf *pixbuf);
-
-GdkPixbuf* scale_pix(GdkPixbuf* ori_pix, int size);
-
-#endif

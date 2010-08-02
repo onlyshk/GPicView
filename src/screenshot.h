@@ -18,20 +18,43 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-/*
-* Scale pix from pcmanfm/libfm/thumbnail.c
-* Copyright 2010 Hong Jen Yee (PCMan) <pcman.tw@gmail.com>s
-*/
+#ifndef SCREENSHOT_H
+#define SCREENSHOT_H
 
-#ifndef UTILS_H
-#define UTILS_H
+#include "mainwin.h"
 
-#include <gtk/gtk.h>
-#include <gtkimageview/gtkimageview.h>
-#include <gtkimageview/gtkanimview.h>
+#include<X11/Xlib.h>
 
-void gtk_anim_view_set_static (GtkAnimView *aview, GdkPixbuf *pixbuf);
+typedef struct
+{
+	gint       incl_border;     
+	gint       incl_pointer;     
 
-GdkPixbuf* scale_pix(GdkPixbuf* ori_pix, int size);
+	gboolean  pointer_change_color; 
+	GdkColor  pointer_color_val;    
+
+	Window     window;           
+	guint      delay;            
+
+	guint     x;
+	guint     y;
+	guint     width;
+	guint     height;
+
+} ScreenshotValues;
+
+GdkPixbuf* get_screenshot( gpointer user_dara );
+
+GdkPixbuf* get_active_window_screenshot(gpointer user_data);
+
+GdkPixbuf* get_screenshot_with_cursor(GtkWidget* widget, gpointer user_data);
+
+GdkPixbuf *get_selected_area_screenshot(Display *display, ScreenshotValues *sel_values, gpointer user_data);
+
+GdkPixbuf *get_selecting_area_screenshot(Display *display, ScreenshotValues *sel_values, gpointer user_data);
+
+void screenshot_delay(int delay, gpointer user_data);
+
+Display *get_xdisplay();
 
 #endif

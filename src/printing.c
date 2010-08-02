@@ -19,6 +19,7 @@
  ***************************************************************************/
  
 #include "printing.h"
+#include "utils.h"
 
 #include <math.h>
 
@@ -65,16 +66,27 @@ static void begin_print (GtkPrintOperation *oper, GtkPrintContext *context,
 	   if (result == GTK_RESPONSE_YES)
 	   {		  
 		   gtk_print_operation_set_n_pages(oper,1);
-			
-		   if (image_width > page_width)
-		       pixbuf =  gdk_pixbuf_scale_simple (pixbuf, page_width, image_height, GDK_INTERP_HYPER); 
-		    
-		   if (image_height > page_width)
-		       pixbuf =  gdk_pixbuf_scale_simple (pixbuf, page_width, page_height, GDK_INTERP_HYPER); 
-		  
+
+		   GdkPixbuf* scaled;
+           double ratio;
+           
+		   if(image_width >= image_height)
+               ratio = (double)page_width / image_width;
+           else 
+               ratio = (double)page_height / image_height;
+          
+		   if( ratio >=1 )
+               scaled = g_object_ref(pixbuf);
+           else
+           {
+               pixbuf = scaled = gdk_pixbuf_scale_simple(pixbuf, image_width * ratio, image_height *
+                                                         ratio, GDK_INTERP_HYPER);
+		   }
+ 
 	       gdk_cairo_set_source_pixbuf(cr, pixbuf, 0 , 0);
 			
 		   gtk_widget_destroy(dialog);
+		   g_object_unref(scaled);
 	    }
 		else
 		{
@@ -156,13 +168,11 @@ static void  printing_done(GtkPrintOperation  *operation, GtkPrintOperationResul
         dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_DESTROY_WITH_PARENT,
                                        GTK_MESSAGE_ERROR, GTK_BUTTONS_OK,
                                        error->message);
-		
 		dialog_result = gtk_dialog_run(GTK_DIALOG(dialog));
 		gtk_widget_destroy(dialog);
 	}
 	else
 	{
-     
 	   dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_DESTROY_WITH_PARENT,
                                        GTK_MESSAGE_INFO, GTK_BUTTONS_OK,
                                       "Printing done!");
@@ -180,10 +190,11 @@ void  print_pixbuf(GtkWidget* widget, MainWin *mw)
     op = gtk_print_operation_new ();
 	
     gtk_print_operation_set_unit (op, GTK_UNIT_PIXEL);
+	
     g_signal_connect (op, "begin-print", G_CALLBACK (begin_print), mw);
 	g_signal_connect (op, "draw-page", G_CALLBACK (draw_page),  mw);
 	g_signal_connect (op, "done", G_CALLBACK (printing_done),  &res);
-    res = gtk_print_operation_run (op, GTK_PRINT_OPERATION_ACTION_PRINT_DIALOG, NULL, NULL);
 	
+    res = gtk_print_operation_run (op, GTK_PRINT_OPERATION_ACTION_PRINT_DIALOG, NULL, NULL);
 	g_object_unref (op);
 }

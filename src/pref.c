@@ -30,62 +30,10 @@
 #include "pref.h"
 #include "mainwin.h"
 
-#define CFG_DIR    "GPicView"
+#define CFG_DIR    "gpicview"
 #define CFG_FILE    CFG_DIR"/gpicview.conf"
 
-G_DEFINE_TYPE (Pref, win_pref, G_TYPE_OBJECT);
-
 Pref pref = {0};
-
-static void
-win_pref_init (Pref *win)
-{
-}
-
-static void
-pref_dispose (GObject *gobject)
-{}
-
-static void
-win_pref_class_init (PrefClass *klass)
-{
-    GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
-    gobject_class->dispose = pref_dispose;
-}
-
-GType
-pref_win_get_type (void)
-{
-  static GType type = 0;
-  if (type == 0) {
-    static const GTypeInfo info = {
-      sizeof (PrefClass),
-      NULL,   /* base_init */
-      NULL,   /* base_finalize */
-      NULL,   /* class_init */
-      NULL,   /* class_finalize */
-      NULL,   /* class_data */
-      sizeof (Pref),
-      0,      /* n_preallocs */
-      NULL    /* instance_init */
-      };
-      type = g_type_register_static (G_TYPE_OBJECT,
-                                     "CropBarType",
-                                     &info, 0);
-    }
-    return type;
-}
-
-GtkWidget* pref_win_new(MainWin* mw)
-{
-	Pref *win;
-	
-    win = (GObject*)g_object_new (PREF_WIN_TYPE, NULL );
- 
-	win->mw = mw;
-	
-	return (GObject *) win;
-}
 
 static gboolean kf_get_bool(GKeyFile* kf, const char* grp, const char* name, gboolean* ret )
 {
@@ -117,14 +65,18 @@ static int kf_get_int(GKeyFile* kf, const char* grp, const char* name, int* ret 
 
 void load_preferences()
 {
+    /* FIXME: GKeyFile is not fast enough.
+     *  Need to replace it with our own config loader in the future. */
+
     GKeyFile* kf;
     char* path;
     char* color;
-	
+
+    /* pref.auto_save_rotated = FALSE; */
     pref.ask_before_save = TRUE;
     pref.ask_before_delete = TRUE;
     pref.rotate_exif_only = TRUE;
-
+    /* pref.open_maximized = FALSE; */
     pref.bg.red = pref.bg.green = pref.bg.blue = 65535;
     pref.bg_full.red = pref.bg_full.green = pref.bg_full.blue = 0;
 
@@ -133,7 +85,6 @@ void load_preferences()
 
     kf = g_key_file_new();
     path = g_build_filename( g_get_user_config_dir(),  CFG_FILE, NULL );
-	
     if( g_key_file_load_from_file( kf, path, 0, NULL ) )
     {
         kf_get_bool( kf, "General", "auto_save_rotated", &pref.auto_save_rotated );
@@ -159,7 +110,6 @@ void load_preferences()
             g_free(color);
         }
     }
-
     g_free( path );
     g_key_file_free( kf );
 }
@@ -212,89 +162,68 @@ static void on_set_default( GtkButton* btn, gpointer user_data )
 
 static void on_set_bg( GtkColorButton* btn, gpointer user_data )
 {
-    MainWin* parent =(MainWin*)user_data;
+    MainWin* parent =MAIN_WIN(user_data);
     gtk_color_button_get_color(btn, &pref.bg);
     if( !parent->full_screen )
     {
-        gtk_widget_modify_bg( parent->aview, GTK_STATE_NORMAL, &pref.bg);
-        gtk_widget_queue_draw(parent);
+        gtk_widget_modify_bg( parent->aview, GTK_STATE_NORMAL, &pref.bg );
+        gtk_widget_queue_draw(parent->aview );
     }
 }
 
 static void on_set_bg_full( GtkColorButton* btn, gpointer user_data )
 {
-    MainWin* parent =(MainWin*)user_data;
+    MainWin* parent =MAIN_WIN(user_data);
     gtk_color_button_get_color(btn, &pref.bg_full);
-    if( !parent->full_screen )
+    if( parent->full_screen )
     {
-        gtk_widget_modify_bg( parent->aview, GTK_STATE_NORMAL, &pref.bg_full);
-        gtk_widget_queue_draw(parent);
+        gtk_widget_modify_bg( parent->aview, GTK_STATE_NORMAL, &pref.bg_full );
+        gtk_widget_queue_draw(parent->aview );
     }
 }
 
-static void on_delete_event(GtkWidget* widget, GdkEventAny* evt)
-{ 
-	gtk_widget_hide(widget);	
-}
+void edit_preferences( GtkWindow* parent )
+{
+    GtkWidget *auto_save_btn, *ask_before_save_btn, *set_default_btn,
+              *rotate_exif_only_btn, *ask_before_del_btn, *bg_btn, *bg_full_btn;
+    GtkBuilder* builder = gtk_builder_new();
+    GtkDialog* dlg;
+    gtk_builder_add_from_file(builder, PACKAGE_DATA_DIR "/gpicview/ui/pref-dlg.ui", NULL);
 
+    dlg = (GtkDialog*)gtk_builder_get_object(builder, "dlg");
+    gtk_window_set_transient_for((GtkWindow*)dlg, parent);
 
-void edit_preferences(GtkWidget* widget, Pref *win )
-{	
-	win->pref_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_resizable (win->pref_window, FALSE);
-	gtk_window_set_position(win->pref_window,GTK_WIN_POS_CENTER);
-	gtk_window_set_title(win->pref_window, "Preferences");
-	    
-	win->vbox = gtk_vbox_new (FALSE,0);
-	gtk_box_set_spacing(win->vbox,6);
-	
-	win->ask_before_save_btn = gtk_check_button_new();
-	gtk_button_set_label(win->ask_before_save_btn,"Ask before saving images");
-	gtk_box_pack_start(win->vbox,win->ask_before_save_btn,FALSE,TRUE,1);
-		
-	win->ask_before_del_btn = gtk_check_button_new();
-	gtk_button_set_label(win->ask_before_del_btn,"Automatically save rotated images");
-	gtk_box_pack_start(win->vbox,win->ask_before_del_btn,FALSE,TRUE,2);
-	
-	win->auto_save_btn = gtk_check_button_new();
-	gtk_button_set_label(win->auto_save_btn,"Ask before deleting images");
-	gtk_box_pack_start(win->vbox, win->auto_save_btn,FALSE,TRUE,4);
-	
-	win->rotate_exif_only_btn = gtk_check_button_new();
-	gtk_button_set_label(win->rotate_exif_only_btn,"Rotate JPEG file by changing EXIF orientation value (only if EXIF orientation tag exists)");
-	gtk_box_pack_start(win->vbox,win->rotate_exif_only_btn,FALSE,TRUE,3);
-	
-	win->hbox1 = gtk_hbox_new (FALSE,12);
-    win->hbox  = gtk_hbox_new (FALSE, 0);
-	
-	win->label2 = gtk_label_new("Normal:");
-	gtk_box_pack_start(GTK_BOX(win->hbox1), win->label2, FALSE, FALSE,40);
-	
-	win->bg_btn = gtk_color_button_new();
-	gtk_color_button_set_color(win->bg_btn, &pref.bg_full);
-	gtk_box_pack_start(GTK_BOX(win->hbox1), win->bg_btn, FALSE, FALSE,20);
-	
-	win->label3 = gtk_label_new("Fullscreen:");
-	gtk_box_pack_start(GTK_BOX(win->hbox1), win->label3, FALSE, FALSE,40);
-	
-	win->bg_full_btn = gtk_color_button_new();
-	gtk_color_button_set_color(win->bg_btn, &pref.bg);
-	gtk_box_pack_start(GTK_BOX(win->hbox1), win->bg_full_btn, FALSE, FALSE,0);
-	
-	gtk_box_pack_start(GTK_BOX(win->vbox), win->hbox1, FALSE, FALSE,0);
+    ask_before_save_btn = (GtkWidget*)gtk_builder_get_object(builder, "ask_before_save");
+    gtk_toggle_button_set_active( (GtkToggleButton*)ask_before_save_btn, pref.ask_before_save );
 
-	
-	win->set_default_btn = gtk_button_new();
-	gtk_button_set_label(win->set_default_btn,"Make GPicView the default viewer for images");
-	gtk_box_pack_start(GTK_BOX(win->hbox), win->set_default_btn, FALSE, FALSE, 180);
-	
-	gtk_box_pack_start(GTK_BOX(win->vbox), win->hbox, FALSE, FALSE,0);
-	
-	gtk_container_add(win->pref_window, win->vbox);
-	
-	g_signal_connect( win->bg_btn, "color-set", G_CALLBACK(on_set_bg), win );
-	g_signal_connect( win->bg_full_btn, "color-set", G_CALLBACK(on_set_bg_full), win );
-	g_signal_connect (win->pref_window, "delete-event", G_CALLBACK(on_delete_event) , win);
-	
-	gtk_widget_show_all(win->pref_window);
+    ask_before_del_btn = (GtkWidget*)gtk_builder_get_object(builder, "ask_before_delete");
+    gtk_toggle_button_set_active( (GtkToggleButton*)ask_before_del_btn, pref.ask_before_delete );
+
+    auto_save_btn = (GtkWidget*)gtk_builder_get_object(builder, "auto_save_rotated");
+    gtk_toggle_button_set_active( (GtkToggleButton*)auto_save_btn, pref.auto_save_rotated );
+
+    rotate_exif_only_btn = (GtkWidget*)gtk_builder_get_object(builder, "rotate_exif_only");
+    gtk_toggle_button_set_active( (GtkToggleButton*)rotate_exif_only_btn, pref.rotate_exif_only );
+
+    set_default_btn = (GtkWidget*)gtk_builder_get_object(builder, "make_default");
+    g_signal_connect( set_default_btn, "clicked", G_CALLBACK(on_set_default), parent );
+
+    bg_btn = (GtkWidget*)gtk_builder_get_object(builder, "bg");
+    gtk_color_button_set_color(bg_btn, &pref.bg);
+    g_signal_connect( bg_btn, "color-set", G_CALLBACK(on_set_bg), parent );
+
+    bg_full_btn = (GtkWidget*)gtk_builder_get_object(builder, "bg_full");
+    gtk_color_button_set_color(bg_full_btn, &pref.bg_full);
+    g_signal_connect( bg_full_btn, "color-set", G_CALLBACK(on_set_bg_full), parent );
+
+    g_object_unref( builder );
+
+    gtk_dialog_run( dlg );
+
+    pref.ask_before_save = gtk_toggle_button_get_active( (GtkToggleButton*)ask_before_save_btn );
+    pref.ask_before_delete = gtk_toggle_button_get_active( (GtkToggleButton*)ask_before_del_btn );
+    pref.auto_save_rotated = gtk_toggle_button_get_active( (GtkToggleButton*)auto_save_btn );
+    pref.rotate_exif_only = gtk_toggle_button_get_active( (GtkToggleButton*)rotate_exif_only_btn );
+
+    gtk_widget_destroy( (GtkWidget*)dlg );
 }
