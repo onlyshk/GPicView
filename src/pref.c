@@ -182,6 +182,68 @@ static void on_set_bg_full( GtkColorButton* btn, gpointer user_data )
     }
 }
 
+
+static
+char* getexename(char* buf, size_t size)
+{
+        char linkname[128]; /* /proc/<pid>/exe */
+        pid_t pid;
+        int ret;
+
+        /* Get our PID and build the name of the link in /proc */
+        pid = getpid();
+
+        if (snprintf(linkname, sizeof(linkname), "/proc/%i/exe", pid) < 0)
+        {
+                return "";
+        }
+
+
+        /* Now read the symbolic link */
+        ret = readlink(linkname, buf, size);
+
+        /* In case of an error, leave the handling up to the caller */
+        if (ret == -1)
+                return NULL;
+
+        /* Report insufficient buffer size */
+        if (ret >= size)
+        {
+                return NULL;
+        }
+
+        /* Ensure proper NUL termination */
+        buf[ret] = 0;
+
+        return buf;
+}
+
+static
+int getAbsolutePathForFile(char* buf, int bufSize, char* r_file, int str_length){
+        char* exeFileName;
+        exeFileName = getexename(buf, bufSize);
+
+        //bit wordy here, but I dont want to modify Nicolai's code
+        if((exeFileName != NULL)&&(buf != NULL)){
+                //find the last occurrence of /
+                char* tmpLoc = strrchr(buf, '/');
+                //cut off the program name
+                *(tmpLoc+1) = 0;
+                strncat(buf, r_file, str_length);
+
+                return 1; //success
+        }else{
+                //if failed to get the absolute path, copy filename into
+                //buffer.
+                int i;
+                for(i=0;i <str_length;i++){
+                        *(buf+i) = *(r_file+i);
+                }
+                *(buf+str_length) = 0;
+                return 0; //fail
+        }
+}
+
 void edit_preferences( GtkWindow* parent )
 {
     GtkWidget *auto_save_btn, *ask_before_save_btn, *set_default_btn,
@@ -189,11 +251,11 @@ void edit_preferences( GtkWindow* parent )
     GtkBuilder* builder = gtk_builder_new();
     GtkDialog* dlg;
 	
-    gtk_builder_add_from_file(builder, PACKAGE_DATA_DIR "/gpicview/data/pref-dlg.ui", NULL);
+    gtk_builder_add_from_file(builder, "/usr/local/share/gpicview/ui/pref-dlg.ui" , NULL);
+    
+    dlg = gtk_builder_get_object(builder, "dlg");
 
-    dlg = (GtkDialog*)gtk_builder_get_object(builder, "dlg");
     gtk_window_set_transient_for((GtkWindow*)dlg, parent);
-
     ask_before_save_btn = (GtkWidget*)gtk_builder_get_object(builder, "ask_before_save");
     gtk_toggle_button_set_active( (GtkToggleButton*)ask_before_save_btn, pref.ask_before_save );
 
@@ -219,7 +281,7 @@ void edit_preferences( GtkWindow* parent )
 
     g_object_unref( builder );
 
-    gtk_dialog_run( dlg );
+	gtk_dialog_run( GTK_DIALOG(dlg) );
 
     pref.ask_before_save = gtk_toggle_button_get_active( (GtkToggleButton*)ask_before_save_btn );
     pref.ask_before_delete = gtk_toggle_button_get_active( (GtkToggleButton*)ask_before_del_btn );

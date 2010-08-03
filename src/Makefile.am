@@ -48,7 +48,7 @@ gpicview_SOURCES = \
 	utils.c   \
 	screenshot.h   \
 	imlib.c   \
-	screebshot.c   \
+	screenshot.c   \
 	screenshot-dlg.c   \
 	screenshot-dlg.h
 

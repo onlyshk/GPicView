@@ -41,7 +41,7 @@ static GOptionEntry opt_entries[] =
     { NULL }
 };
 
-#define PIXMAP_DIR        PACKAGE_DATA_DIR "/gpicview/pixmaps/"
+#define PIXMAP_DIR        PACKAGE_DATA_DIR "/GPicView/data/pixmaps/"
 
 int main(int argc, char *argv[])
 {
@@ -49,30 +49,31 @@ int main(int argc, char *argv[])
     GOptionContext *context = NULL;
     MainWin* win;
 	
-	gtk_init (&argc, &argv);
-	
-#ifdef ENABLE_NLS
+	#ifdef ENABLE_NLS
     bindtextdomain ( GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR );
     bind_textdomain_codeset ( GETTEXT_PACKAGE, "UTF-8" );
     textdomain ( GETTEXT_PACKAGE );
-#endif
+    #endif
 
     context = g_option_context_new ("- simple image viewer");
     g_option_context_add_main_entries (context, opt_entries, GETTEXT_PACKAGE);
     g_option_context_add_group (context, gtk_get_option_group (TRUE));
-    if ( !g_option_context_parse (context, &argc, &argv, &error) )
+	
+	if ( !g_option_context_parse (context, &argc, &argv, &error) )
     {
         g_print( "option parsing failed: %s\n", error->message);
         return 1;
     }
+	
+    gtk_icon_theme_append_search_path(gtk_icon_theme_get_default(), PIXMAP_DIR);
 
     if( should_display_version )
     {
         printf( "gpicview %s\n", VERSION );
         return 0;
     }
-
-    gtk_icon_theme_append_search_path(gtk_icon_theme_get_default(), PIXMAP_DIR);
+	
+	load_preferences();
 
     /* Allocate and show the window.
      * We must show the window now in case the file open needs to put up an error dialog. */
@@ -81,7 +82,7 @@ int main(int argc, char *argv[])
 	
     if ( pref.open_maximized )
         gtk_window_maximize( (GtkWindow*)win );
-
+   
 	if( files )
     {
         if( G_UNLIKELY( *files[0] != '/' && strstr( files[0], "://" )) )    // This is an URI
@@ -103,6 +104,9 @@ int main(int argc, char *argv[])
     }
 	
 	gtk_main();
+	
+	save_preferences();
+	
     return 0;
 }
 

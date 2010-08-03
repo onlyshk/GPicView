@@ -153,7 +153,7 @@ void main_win_finalize( GObject* obj )
 
 GtkWidget* main_win_new()
 {
-    return (GObject*)g_object_new ( MAIN_WIN_TYPE, NULL );
+    return (GtkWidget*)g_object_new ( MAIN_WIN_TYPE, NULL );
 }
 
 gchar *ui_info =
@@ -274,9 +274,9 @@ void main_win_init( MainWin*mw )
     gtk_window_set_icon_from_file( (GtkWindow*)mw, PACKAGE_DATA_DIR"/pixmaps/gpicview.png", NULL );
     gtk_window_set_default_size( (GtkWindow*)mw, 720, 480 );
 	gtk_window_set_position((GtkWindow*)mw, GTK_WIN_POS_CENTER);
-
+    
 	mw->box = gtk_vbox_new(FALSE, 0);
-	mw->toolbar_box = gtk_hpaned_new ();
+	mw->toolbar_box = gtk_hpaned_new();
 	mw->img_box =   gtk_hpaned_new ();
     mw->thumb_box = gtk_vbox_new (FALSE,0);
 	
@@ -329,17 +329,17 @@ void main_win_init( MainWin*mw )
 	g_signal_connect( mw->box, "button-press-event", G_CALLBACK(on_button_press), mw );
 	g_signal_connect( mw->view ,"selection-changed", G_CALLBACK(thumbnail_selected), mw);
     
-	gtk_paned_set_position(mw->img_box,170);
+	gtk_paned_set_position(mw->img_box,220);
 	gtk_icon_view_set_text_column(GTK_ICON_VIEW(mw->view),0);
     gtk_icon_view_set_pixbuf_column(GTK_ICON_VIEW(mw->view), 1);
     gtk_icon_view_set_selection_mode(GTK_ICON_VIEW(mw->view), GTK_SELECTION_SINGLE);
 	
 	gtk_widget_modify_bg (mw->aview, GTK_STATE_NORMAL, &pref.bg);
 	
-	gtk_box_pack_start(mw->box, gtk_hseparator_new(), FALSE, TRUE,0);	
+	gtk_box_pack_start(GTK_BOX(mw->box), gtk_hseparator_new(), FALSE, TRUE,0);	
 
-	gtk_container_add(mw, mw->box);
-    gtk_widget_show_all( mw->box );
+	gtk_container_add(GTK_CONTAINER(mw), mw->box);
+    gtk_widget_show_all( mw );
 }
 
 gboolean on_delete_event( GtkWidget* widget, GdkEventAny* evt )
