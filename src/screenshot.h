@@ -25,36 +25,67 @@
 
 #include<X11/Xlib.h>
 
-typedef struct
+#define SCREENSHOT_WIN_TYPE            (screenshot_win_get_type())
+#define SCREENSHOT_WIN(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SCREENSHOT_WIN_TYPE, ScreenshotWin))
+#define SCREENSHOT_WIN_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SCREENSHOT_WIN_TYPE, ScreenshotWinClass))
+#define IS_SCREENSHOT_WIN(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), SCREENSHOT_WIN_TYPE))
+#define IS_SCREENSHOT_WIN_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), SCREENSHOT_WIN_TYPE))
+#define SCREENSHOT_WIN_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SCREENSHOT_WIN_TYPE, ScreenshotWinClass))
+
+typedef struct _ScreenshotWin  ScreenshotWin;
+typedef struct _ScreenshotWinClass ScreenshotWinClass;
+
+struct _ScreenshotWin
 {
-	gint       incl_border;     
-	gint       incl_pointer;     
+    GObject parent;
+	MainWin*   mw;
+	GtkWindow* screenshot_window;
+	GtkImageView* view;
+	GtkVBox   *box;
+    GtkHBox   *hbox;
+    GtkWidget* prev_image;
+    GtkWidget* scroll;
+    gdouble zoom;
+    gdouble height;
+    gdouble width;
+    GdkGC *gc;
+    GtkWidget *image;
+    GtkSpinButton *spin_x;
+    GtkSpinButton *spin_y;
+    GtkSpinButton *spin_width;
+    GtkSpinButton *spin_height;
+    gdouble sub_x;
+    gdouble sub_y;
+    gdouble sub_width;
+    gdouble sub_height;
+    gboolean drawing_rectangle;
+    gboolean do_redraw;
+    gdouble start_x;
+    gdouble start_y;
+	GdkPixbuf* pixbuf;
+	GdkRectangle area;
+};
 
-	gboolean  pointer_change_color; 
-	GdkColor  pointer_color_val;    
+typedef struct _ScreenshotWinClass {
+    GObjectClass parent_class;
+};
 
-	Window     window;           
-	guint      delay;            
+GType screenshot_win_get_type (void);
 
-	guint     x;
-	guint     y;
-	guint     width;
-	guint     height;
-
-} ScreenshotValues;
+GtkWidget *screenshot_new (MainWin *mw);
 
 GdkPixbuf* get_screenshot( gpointer user_dara );
 
 GdkPixbuf* get_active_window_screenshot(gpointer user_data);
 
-GdkPixbuf* get_screenshot_with_cursor(GtkWidget* widget, gpointer user_data);
-
-GdkPixbuf *get_selected_area_screenshot(Display *display, ScreenshotValues *sel_values, gpointer user_data);
-
-GdkPixbuf *get_selecting_area_screenshot(Display *display, ScreenshotValues *sel_values, gpointer user_data);
+GdkPixbuf* get_screenshot_with_cursor(gpointer user_data);
 
 void screenshot_delay(int delay, gpointer user_data);
 
-Display *get_xdisplay();
+void screenshot_window(GtkWidget* widget, ScreenshotWin* win);
+
+void screenshot_delay_with_cursor(int delay, gpointer user_data);
+
+void screenshot_delay_active_window(int delay, gpointer user_data);
 
 #endif

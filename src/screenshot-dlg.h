@@ -17,3 +17,53 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
+#ifndef SCREENSHOT-DLG_H
+#define SCREENSHOT-DLG_H
+
+#include "screenshot.h"
+#include "mainwin.h"
+
+#define SCREENSHOTDLG_WIN_TYPE            (screenshotdlg_win_get_type())
+#define SCREENSHOTDLG_WIN(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SCREENSHOTDLG_WIN_TYPE, ScreenshotDlgWin))
+#define SCREENSHOTDLG_WIN_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SCREENSHOTDLG_WIN_TYPE, ScreenshotDlgWinClass))
+#define IS_SCREENSHOTDLG_WIN(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), SCREENSHOTDLG_WIN_TYPE))
+#define IS_SCREENSHOTDLG_WIN_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), SCREENSHOTDLG_WIN_TYPE))
+#define SCREENSHOTDLG_WIN_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SCREENSHOTDLG_WIN_TYPE, ScreenshotDlgWinClass))
+
+typedef struct _ScreenshotDlgWin  ScreenshotDlgWin;
+typedef struct _ScreenshotDlgWinClass ScreenshotDlgWinClass;
+
+struct _ScreenshotDlgWin
+{
+    GObject parent;
+	MainWin*   mw;
+	GtkWindow* screenshotdlg_window;
+	GtkButton* capture_button;
+	GtkLabel*  label;
+	GtkRadioButton* radio_button1;
+	GtkRadioButton* radio_button2;
+	GtkRadioButton* radio_button3;
+	GtkRadioButton* radio_button4;
+	GtkSpinButton*  delay_button;
+	
+	GtkAlignment*     align;
+	GtkAlignment*     align1;
+	GtkWidget*        vbox;
+	GtkWidget*        hbox;
+	GSList*           radio_list;
+	
+	guint delay;
+};
+
+typedef struct _ScreenshotDlgWinClass {
+    GObjectClass parent_class;
+};
+
+GType screenshotdlg_win_get_type (void);
+
+GtkWidget *screenshotdlg_new (MainWin *mw);
+
+void show_screenshot_window(GtkWidget* widget, ScreenshotDlgWin* win);
+
+#endif

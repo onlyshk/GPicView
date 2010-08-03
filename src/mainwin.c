@@ -49,7 +49,7 @@
 #include "wallpaper.h"
 #include "exifdialog.h"
 #include "printing.h"
-#include "screenshot.h"
+#include "screenshot-dlg.h"
 
 static GtkActionGroup *actions;
 static GtkActionGroup *rotation_actions;
@@ -106,6 +106,7 @@ static void draw_rectangle(GtkWidget* widget, MainWin* mw);
 static void printing_image( GtkWidget* widget, MainWin* mw);
 static void select_nth_item(GtkWidget *iconview, gpointer user_data);
 static void select_prev_item(GtkWidget *iconview, gpointer user_data) ;
+static void take_screenshot(GtkWidget* widget, MainWin* mw);
 
 static gboolean set_image(JobParam* param);
 static gboolean set_image_by_click(GtkWidget* widget, MainWin* mw);
@@ -309,11 +310,13 @@ void main_win_init( MainWin*mw )
     gtk_action_group_add_actions (rotation_actions, entries1, n_entries1, GTK_WINDOW(mw));
 	gtk_window_add_accel_group (GTK_WINDOW (mw), 
 				                gtk_ui_manager_get_accel_group (mw->uimanager));
-	if (!gtk_ui_manager_add_ui_from_string (mw->uimanager, ui_info, -2, &error))
+	
+	if (!gtk_ui_manager_add_ui_from_string (mw->uimanager, ui_info, -1, &error))
 	{
 	  g_message ("building menus failed: %s", error->message);
 	  g_error_free (error);
 	}
+	
 	gtk_widget_set_size_request(mw->toolbar_box, 720,40);
 	
     gtk_paned_add1(mw->toolbar_box,gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"));
@@ -743,18 +746,8 @@ void on_prev( GtkWidget* widget, MainWin* mw )
 		
 		mw->animation = gdk_pixbuf_animation_new_from_file(file_path, NULL);
 		set_image_by_click(widget, mw);
-		/*
-	     ScreenshotValues sel_values;
-		 Display *display = get_xdisplay();
-		
-		 sel_values.x = 0;
-		 sel_values.y = 0;
-		 sel_values.width = gdk_screen_width();
-		 sel_values.height = gdk_screen_height();
-		
-		 capture_selected_area(display, &sel_values, mw);
-		*/
-		 select_next_item(mw->view, mw);
+
+		select_next_item(mw->view, mw);
 		
 		 g_object_unref(mw->animation);
 		 g_free( file_path ); 
@@ -1289,6 +1282,7 @@ void show_popup_menu( MainWin* mw, GdkEventButton* evt )
         PTK_SEPARATOR_MENU_ITEM,
 		PTK_IMG_MENU_ITEM( N_( "Crop image"),GTK_STOCK_CUT, crop_image, GDK_C,0),
 		PTK_IMG_MENU_ITEM( N_( "Exif Data"),NULL, exif_information, GDK_E,0),
+		PTK_IMG_MENU_ITEM( N_( "Take screenshot"),NULL, take_screenshot, GDK_T,0),
 		PTK_SEPARATOR_MENU_ITEM,
 		PTK_IMG_MENU_ITEM( N_( "Rotate Counterclockwise" ), "object-rotate-left", rotate_ccw, GDK_L, 0 ),
         PTK_IMG_MENU_ITEM( N_( "Rotate Clockwise" ), "object-rotate-right", rotate_cw, GDK_R, 0 ),
@@ -1325,10 +1319,7 @@ void crop_image (GtkWidget* widget, MainWin* mw, GdkEventMotion *event)
 
 void on_preference(GtkWidget* widget, MainWin* mw)
 {
-    //Pref *win;
-	//win = (Pref*)pref_win_new(mw);
 	edit_preferences( (GtkWindow*)mw );
-
 }
 
 void on_about( GtkWidget* menu, MainWin* mw )
@@ -1394,4 +1385,11 @@ static void open_url( GtkAboutDialog *dlg, const gchar *url, gpointer data)
              break;
         }
     }
+}
+
+static void take_screenshot(GtkWidget* widget, MainWin* mw)
+{
+    ScreenshotDlgWin* win;
+    win = (ScreenshotDlgWin*)screenshotdlg_new(mw);
+    show_screenshot_window(NULL, win);
 }

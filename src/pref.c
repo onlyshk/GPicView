@@ -188,7 +188,8 @@ void edit_preferences( GtkWindow* parent )
               *rotate_exif_only_btn, *ask_before_del_btn, *bg_btn, *bg_full_btn;
     GtkBuilder* builder = gtk_builder_new();
     GtkDialog* dlg;
-    gtk_builder_add_from_file(builder, PACKAGE_DATA_DIR "/gpicview/ui/pref-dlg.ui", NULL);
+	
+    gtk_builder_add_from_file(builder, PACKAGE_DATA_DIR "/gpicview/data/pref-dlg.ui", NULL);
 
     dlg = (GtkDialog*)gtk_builder_get_object(builder, "dlg");
     gtk_window_set_transient_for((GtkWindow*)dlg, parent);

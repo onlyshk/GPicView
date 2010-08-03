@@ -105,7 +105,6 @@ gtk_view_set_static (GtkAnimView *aview, GdkPixbuf *pixbuf)
                                          -1);
     gdk_pixbuf_simple_anim_add_frame(s_anim, pixbuf);
 
-    /* Simple version of uni_anim_view_set_anim */
     if (aview->anim)
         g_object_unref (aview->anim);
 
