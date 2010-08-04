@@ -156,6 +156,45 @@ GtkWidget* main_win_new()
     return (GtkWidget*)g_object_new ( MAIN_WIN_TYPE, NULL );
 }
 
+gchar *menu_ui_info =
+        "<ui>"
+        "  <popup name='PopupMenu'>"
+        "    <menuitem action='Go Back'/>"
+        "    <menuitem action='Go Forward'/>"
+               "<separator action='Sep1'/>"
+        " <menu action ='Zoom'>"
+        "    <menuitem action='Zoom out'/>"
+        "    <menuitem action='Zoom in'/>"
+        "    <menuitem action='ZoomFit'/>"
+        "    <menuitem action='ZoomNormal'/>"
+        " </menu>"
+        "    <menuitem action='FullScreen'/>"
+        "    <menuitem action='SlideShow'/>"
+                "<separator action='Sep2' />"
+        " <menu action ='Rotate and Flip' >"
+        "    <menuitem action='ImageRotate1'/>"
+        "    <menuitem action='ImageRotate2'/>"
+        "    <menuitem action='ImageRotate3'/>"
+        "    <menuitem action='ImageRotate4'/>"
+        " </menu>"
+                "<separator action='Sep3' />"
+        " <menu action = 'Tools'>"
+        "     <menuitem  action='Show exif data'/>"
+        "     <menuitem  action='Crop Image'/>"
+        "     <menuitem  action='Take screenshot'/>"
+        " </menu>"
+                "<separator action='Sep4' />"
+        "     <menuitem  action='Open File'/>"
+        "     <menuitem  action='Save File'/>"
+        "     <menuitem  action='Save as File'/>"
+        "     <menuitem  action='Print image' />"
+        "     <menuitem  action='Delete File'/>"
+                "<separator  action='Sep5' />"
+        "     <menuitem   action='Preferences'/>"
+        "     <menuitem   action='Quit' />"
+        "  </popup>"
+        "</ui>";
+
 gchar *ui_info =
       "<ui>"
         "<toolbar name = 'ToolBar'>"
@@ -192,6 +231,8 @@ static const GtkActionEntry entries[] = {
 	{"Go Forward",GTK_STOCK_GO_FORWARD,"Go Forward",
 	 "<control>g","Go Forward", G_CALLBACK(on_next)
 	},
+	{"Zoom",GTK_STOCK_ZOOM_IN,"Zoom out",NULL,"Zoom out", NULL
+	},
 	{"Zoom out",GTK_STOCK_ZOOM_OUT,"Zoom out",
 	 "<control>z","Zoom out", G_CALLBACK(zoom_out)
 	},
@@ -209,6 +250,18 @@ static const GtkActionEntry entries[] = {
 	},
 	{"SlideShow", GTK_STOCK_DND_MULTIPLE, "SlideShow",
 	 "<control>w", "Slide show", G_CALLBACK(start_slideshow)
+	},
+	{"Tools",NULL,"Tools",
+	NULL,"Tools", NULL
+	},
+	{"Show exif data",NULL,"Show exif data",
+	"<control>e","Show exif data", G_CALLBACK(exif_information)
+	},
+	{"Crop Image",GTK_STOCK_CUT,"Crop Image",
+	"<control>c","Crop Image", G_CALLBACK(crop_image)
+	},
+	{"Take screenshot",NULL,"Take screenshot",
+	"<control>t","Take screenshot", G_CALLBACK(take_screenshot)
 	},
 	{"Open File",GTK_STOCK_OPEN,"Open File",
 	"<control>O","Open File", G_CALLBACK(on_open)
@@ -235,6 +288,8 @@ static const GtkActionEntry entries[] = {
 };
 
 static const GtkActionEntry entries1[] = {
+	{"Rotate and Flip","object-rotate-left","Rotate Clockwise",
+	"NULL","Rotate image", NULL	},
 	{"ImageRotate1","object-rotate-left","Rotate Clockwise",
 	"<control>R","Rotate image", G_CALLBACK(rotate_ccw)
 	},
@@ -317,10 +372,22 @@ void main_win_init( MainWin*mw )
 	  g_error_free (error);
 	}
 	
+	if (!gtk_ui_manager_add_ui_from_string (mw->uimanager, menu_ui_info, -1, &error))
+	{
+	  g_message ("building menus failed: %s", error->message);
+	  g_error_free (error);
+	}
+
 	gtk_widget_set_size_request(mw->toolbar_box, 720,40);
 	
     gtk_paned_add1(mw->toolbar_box,gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"));
 	gtk_container_add( (GtkContainer*)mw->align, mw->toolbar_box);
+	gtk_box_pack_end( (GtkBox*)mw->box, mw->align, FALSE, TRUE, 2 );
+	
+	gtk_toolbar_set_style(gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"), GTK_TOOLBAR_ICONS);
+	//end gtuimanager 
+			
+	g_signal_connect( mw->box, "button-press-event", G_CALLBACK(on_button_press), mw );
 	gtk_box_pack_end( (GtkBox*)mw->box, mw->align, FALSE, TRUE, 2 );
 	
 	gtk_toolbar_set_style(gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"), GTK_TOOLBAR_ICONS);
@@ -841,8 +908,7 @@ gboolean on_button_press( GtkWidget* widget, GdkEventButton* evt, MainWin* mw )
     {
         if( evt->button == 3 ) 
         {
-            show_popup_menu( mw, evt );
-        }
+            gtk_menu_popup( (GtkMenu*)gtk_ui_manager_get_widget(mw->uimanager, "/PopupMenu"), NULL, NULL, NULL, NULL, evt->button, evt->time );        }
     }
     else if( evt->type == GDK_2BUTTON_PRESS && evt->button == 1 )  
          on_full_screen( NULL, mw );
@@ -1263,51 +1329,6 @@ gboolean on_key_press_event(GtkWidget* widget, GdkEventKey * key)
 void set_wallpapaer(GtkWidget* widget, MainWin* mw)
 {
   set_as_wallpapaer(widget, mw);
-}
-
-void show_popup_menu( MainWin* mw, GdkEventButton* evt )
-{
-    static PtkMenuItemEntry menu_def[] =
-    {
-        PTK_IMG_MENU_ITEM( N_( "Previous" ), GTK_STOCK_GO_BACK, on_prev, GDK_leftarrow, 0 ),
-        PTK_IMG_MENU_ITEM( N_( "Next" ), GTK_STOCK_GO_FORWARD, on_next, GDK_rightarrow, 0 ),
-        PTK_SEPARATOR_MENU_ITEM,
-        PTK_IMG_MENU_ITEM( N_( "Zoom Out" ), GTK_STOCK_ZOOM_OUT, zoom_out, GDK_minus, 0 ),
-        PTK_IMG_MENU_ITEM( N_( "Zoom In" ), GTK_STOCK_ZOOM_IN, zoom_in, GDK_plus, 0 ),
-	    PTK_IMG_MENU_ITEM( N_( "Fit Image To Window Size" ), GTK_STOCK_ZOOM_FIT, fit, GDK_F, 0 ),
-        PTK_IMG_MENU_ITEM( N_( "Original Size" ), GTK_STOCK_ZOOM_100, normal_size, GDK_G, 0 ),
-		PTK_IMG_MENU_ITEM( N_( "Full Screen" ), GTK_STOCK_FULLSCREEN, on_full_screen, GDK_F11, 0 ),
-		PTK_IMG_MENU_ITEM( N_( "Slide show" ), GTK_STOCK_DND_MULTIPLE, start_slideshow, GDK_F12, 0 ),
-		PTK_IMG_MENU_ITEM( N_( "Set as wallpaper"), GTK_STOCK_INDEX, set_as_wallpapaer, GDK_W, 0),
-        PTK_SEPARATOR_MENU_ITEM,
-		PTK_IMG_MENU_ITEM( N_( "Crop image"),GTK_STOCK_CUT, crop_image, GDK_C,0),
-		PTK_IMG_MENU_ITEM( N_( "Exif Data"),NULL, exif_information, GDK_E,0),
-		PTK_IMG_MENU_ITEM( N_( "Take screenshot"),NULL, take_screenshot, GDK_T,0),
-		PTK_SEPARATOR_MENU_ITEM,
-		PTK_IMG_MENU_ITEM( N_( "Rotate Counterclockwise" ), "object-rotate-left", rotate_ccw, GDK_L, 0 ),
-        PTK_IMG_MENU_ITEM( N_( "Rotate Clockwise" ), "object-rotate-right", rotate_cw, GDK_R, 0 ),
-        PTK_IMG_MENU_ITEM( N_( "Flip Horizontal" ), "object-flip-horizontal", flip_h, GDK_H, 0 ),
-        PTK_IMG_MENU_ITEM( N_( "Flip Vertical" ), "object-flip-vertical", flip_v, GDK_V, 0 ),
-		PTK_SEPARATOR_MENU_ITEM,
-		PTK_IMG_MENU_ITEM( N_("Open File"), GTK_STOCK_OPEN, G_CALLBACK(on_open), GDK_O, 0 ),
-        PTK_IMG_MENU_ITEM( N_("Save File"), GTK_STOCK_SAVE, G_CALLBACK(on_save), GDK_S, 0 ),
-        PTK_IMG_MENU_ITEM( N_("Save As"), GTK_STOCK_SAVE_AS, G_CALLBACK(on_save_as), GDK_A, 0 ),
-		PTK_IMG_MENU_ITEM( N_("Delete File"), GTK_STOCK_DELETE, G_CALLBACK(on_delete), GDK_Delete, 0 ),
-        PTK_SEPARATOR_MENU_ITEM,
-		PTK_IMG_MENU_ITEM( N_("Preferences"), GTK_STOCK_PREFERENCES, G_CALLBACK(on_preference), GDK_P, 0 ),
-        PTK_STOCK_MENU_ITEM( GTK_STOCK_ABOUT, on_about ),
-        PTK_SEPARATOR_MENU_ITEM,
-        PTK_IMG_MENU_ITEM( N_("Quit"), GTK_STOCK_QUIT, G_CALLBACK(gtk_main_quit), GDK_Q, 0 ),
-        PTK_MENU_END
-		
-    };
-	
-    GtkAccelGroup* accel_group = gtk_accel_group_new();
-    GtkMenuShell* popup = (GtkMenuShell*)ptk_menu_new_from_data( menu_def, mw, accel_group );
-
-    gtk_widget_show_all( (GtkWidget*)popup );
-    g_signal_connect( popup, "selection-done", G_CALLBACK(gtk_widget_destroy), NULL );
-    gtk_menu_popup( (GtkMenu*)popup, NULL, NULL, NULL, NULL, evt->button, evt->time );
 }
 
 void crop_image (GtkWidget* widget, MainWin* mw, GdkEventMotion *event)
