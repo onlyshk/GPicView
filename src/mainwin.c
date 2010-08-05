@@ -231,7 +231,7 @@ static const GtkActionEntry entries[] = {
 	{"Go Forward",GTK_STOCK_GO_FORWARD,"Go Forward",
 	 "<control>g","Go Forward", G_CALLBACK(on_next)
 	},
-	{"Zoom",GTK_STOCK_ZOOM_IN,"Zoom out",NULL,"Zoom out", NULL
+	{"Zoom",GTK_STOCK_ZOOM_IN,"Zoom out",NULL,"Zoom", NULL
 	},
 	{"Zoom out",GTK_STOCK_ZOOM_OUT,"Zoom out",
 	 "<control>z","Zoom out", G_CALLBACK(zoom_out)
@@ -288,7 +288,7 @@ static const GtkActionEntry entries[] = {
 };
 
 static const GtkActionEntry entries1[] = {
-	{"Rotate and Flip","object-rotate-left","Rotate Clockwise",
+	{"Rotate and Flip","object-rotate-left","Rotate and FLip",
 	"NULL","Rotate image", NULL	},
 	{"ImageRotate1","object-rotate-left","Rotate Clockwise",
 	"<control>R","Rotate image", G_CALLBACK(rotate_ccw)
@@ -353,7 +353,6 @@ void main_win_init( MainWin*mw )
     gtk_box_pack_start(GTK_BOX(mw->img_box), mw->thumbnail_scroll, TRUE, TRUE,0);
 	gtk_box_pack_start(GTK_BOX(mw->img_box),mw->scroll,TRUE,TRUE,0);
 	
-	//gtkuimanager
 	actions = gtk_action_group_new ("Actions");
 	rotation_actions = gtk_action_group_new("Rotate_Actions");
 	
@@ -382,16 +381,14 @@ void main_win_init( MainWin*mw )
 	
     gtk_paned_add1(mw->toolbar_box,gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"));
 	gtk_container_add( (GtkContainer*)mw->align, mw->toolbar_box);
-	gtk_box_pack_end( (GtkBox*)mw->box, mw->align, FALSE, TRUE, 2 );
+	gtk_box_pack_end( (GtkBox*)mw->box, mw->align, FALSE, TRUE, 0 );
 	
 	gtk_toolbar_set_style(gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"), GTK_TOOLBAR_ICONS);
-	//end gtuimanager 
 			
 	g_signal_connect( mw->box, "button-press-event", G_CALLBACK(on_button_press), mw );
-	gtk_box_pack_end( (GtkBox*)mw->box, mw->align, FALSE, TRUE, 2 );
+	gtk_box_pack_end( (GtkBox*)mw->box, mw->align, FALSE, TRUE, 0 );
 	
 	gtk_toolbar_set_style(gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"), GTK_TOOLBAR_ICONS);
-	//end gtuimanager 
 			
 	g_signal_connect( mw->box, "button-press-event", G_CALLBACK(on_button_press), mw );
 	g_signal_connect( mw->view ,"selection-changed", G_CALLBACK(thumbnail_selected), mw);
@@ -401,9 +398,7 @@ void main_win_init( MainWin*mw )
     gtk_icon_view_set_pixbuf_column(GTK_ICON_VIEW(mw->view), 1);
     gtk_icon_view_set_selection_mode(GTK_ICON_VIEW(mw->view), GTK_SELECTION_SINGLE);
 	
-	gtk_widget_modify_bg (mw->aview, GTK_STATE_NORMAL, &pref.bg);
-	
-	gtk_box_pack_start(GTK_BOX(mw->box), gtk_hseparator_new(), FALSE, TRUE,0);	
+	gtk_widget_modify_bg (mw->aview, GTK_STATE_NORMAL, &pref.bg);	
 
 	gtk_container_add(GTK_CONTAINER(mw), mw->box);
     gtk_widget_show_all( mw );
@@ -884,7 +879,7 @@ start_slideshow(GtkWidget* btn, MainWin* mw)
 	{
         gtk_window_unfullscreen( (GtkWindow*)mw );
 		g_source_remove (mw->ss_source_tag);
-		gtk_widget_show(gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"));
+		gtk_widget_show(mw->toolbar_box);
 		mw->slideshow = FALSE;
 	}
 	else
@@ -894,7 +889,8 @@ start_slideshow(GtkWidget* btn, MainWin* mw)
                                                    (GSourceFunc)next_for_slide_show,
                                                    mw);
 
-	  gtk_widget_hide(gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"));
+	  gtk_widget_hide(mw->toolbar_box);
+	  gtk_widget_hide(mw->align);
 	  mw->slideshow = TRUE;
 	}
 }
@@ -915,7 +911,6 @@ gboolean on_button_press( GtkWidget* widget, GdkEventButton* evt, MainWin* mw )
     return FALSE;
 }
 
-/* zoom **********************/
 void zoom_out(GtkWidget* widget, MainWin* mw)
 { 
   gtk_image_view_zoom_out(mw->aview);
@@ -937,19 +932,18 @@ void normal_size(GtkWidget* widget, MainWin* mw)
   mw->scale = 1.0;
   update_title (NULL,mw);
 }
-/* end zoom *****************/
 
 void on_full_screen( GtkWidget* btn, MainWin* mw )
 {
     if( ! mw->full_screen )
 	{
         gtk_window_fullscreen( (GtkWindow*)mw );
-	    gtk_widget_hide(gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"));
+	    gtk_widget_hide(mw->toolbar_box);
 	}
 	else
 	{
         gtk_window_unfullscreen( (GtkWindow*)mw );
-	    gtk_widget_show(gtk_ui_manager_get_widget(mw->uimanager, "/ToolBar"));
+	    gtk_widget_show(mw->toolbar_box);
 	}
 }
 
@@ -1072,8 +1066,15 @@ void on_delete( GtkWidget* btn, MainWin* mw )
 		if( next_name )
 		{
 		    char* next_file_path = image_list_get_current_file_path( mw->img_list );
-
-			update_title(next_file_path, mw);
+			
+			update_title(next_file_path, mw);	
+			
+			GList* list = gtk_icon_view_get_selected_items(mw->view);
+			GtkTreePath* path = list->data;
+			
+			gtk_tree_model_row_deleted(mw->model, path);
+			
+			g_list_free(list);
 		    g_free( next_file_path );
 		}
 
