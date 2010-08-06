@@ -32,6 +32,7 @@
 #include "image-list.h"
 #include "loader.h"
 #include "jhead.h"
+#include "utils.h"
 
 #define LOAD_BUFFER_SIZE 65536 
 

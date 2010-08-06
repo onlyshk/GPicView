@@ -34,4 +34,6 @@ void gtk_anim_view_set_static (GtkAnimView *aview, GdkPixbuf *pixbuf);
 
 GdkPixbuf* scale_pix(GdkPixbuf* ori_pix, int size);
 
+void gtk_view_set_static (GtkAnimView *aview, GdkPixbuf *pixbuf);
+
 #endif

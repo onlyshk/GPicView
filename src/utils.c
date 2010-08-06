@@ -46,6 +46,33 @@ gtk_anim_view_set_static (GtkAnimView *aview, GdkPixbuf *pixbuf)
     g_object_unref(pixbuf);
 }
 
+void
+gtk_view_set_static (GtkAnimView *aview, GdkPixbuf *pixbuf)
+{
+    GdkPixbufSimpleAnim *s_anim;
+
+    s_anim = gdk_pixbuf_simple_anim_new (gdk_pixbuf_get_width(pixbuf),
+                                         gdk_pixbuf_get_height(pixbuf),
+                                         -1);
+    gdk_pixbuf_simple_anim_add_frame(s_anim, pixbuf);
+
+    if (aview->anim)
+        g_object_unref (aview->anim);
+
+    aview->anim = (GdkPixbufAnimation*)s_anim;
+
+    g_object_ref (aview->anim);
+    if (aview->iter)
+        g_object_unref (aview->iter);
+
+    gtk_image_view_set_pixbuf (GTK_IMAGE_VIEW (aview), pixbuf, TRUE);
+    gtk_anim_view_set_is_playing (aview, FALSE);
+    aview->delay = -1;
+    aview->iter = NULL;
+
+    g_object_unref(pixbuf);
+}
+
 GdkPixbuf* scale_pix(GdkPixbuf* ori_pix, int size)
 {
       GdkPixbuf* scaled_pix;

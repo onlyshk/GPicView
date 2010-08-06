@@ -73,6 +73,7 @@ struct _Win
     gdouble start_x;
     gdouble start_y;
 	GtkButton* crop_button;
+	GtkButton* cancel_button;
 	GdkPixbuf *original;
 	GdkPixbuf *preview;
 	
@@ -105,6 +106,8 @@ gboolean drawable_button_release_cb (GtkWidget *widget, GdkEventButton *event, W
 void tools_fit_to_size (gint * width, gint * height, gint max_width, gint max_height);
 
 void crop_click(GtkWidget* widget, Win* win);
+
+void cancel_click(GtkWidget* widget, Win* win);
 
 GtkWidget* win_new(MainWin* mw);
 

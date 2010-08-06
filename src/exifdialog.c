@@ -32,7 +32,7 @@
 
 G_DEFINE_TYPE (ExifWin, win_exif, G_TYPE_OBJECT);
 
-static gboolean on_delete_event( GtkWidget* widget, GdkEventAny* evt,gpointer data );
+static void on_close( GtkWidget* widget, gpointer data );
 
 
 /*************/
@@ -70,8 +70,7 @@ win_exif_class_init (ExifWinClass *klass)
 {
     GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
     GtkWidgetClass *widget_class =  GTK_WIDGET_CLASS ( klass );
-	
-	widget_class->delete_event = on_delete_event;
+
     gobject_class->dispose = exif_dispose;
 }
 
@@ -397,19 +396,16 @@ void show_exif_window(GtkWidget* widget, ExifWin * win)
              }
 	    }
 	
-	g_signal_connect( win->exif_button, "clicked", G_CALLBACK(on_delete_event), win->exif_window );
+	g_signal_connect( win->exif_button, "clicked", G_CALLBACK(on_close), win );
 	
 	
 	gtk_container_add(win->exif_window, win->box);
 	gtk_widget_show_all(win->exif_window);
 }
 
-gboolean on_delete_event( GtkWidget* widget, GdkEventAny* evt, gpointer data )
+void on_close( GtkWidget* widget, gpointer data )
 {
-	GList* window_list = gtk_window_list_toplevels();
-    gtk_widget_destroy( g_list_nth_data(window_list,5));
-	g_list_foreach (window_list, (GFunc)g_object_ref, NULL);
-	
-    return TRUE;
+	ExifWin* win = EXIF_WIN(data);
+	gtk_widget_destroy(win->exif_window);
 }
 

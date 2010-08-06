@@ -41,6 +41,9 @@ void show_window(GtkWidget* widget, Win *win)
     win->height = -1;
     win->width = -1;
     win->gc = NULL;
+	
+	if (image_list_get_current(win->mw->img_list) == NULL)
+		return;
 		
     win->crop_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_default_size (win->crop_window, 450, 370);
@@ -56,7 +59,9 @@ void show_window(GtkWidget* widget, Win *win)
 	gtk_widget_set_events (win->image, GDK_BUTTON_PRESS_MASK|GDK_BUTTON_RELEASE_MASK|GDK_BUTTON_MOTION_MASK);
 	
 	win->crop_button = gtk_button_new();
-	gtk_button_set_label(win->crop_button, "Crop");
+	gtk_button_set_label(win->crop_button, "Crop Image");
+	win->cancel_button = gtk_button_new();
+	gtk_button_set_label(win->cancel_button, "Cancel");
 	
 	win->original = gtk_image_view_get_pixbuf(GTK_IMAGE_VIEW(win->mw->aview));
 		
@@ -82,7 +87,11 @@ void show_window(GtkWidget* widget, Win *win)
 	
 	gtk_widget_set_size_request(win->image, width, height);
 	gtk_box_pack_start(win->box, win->image, TRUE, TRUE, 1);
-	gtk_box_pack_start(win->box, win->crop_button, TRUE, TRUE, 1);
+	
+	GtkHBox* vbox = gtk_hbox_new(FALSE, 0);
+	gtk_box_pack_start(win->box, vbox, TRUE, TRUE, 0);
+	gtk_box_pack_end(vbox, win->cancel_button, FALSE, FALSE, 0);
+	gtk_box_pack_end(vbox, win->crop_button, FALSE, FALSE, 10);
 	
 	g_signal_connect (win->image, "motion-notify-event", G_CALLBACK (drawable_motion_cb), win);
 	g_signal_connect (win->image, "expose-event", G_CALLBACK (drawable_expose_cb), win);
@@ -90,36 +99,18 @@ void show_window(GtkWidget* widget, Win *win)
 	g_signal_connect (win->image, "button-release-event", G_CALLBACK (drawable_button_release_cb), win);
 	
 	g_signal_connect (win->crop_button, "clicked", G_CALLBACK(crop_click), win);
+	g_signal_connect (win->cancel_button, "clicked", G_CALLBACK(cancel_click), win);
 	
 	gtk_container_add (win->crop_window, win->box);
 	gtk_widget_show_all(win->crop_window);
 }
 
+
+
 void
-gtk_view_set_static (GtkAnimView *aview, GdkPixbuf *pixbuf)
+cancel_click(GtkWidget* widget, Win* win)
 {
-    GdkPixbufSimpleAnim *s_anim;
-
-    s_anim = gdk_pixbuf_simple_anim_new (gdk_pixbuf_get_width(pixbuf),
-                                         gdk_pixbuf_get_height(pixbuf),
-                                         -1);
-    gdk_pixbuf_simple_anim_add_frame(s_anim, pixbuf);
-
-    if (aview->anim)
-        g_object_unref (aview->anim);
-
-    aview->anim = (GdkPixbufAnimation*)s_anim;
-
-    g_object_ref (aview->anim);
-    if (aview->iter)
-        g_object_unref (aview->iter);
-
-    gtk_image_view_set_pixbuf (GTK_IMAGE_VIEW (aview), pixbuf, TRUE);
-    gtk_anim_view_set_is_playing (aview, FALSE);
-    aview->delay = -1;
-    aview->iter = NULL;
-
-    g_object_unref(pixbuf);
+   gtk_widget_destroy(win->crop_window);
 }
 
 void
