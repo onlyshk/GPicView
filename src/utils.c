@@ -107,4 +107,24 @@ GdkPixbuf* scale_pix(GdkPixbuf* ori_pix, int size)
          scaled_pix = gdk_pixbuf_scale_simple(ori_pix, new_width, new_height, GDK_INTERP_BILINEAR);
   
       return scaled_pix;
-  }
+}
+
+void open_url( GtkAboutDialog *dlg, const gchar *url, gpointer data)
+{
+    char* programs[] = { "xdg-open", "gnome-open", "exo-open" };
+    int i;
+    for(  i = 0; i < G_N_ELEMENTS(programs); ++i)
+    {
+        gchar* open_cmd = NULL;
+        if( (open_cmd = g_find_program_in_path( programs[i] )) )
+        {
+             char* argv [3];
+             argv [0] = programs[i];
+             argv [1] = (gchar *) url;
+             argv [2] = NULL;
+             g_spawn_async (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, NULL);
+             g_free( open_cmd );
+             break;
+        }
+    }
+}

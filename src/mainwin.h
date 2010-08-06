@@ -163,6 +163,8 @@ void build_thumbnails(GtkWidget* widget, MainWin *mw);
 
 void gtk_view_set_static (GtkAnimView *aview, GdkPixbuf *pixbuf);
 
+void list_load(MainWin* mw);
+
 GType main_win_get_type();
 
 #endif

@@ -95,7 +95,6 @@ static void on_delete( GtkWidget* btn, MainWin* mw );
 static void update_title(const char *filename, MainWin *mw );
 static void on_preference(GtkWidget* widget, MainWin* mw);
 static void show_popup_menu( MainWin* mw, GdkEventButton* evt );
-static void open_url( GtkAboutDialog *dlg, const gchar *url, gpointer data);
 static gboolean on_button_press( GtkWidget* widget, GdkEventButton* evt, MainWin* mw );
 static void thumbnail_selected(GtkWidget* widget, MainWin* mw);
 static void loading(JobParam* param);
@@ -107,6 +106,7 @@ static void printing_image( GtkWidget* widget, MainWin* mw);
 static void select_nth_item(GtkWidget *iconview, gpointer user_data);
 static void select_prev_item(GtkWidget *iconview, gpointer user_data) ;
 static void take_screenshot(GtkWidget* widget, MainWin* mw);
+static gboolean job_func2(GIOSchedulerJob *job, GCancellable *cancellable, gpointer user_data);
 
 static gboolean set_image(JobParam* param);
 static gboolean set_image_by_click(GtkWidget* widget, MainWin* mw);
@@ -582,7 +582,7 @@ gboolean set_thumbnails(JobParam* param)
 	
   GtkTreePath *path =  gtk_tree_model_get_path (param->mw->model, &iter);
   gtk_icon_view_select_path(GTK_ICON_VIEW(param->mw->view),path); 
-	
+
   gtk_tree_path_free(path);
 }
 
@@ -595,6 +595,33 @@ gboolean set_image(JobParam* param)
 gboolean set_image_by_click(GtkWidget* widget, MainWin* mw)
 {
    gtk_anim_view_set_anim (mw->aview, mw->animation);
+}
+
+void list_load(MainWin* mw)
+{
+	char* file_path =  g_file_get_path(mw->loading_file);
+  	mw->dir_path = g_path_get_dirname( file_path);
+	 
+	image_list_open_dir(mw->img_list, mw->dir_path, NULL );
+    image_list_sort_by_name( mw->img_list, GTK_SORT_DESCENDING );
+    image_list_sort_by_name( mw->img_list, GTK_SORT_DESCENDING );
+        
+    char* base_name = g_path_get_basename( file_path );
+    image_list_set_current( mw->img_list, base_name );
+    char* disp_name = g_filename_display_name( base_name );
+	
+    g_free( base_name );
+    g_free( disp_name );
+	g_free( file_path );
+}
+
+gboolean job_func2(GIOSchedulerJob *job, GCancellable *cancellable, gpointer user_data)
+{
+	MainWin* mw =MAIN_WIN(user_data);
+	
+	list_load(mw);
+	
+	return FALSE;
 }
 
 void on_open( GtkWidget* widget, MainWin* mw )
@@ -611,53 +638,32 @@ void on_open( GtkWidget* widget, MainWin* mw )
 	
 	if (mw->dir_path == NULL)
 	{
-		mw->dir_path = g_path_get_dirname( file_path);
-	  
-		image_list_open_dir(mw->img_list, mw->dir_path, NULL );
-        image_list_sort_by_name( mw->img_list, GTK_SORT_DESCENDING );
-        image_list_sort_by_name( mw->img_list, GTK_SORT_DESCENDING );
-        
-        char* base_name = g_path_get_basename( file_path );
-        image_list_set_current( mw->img_list, base_name );
-        char* disp_name = g_filename_display_name( base_name );
-		    
+		g_io_scheduler_push_job (job_func2, mw, NULL, G_PRIORITY_DEFAULT, mw->generator_cancellable);
+
 		update_title(file_path, mw);
 		
 		g_free(file);
-		g_free( base_name );
-        g_free( disp_name );
-		g_free(file_path);
+		g_free(dir);
 		
 		main_win_open (mw);	
     }
-	
 	else
 	{
 		if (strcmp (dir, mw->dir_path) == 0)
  		{
             mw->animation = gdk_pixbuf_animation_new_from_file(file_path, NULL);
 		    set_image_by_click(widget, mw);
+			 
+			g_free(file_path);
 		    g_object_unref(mw->animation);
 		}
 		else
 		{
-	      
-		  mw->dir_path = g_path_get_dirname( file_path);
-	  
-		  image_list_open_dir(mw->img_list, mw->dir_path, NULL );
-          image_list_sort_by_name( mw->img_list, GTK_SORT_DESCENDING );
-          image_list_sort_by_name( mw->img_list, GTK_SORT_DESCENDING );
-        
-          char* base_name = g_path_get_basename( file_path );
-          image_list_set_current( mw->img_list, base_name );
-          char* disp_name = g_filename_display_name( base_name );	
-			
+	      g_io_scheduler_push_job (job_func2, mw, NULL, G_PRIORITY_DEFAULT, mw->generator_cancellable);
+
 		  update_title(file_path, mw);
 		  
 		  g_free(file);
-		  g_free( base_name );
-          g_free( disp_name );
-		  g_free(file_path);
 			
 		  main_win_open(mw);
 		}
@@ -687,16 +693,18 @@ void thumbnail_selected( GtkWidget* widget, MainWin* mw)
   image_list_set_current( mw->img_list, base_name );
 	
   char* disp_name = g_filename_display_name( base_name );
-		
-  GFile* file = NULL;
-  file = g_file_new_for_path(selecting_path);
-  mw->loading_file = file;
+	
+  mw->loading_file = g_file_new_for_path (selecting_path);
 	
   mw->animation = gdk_pixbuf_animation_new_from_file(selecting_path, NULL);
   set_image_by_click(NULL, mw);
 	
   g_object_unref(mw->animation);
+	
   g_free(base_name);
+  g_free(path_to_string);
+  g_free(selecting_path);
+  g_free(disp_name);
 }
 
 void printing_image(GtkWidget* widget, MainWin* mw)
@@ -741,11 +749,11 @@ static void select_next_item(GtkWidget *iconview, gpointer user_data)
 	MainWin* mw = MAIN_WIN(user_data);
 	
     GtkTreePath * path = gtk_icon_view_get_selected_items(mw->view)->data;
-	char* a = gtk_tree_path_to_string(path);
+	char* path_to_string = gtk_tree_path_to_string(path);
 	
     int image_count = g_list_length (mw->img_list->list);
 	
-	int n = atoi(a);
+	int n = atoi(path_to_string);
 
 	if (n == image_count - 1)
 	    path = gtk_tree_path_new_first();
@@ -753,9 +761,9 @@ static void select_next_item(GtkWidget *iconview, gpointer user_data)
 	    gtk_tree_path_next(path); 
 	
     gtk_icon_view_select_path(GTK_ICON_VIEW(iconview),path); 
-    gtk_tree_path_free (path);
-	
-	g_free(a);
+    
+	gtk_tree_path_free (path);
+	g_free(path_to_string);
 } 
 
 
@@ -764,11 +772,11 @@ static void select_prev_item(GtkWidget *iconview, gpointer user_data)
 	MainWin* mw = MAIN_WIN(user_data);
 	
     GtkTreePath * path = gtk_icon_view_get_selected_items(mw->view)->data;
-	char* a = gtk_tree_path_to_string(path);
+	char* path_to_string = gtk_tree_path_to_string(path);
 	
     int image_count = g_list_length (mw->img_list->list);
 	
-	int n = atoi(a);
+	int n = atoi(path_to_string);
 
 	if (n == 0)
 	{
@@ -781,19 +789,17 @@ static void select_prev_item(GtkWidget *iconview, gpointer user_data)
 	    gtk_tree_path_prev(path); 
 	
     gtk_icon_view_select_path(GTK_ICON_VIEW(iconview),path); 
-    gtk_tree_path_free (path);
-	
-	g_free(a);
+  
+	gtk_tree_path_free (path);
+	g_free(path_to_string);
 } 
 
 void on_prev( GtkWidget* widget, MainWin* mw )
 {		
-    const char* name;	
-    if( image_list_is_empty( mw->img_list ) )
+	if( image_list_is_empty( mw->img_list ) )
         return;
 	
-    name = image_list_get_prev( mw->img_list );
-	
+	const char* name = image_list_get_prev( mw->img_list );
     if( ! name && image_list_has_multiple_files( mw->img_list ) )
         name = image_list_get_last( mw->img_list );
       
@@ -811,8 +817,8 @@ void on_prev( GtkWidget* widget, MainWin* mw )
 
 		select_next_item(mw->view, mw);
 		
-		 g_object_unref(mw->animation);
-		 g_free( file_path ); 
+		g_object_unref(mw->animation);
+		g_free( file_path );
     }
 }
 
@@ -863,9 +869,7 @@ void next_for_slide_show( MainWin* mw )
     if( name )
     {
         char* file_path = image_list_get_current_file_path( mw->img_list );
-				
-		GFile* file = g_file_new_for_path(file_path);
-		mw->loading_file = file;
+		mw->loading_file = g_file_new_for_path(file_path);
 		
         main_win_open_without_thumbnails_loading(mw);
         g_free( file_path );
@@ -1386,27 +1390,6 @@ void exif_information(GtkWidget* widget, MainWin* mw)
   	ExifWin *win;
 	win = (ExifWin*)exif_win_new (mw);
 	show_exif_window(widget,win);
-}
-
-static void open_url( GtkAboutDialog *dlg, const gchar *url, gpointer data)
-{
-    /* FIXME: is there any better way to do this? */
-    char* programs[] = { "xdg-open", "gnome-open", "exo-open" };
-    int i;
-    for(  i = 0; i < G_N_ELEMENTS(programs); ++i)
-    {
-        gchar* open_cmd = NULL;
-        if( (open_cmd = g_find_program_in_path( programs[i] )) )
-        {
-             char* argv [3];
-             argv [0] = programs[i];
-             argv [1] = (gchar *) url;
-             argv [2] = NULL;
-             g_spawn_async (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, NULL);
-             g_free( open_cmd );
-             break;
-        }
-    }
 }
 
 static void take_screenshot(GtkWidget* widget, MainWin* mw)
