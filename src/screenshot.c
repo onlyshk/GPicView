@@ -156,7 +156,7 @@ GdkPixbuf* get_screenshot_with_cursor(gpointer user_data)
    gdk_pixbuf_composite(cursor_pixbuf, screenshot, 0, 0, gdk_pixbuf_get_width(screenshot),  gdk_pixbuf_get_height(screenshot),
                                                             chid_x - offset_x, chid_y - offset_y, 1.0, 1.0, GDK_INTERP_NEAREST, 0xFF);
    
-   gtk_image_view_set_pixbuf(mw->aview, screenshot, TRUE);
+   gtk_image_view_set_pixbuf(GTK_IMAGE_VIEW(mw->aview), screenshot, TRUE);
    
    return cursor_pixbuf;
 }
@@ -180,7 +180,7 @@ GdkPixbuf* get_screenshot(gpointer user_data)
    screenshot = gdk_pixbuf_get_from_drawable (screenshot, root_window, NULL,
                                               x_orig, y_orig, 0, 0, width, height);
 	
-   gtk_image_view_set_pixbuf(mw->aview, screenshot, TRUE);	
+   gtk_image_view_set_pixbuf(GTK_IMAGE_VIEW(mw->aview), screenshot, TRUE);	
   
    return screenshot;
 }
@@ -204,7 +204,7 @@ GdkPixbuf* get_active_window_screenshot(gpointer user_data)
    screenshot = gdk_pixbuf_get_from_drawable (NULL, root_window, NULL,
                                               0, 0, 0, 0, width, height);
 	
-   gtk_image_view_set_pixbuf(mw->aview, screenshot, TRUE);	
+   gtk_image_view_set_pixbuf(GTK_IMAGE_VIEW(mw->aview), screenshot, TRUE);	
 	   
    g_object_unref( root_window);
   
@@ -360,7 +360,7 @@ drawable_button_release_cb (GtkWidget *widget, GdkEventButton *event, Screenshot
         win->mw->current_image_width = win->area.width;
         win->mw->current_image_height = win->area.height;
 		
-		gtk_widget_destroy(win->screenshot_window);
+		gtk_widget_destroy((GtkWidget*)win->screenshot_window);
     }
     return FALSE;
 }
@@ -378,9 +378,9 @@ void screenshot_window(GtkWidget* widget, ScreenshotWin* win)
    win->width = -1;
    win->gc = NULL;
 	
-   win->view = gtk_image_view_new();
-   win->screenshot_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-   win->box = gtk_vbox_new (FALSE,0);
+   win->view = (GtkImageView*)gtk_image_view_new();
+   win->screenshot_window = GTK_WINDOW(gtk_window_new(GTK_WINDOW_TOPLEVEL));
+   win->box = (GtkVBox*)gtk_vbox_new (FALSE,0);
    
    win->pixbuf = get_screenshot(win->mw);
    gtk_image_view_set_pixbuf(win->view, win->pixbuf, TRUE);
@@ -395,15 +395,15 @@ void screenshot_window(GtkWidget* widget, ScreenshotWin* win)
   
    gtk_container_add (GTK_CONTAINER (win->screenshot_window), win->image);
    
-   gtk_window_fullscreen(win->screenshot_window);
-   gtk_widget_show_all(win->screenshot_window);
+   gtk_window_fullscreen(GTK_WINDOW(win->screenshot_window));
+   gtk_widget_show_all(GTK_WIDGET(win->screenshot_window));
 }
 
 void screenshot_delay(int delay, gpointer user_data)
 {
    MainWin* mw = MAIN_WIN(user_data);
    int source_tag = g_timeout_add_seconds (delay,(GSourceFunc)get_screenshot, mw);
-   g_timeout_add_seconds(delay + 1, g_source_remove,source_tag);
+   g_timeout_add_seconds(delay + 1, (GSourceFunc)g_source_remove, (gpointer)source_tag);
 	
    return;
 }
@@ -412,7 +412,7 @@ void screenshot_delay_with_cursor(int delay, gpointer user_data)
 {
    MainWin* mw = MAIN_WIN(user_data);
    int source_tag = g_timeout_add_seconds (delay,(GSourceFunc)get_screenshot_with_cursor, mw);
-   g_timeout_add_seconds(delay + 1, g_source_remove,source_tag);
+   g_timeout_add_seconds(delay + 1, (GSourceFunc)g_source_remove, (gpointer)source_tag);
 	
    return;
 }
@@ -421,7 +421,7 @@ void screenshot_delay_active_window(int delay, gpointer user_data)
 {
    MainWin* mw = MAIN_WIN(user_data);
    int source_tag = g_timeout_add_seconds (delay,(GSourceFunc)get_active_window_screenshot, mw);
-   g_timeout_add_seconds(delay + 1, g_source_remove,source_tag);
+   g_timeout_add_seconds(delay + 1, (GSourceFunc)g_source_remove,(gpointer)source_tag);
 	
    return;
 }
@@ -487,10 +487,10 @@ GtkWidget* screenshot_new(MainWin* mw)
 {
 	ScreenshotWin *win;
 	
-    win = (GObject*)g_object_new (SCREENSHOT_WIN_TYPE, NULL );
+    win = g_object_new (SCREENSHOT_WIN_TYPE, NULL );
  
 	win->mw = mw;
 	
-	return (GObject *) win;
+	return (GtkWidget*) win;
 }
 

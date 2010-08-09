@@ -50,7 +50,9 @@ gpicview_SOURCES = \
 	imlib.c   \
 	screenshot.c   \
 	screenshot-dlg.c   \
-	screenshot-dlg.h
+	screenshot-dlg.h   \
+	about.c   \
+	about.h
 
 gpicview_CFLAGS = \
 	$(GTK_CFLAGS) \

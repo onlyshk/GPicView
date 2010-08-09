@@ -84,7 +84,7 @@ GdkPixbuf* load_image_from_stream(GInputStream* input_stream, GCancellable* gene
 {	
   	GError** error = NULL; 
 	gboolean res   = TRUE;
-	gssize n_read  = NULL;
+	gssize n_read = 0;
 	guchar buffer[65535];
 	
 	GdkPixbuf* image;

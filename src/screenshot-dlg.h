@@ -18,8 +18,8 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-#ifndef SCREENSHOT-DLG_H
-#define SCREENSHOT-DLG_H
+#ifndef SCREENSHOT_DLG_H
+#define SCREENSHOT_DLG_H
 
 #include "screenshot.h"
 #include "mainwin.h"
@@ -56,7 +56,7 @@ struct _ScreenshotDlgWin
 	guint delay;
 };
 
-typedef struct _ScreenshotDlgWinClass {
+struct _ScreenshotDlgWinClass {
     GObjectClass parent_class;
 };
 

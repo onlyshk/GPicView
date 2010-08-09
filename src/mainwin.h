@@ -165,6 +165,8 @@ void gtk_view_set_static (GtkAnimView *aview, GdkPixbuf *pixbuf);
 
 void list_load(MainWin* mw);
 
+void load_list(MainWin* mw);
+
 GType main_win_get_type();
 
 #endif

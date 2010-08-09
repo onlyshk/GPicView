@@ -78,11 +78,11 @@ GtkWidget* exif_win_new( MainWin* mw)
 {
 	ExifWin *win;
 	
-    win = (GObject*)g_object_new (EXIF_WIN_TYPE, NULL );
+    win = g_object_new (EXIF_WIN_TYPE, NULL );
  
 	win->mw = mw;
 	
-	return (GObject *) win;
+	return (GtkWidget *) win;
 }
 
 static void
@@ -145,7 +145,7 @@ init_list(GtkWidget *list)
 }
 
 static void
-add_to_list(GtkWidget *list, const char *str, char *str2)
+add_to_list(GtkWidget *list, const char *str, const char *str2)
 {
   GtkListStore *store;
   GtkTreeIter iter;
@@ -170,36 +170,36 @@ void show_exif_window(GtkWidget* widget, ExifWin * win)
 	
 	const char* current_image = image_list_get_current_file_path(win->mw->img_list);
 		
-	win->exif_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	win->exif_window = (GtkWindow*)gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_resizable (win->exif_window, TRUE);
 	gtk_window_set_default_size (win->exif_window, 400, 400);
     gtk_window_set_position(win->exif_window,GTK_WIN_POS_CENTER);
     gtk_window_set_title(win->exif_window, "Exif information");
 	
-	win->box = gtk_vbox_new (FALSE,0);
-	win->hbox = gtk_hbox_new (FALSE,0);
+	win->box =  (GtkVBox*)gtk_vbox_new (FALSE,0);
+	win->hbox = (GtkHBox*)gtk_hbox_new (FALSE,0);
 	
-	win->exif_label = gtk_label_new("Exif data");
+	win->exif_label = (GtkLabel*)gtk_label_new("Exif data");
 	gtk_label_set_justify(GTK_LABEL(win->exif_label), GTK_JUSTIFY_CENTER);
-    gtk_box_pack_start(GTK_BOX(win->box), win->exif_label, FALSE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(win->box), (GtkWidget*)win->exif_label, FALSE, FALSE, 5);
 	
-	win->exif_button = gtk_button_new_with_label("Close");
+	win->exif_button = (GtkButton*)gtk_button_new_with_label("Close");
 
 	win->list = gtk_tree_view_new();
     gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(win->list), FALSE);
 	
 	win->align = gtk_alignment_new( 1,0 ,0,0);
-    gtk_container_add( (GtkContainer*)win->align, win->exif_button);
+    gtk_container_add( (GtkContainer*)win->align, (GtkWidget*)win->exif_button);
 	
-	win->scroll = gtk_scrolled_window_new(NULL,NULL);
+	win->scroll = (GtkScrolledWindow*)gtk_scrolled_window_new(NULL,NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(win->scroll),
                 				   GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	gtk_scrolled_window_add_with_viewport(win->scroll, win->list);
 	
-    gtk_box_pack_start(GTK_BOX(win->box), win->scroll, TRUE, TRUE, 0);
-	gtk_box_pack_start(GTK_BOX(win->box), gtk_hseparator_new(), FALSE, TRUE,0);
-	gtk_box_pack_start(GTK_BOX(win->box), win->hbox, FALSE, FALSE, 0);
-	gtk_box_pack_start(GTK_BOX(win->hbox),win->align, TRUE, TRUE,  0);
+    gtk_box_pack_start(GTK_BOX(win->box), GTK_WIDGET(win->scroll), TRUE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(win->box), GTK_WIDGET(gtk_hseparator_new()), FALSE, TRUE,0);
+	gtk_box_pack_start(GTK_BOX(win->box), GTK_WIDGET(win->hbox), FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(win->hbox),GTK_WIDGET(win->align), TRUE, TRUE,  0);
 	
 	int Modified = FALSE;
     ReadMode_t ReadMode;
@@ -254,7 +254,7 @@ void show_exif_window(GtkWidget* widget, ExifWin * win)
 	char  buf7[35];
 	char  buf8[35];
 	char  buf9[35];
-	char* buf10[35];
+	char buf10[35];
 	
 	char* size = itoa(ImageInfo.FileSize,buf);
 	
@@ -264,25 +264,25 @@ void show_exif_window(GtkWidget* widget, ExifWin * win)
 	char Temp[20];
     FileTimeAsString(Temp);
 	
-	char* largest_offset = itoa(ImageInfo.LargestExifOffset, buf3);
-	char* thumbnail_size    = itoa(ImageInfo.ThumbnailSize, buf4);
-	char* ThumbnailOffset   = itoa(ImageInfo.ThumbnailOffset, buf5);
-	char* image_xdensity    = itoa(ImageInfo.JfifHeader.XDensity, buf6);
-	char* image_ydensity    = itoa(ImageInfo.JfifHeader.XDensity, buf7);
-	char* zoom              = itoa(ImageInfo.DigitalZoomRatio, buf8);
-	char* iso               = itoa(ImageInfo.ISOequivalent, buf9);
-	char* distance          = itoa(ImageInfo.DistanceRange, buf10);
+	const char* largest_offset = itoa(ImageInfo.LargestExifOffset, buf3);
+	const char* thumbnail_size    = itoa(ImageInfo.ThumbnailSize, buf4);
+	const char* ThumbnailOffset   = itoa(ImageInfo.ThumbnailOffset, buf5);
+	const char* image_xdensity    = itoa(ImageInfo.JfifHeader.XDensity, buf6);
+	const char* image_ydensity    = itoa(ImageInfo.JfifHeader.XDensity, buf7);
+	const char* zoom              = itoa(ImageInfo.DigitalZoomRatio, buf8);
+	const char* iso               = itoa(ImageInfo.ISOequivalent, buf9);
+	const char* distance          = itoa(ImageInfo.DistanceRange, buf10);
 	
     float value = ImageInfo.ExposureTime; 
-	char *str = (char*)alloca(20);
+	char *str = (char*)malloc(20);
 	sprintf(str, "%f\n", value);
 	
 	float value2 = ImageInfo.ApertureFNumber;
-	char *str2   = (char*)alloca(20);
+	char *str2   = (char*)malloc(20);
 	sprintf(str2, "f/%3.1f" , value2); 
 	
 	float value3 = ImageInfo.FocalLength35mmEquiv;
-	char *str3   = (char*)alloca(20);
+	char *str3   = (char*)malloc(20);
 	sprintf(str3, "f(35)=%dmm" , value3); 
 	
 	init_list(win->list);
@@ -399,13 +399,17 @@ void show_exif_window(GtkWidget* widget, ExifWin * win)
 	g_signal_connect( win->exif_button, "clicked", G_CALLBACK(on_close), win );
 	
 	
-	gtk_container_add(win->exif_window, win->box);
-	gtk_widget_show_all(win->exif_window);
+	gtk_container_add(GTK_CONTAINER(win->exif_window), GTK_WIDGET(win->box));
+	gtk_widget_show_all((GtkWidget*)win->exif_window);
+	
+	g_free(str);
+	g_free(str2);
+	g_free(str3);
 }
 
 void on_close( GtkWidget* widget, gpointer data )
 {
 	ExifWin* win = EXIF_WIN(data);
-	gtk_widget_destroy(win->exif_window);
+	gtk_widget_destroy((GtkWidget*)win->exif_window);
 }
 

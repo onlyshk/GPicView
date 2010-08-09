@@ -166,8 +166,8 @@ static void on_set_bg( GtkColorButton* btn, gpointer user_data )
     gtk_color_button_get_color(btn, &pref.bg);
     if( !parent->full_screen )
     {
-        gtk_widget_modify_bg( parent->aview, GTK_STATE_NORMAL, &pref.bg );
-        gtk_widget_queue_draw(parent->aview );
+        gtk_widget_modify_bg((GtkWidget*) parent->aview, GTK_STATE_NORMAL, &pref.bg );
+        gtk_widget_queue_draw((GtkWidget*)parent->aview );
     }
 }
 
@@ -177,8 +177,8 @@ static void on_set_bg_full( GtkColorButton* btn, gpointer user_data )
     gtk_color_button_get_color(btn, &pref.bg_full);
     if( parent->full_screen )
     {
-        gtk_widget_modify_bg( parent->aview, GTK_STATE_NORMAL, &pref.bg_full );
-        gtk_widget_queue_draw(parent->aview );
+        gtk_widget_modify_bg((GtkWidget*)parent->aview, GTK_STATE_NORMAL, &pref.bg_full );
+        gtk_widget_queue_draw((GtkWidget*)parent->aview );
     }
 }
 
@@ -253,7 +253,7 @@ void edit_preferences( GtkWindow* parent )
 	
     gtk_builder_add_from_file(builder, "/usr/local/share/gpicview/ui/pref-dlg.ui" , NULL);
     
-    dlg = gtk_builder_get_object(builder, "dlg");
+    dlg = (GtkDialog*)gtk_builder_get_object(builder, "dlg");
 
     gtk_window_set_transient_for((GtkWindow*)dlg, parent);
     ask_before_save_btn = (GtkWidget*)gtk_builder_get_object(builder, "ask_before_save");
@@ -272,11 +272,11 @@ void edit_preferences( GtkWindow* parent )
     g_signal_connect( set_default_btn, "clicked", G_CALLBACK(on_set_default), parent );
 
     bg_btn = (GtkWidget*)gtk_builder_get_object(builder, "bg");
-    gtk_color_button_set_color(bg_btn, &pref.bg);
+    gtk_color_button_set_color((GtkColorButton*)bg_btn, &pref.bg);
     g_signal_connect( bg_btn, "color-set", G_CALLBACK(on_set_bg), parent );
 
     bg_full_btn = (GtkWidget*)gtk_builder_get_object(builder, "bg_full");
-    gtk_color_button_set_color(bg_full_btn, &pref.bg_full);
+    gtk_color_button_set_color((GtkColorButton*)bg_full_btn, &pref.bg_full);
     g_signal_connect( bg_full_btn, "color-set", G_CALLBACK(on_set_bg_full), parent );
 
     g_object_unref( builder );

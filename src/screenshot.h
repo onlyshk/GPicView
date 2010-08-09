@@ -66,7 +66,7 @@ struct _ScreenshotWin
 	GdkRectangle area;
 };
 
-typedef struct _ScreenshotWinClass {
+struct _ScreenshotWinClass {
     GObjectClass parent_class;
 };
 

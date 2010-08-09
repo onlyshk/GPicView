@@ -45,34 +45,34 @@ void show_window(GtkWidget* widget, Win *win)
 	if (image_list_get_current(win->mw->img_list) == NULL)
 		return;
 		
-    win->crop_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    win->crop_window = (GtkWindow*)gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_default_size (win->crop_window, 450, 370);
 	gtk_window_set_resizable (win->crop_window, FALSE);
 	gtk_window_set_transient_for(GTK_WINDOW(win->crop_window), GTK_WINDOW(win->mw));
     gtk_window_set_position(win->crop_window,GTK_WIN_POS_CENTER);
     gtk_window_set_title(win->crop_window, "Crop Image");
 	
-	win->box = gtk_vbox_new (FALSE,0);
-	win->hbox = gtk_hbox_new (FALSE, 0);
+	win->box = (GtkVBox*)gtk_vbox_new (FALSE,0);
+	win->hbox = (GtkHBox*)gtk_hbox_new (FALSE, 0);
 	
 	win->image = gtk_drawing_area_new();
 	gtk_widget_set_events (win->image, GDK_BUTTON_PRESS_MASK|GDK_BUTTON_RELEASE_MASK|GDK_BUTTON_MOTION_MASK);
 	
-	win->crop_button = gtk_button_new();
+	win->crop_button = (GtkButton*)gtk_button_new();
 	gtk_button_set_label(win->crop_button, "Crop Image");
-	win->cancel_button = gtk_button_new();
+	win->cancel_button = (GtkButton*)gtk_button_new();
 	gtk_button_set_label(win->cancel_button, "Cancel");
 	
 	win->original = gtk_image_view_get_pixbuf(GTK_IMAGE_VIEW(win->mw->aview));
 		
-    width = gdk_pixbuf_get_width(  gtk_image_view_get_pixbuf (win->mw->aview) );
-    height = gdk_pixbuf_get_height( gtk_image_view_get_pixbuf ( win->mw->aview) );
+    width = gdk_pixbuf_get_width(  gtk_image_view_get_pixbuf (GTK_IMAGE_VIEW(win->mw->aview)) );
+    height = gdk_pixbuf_get_height( gtk_image_view_get_pixbuf ( GTK_IMAGE_VIEW(win->mw->aview)) );
 	
    	fit_to_size_double(&height, &width, 450,450);	
 	win->width = width;
 	win->height = height;
-	win->zoom = (width/gdk_pixbuf_get_width(  gtk_image_view_get_pixbuf (win->mw->aview))
-				 + height/gdk_pixbuf_get_height(  gtk_image_view_get_pixbuf (win->mw->aview))) / 2;
+	win->zoom = (width/gdk_pixbuf_get_width(  gtk_image_view_get_pixbuf (GTK_IMAGE_VIEW(win->mw->aview)))
+				 + height/gdk_pixbuf_get_height(  gtk_image_view_get_pixbuf (GTK_IMAGE_VIEW(win->mw->aview)))) / 2;
 		
 	win->preview =        gdk_pixbuf_new (gdk_pixbuf_get_colorspace (win->original),
                           gdk_pixbuf_get_has_alpha (win->original),
@@ -86,12 +86,12 @@ void show_window(GtkWidget* widget, Win *win)
 		
 	
 	gtk_widget_set_size_request(win->image, width, height);
-	gtk_box_pack_start(win->box, win->image, TRUE, TRUE, 1);
+	gtk_box_pack_start((GtkBox*)win->box, (GtkWidget*)win->image, TRUE, TRUE, 1);
 	
-	GtkHBox* vbox = gtk_hbox_new(FALSE, 0);
-	gtk_box_pack_start(win->box, vbox, TRUE, TRUE, 0);
-	gtk_box_pack_end(vbox, win->cancel_button, FALSE, FALSE, 0);
-	gtk_box_pack_end(vbox, win->crop_button, FALSE, FALSE, 10);
+	GtkHBox* vbox = (GtkHBox*)gtk_hbox_new(FALSE, 0);
+	gtk_box_pack_start((GtkBox*)win->box, (GtkWidget*)vbox, TRUE, TRUE, 0);
+	gtk_box_pack_end((GtkBox*)vbox, (GtkWidget*)win->cancel_button, FALSE, FALSE, 0);
+	gtk_box_pack_end((GtkBox*)vbox, (GtkWidget*)win->crop_button, FALSE, FALSE, 10);
 	
 	g_signal_connect (win->image, "motion-notify-event", G_CALLBACK (drawable_motion_cb), win);
 	g_signal_connect (win->image, "expose-event", G_CALLBACK (drawable_expose_cb), win);
@@ -101,8 +101,8 @@ void show_window(GtkWidget* widget, Win *win)
 	g_signal_connect (win->crop_button, "clicked", G_CALLBACK(crop_click), win);
 	g_signal_connect (win->cancel_button, "clicked", G_CALLBACK(cancel_click), win);
 	
-	gtk_container_add (win->crop_window, win->box);
-	gtk_widget_show_all(win->crop_window);
+	gtk_container_add (GTK_CONTAINER(win->crop_window), (GtkWidget*)win->box);
+	gtk_widget_show_all((GtkWidget*)win->crop_window);
 }
 
 
@@ -110,7 +110,7 @@ void show_window(GtkWidget* widget, Win *win)
 void
 cancel_click(GtkWidget* widget, Win* win)
 {
-   gtk_widget_destroy(win->crop_window);
+   gtk_widget_destroy((GtkWidget*)win->crop_window);
 }
 
 void
@@ -379,11 +379,11 @@ GtkWidget* win_new(MainWin* mw)
 {
 	Win *win;
 	
-    win = (GObject*)g_object_new (CROP_WIN_TYPE, NULL );
+    win = g_object_new (CROP_WIN_TYPE, NULL );
  
 	win->mw = mw;
 	
-	return (GObject *) win;
+	return (GtkWidget *) win;
 }
 
 static void

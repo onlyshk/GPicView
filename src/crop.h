@@ -81,7 +81,7 @@ struct _Win
 	GdkRectangle area;
 };
 
-typedef struct _WinClass {
+struct _WinClass {
     GObjectClass parent_class;
 };
 

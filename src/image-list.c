@@ -41,15 +41,15 @@ ImageList* image_list_new()
         GSList* format;
         for( format = formats; format; format = format->next )
         {
-            char** exts = gdk_pixbuf_format_get_extensions( (GdkPixbufFormat*)format->data );
+            char** exts = gdk_pixbuf_format_get_mime_types( (GdkPixbufFormat*)format->data );
             char** ext;
             for( ext  = exts; *ext ; ++ext )
                 supported_formats = g_slist_prepend( supported_formats, *ext );
             g_free( exts );
-			
-            g_static_mutex_init(&il->mutex);
         }
     }
+	//printf(g_list_nth_data(supported_formats, 6));
+	g_static_mutex_init(&il->mutex);
 
     return il;
 }
@@ -80,38 +80,77 @@ gboolean image_list_has_multiple_files( ImageList* il )
     return (il->list && il->list->next);
 }
 
-gboolean image_list_open_dir( ImageList* il, const char* path, GError** error )
+static int comp_by_name( char* name1, char* name2, GtkSortType type )
+{
+    // According to the glib API doc, UTF-8 should be considered here,
+    // So the simple strcmp couldn't be used here. What a pity!
+
+    char* utf8;
+
+    utf8 = g_filename_display_name(name1);
+    name1 = g_utf8_casefold( utf8, -1 );
+    g_free( utf8 );
+
+    utf8 = g_filename_display_name(name2);
+    name2 = g_utf8_casefold( utf8, -1 );
+    g_free( utf8 );
+    int ret = g_utf8_collate( name1, name2 );
+    g_free( name1 );
+    g_free( name2 );
+    return type == GTK_SORT_ASCENDING ? -ret : ret;
+}
+
+gboolean image_list_open_dir( ImageList* il, const char* path, 
+							 GCancellable* generator_cancellable, GError** error )
 {
     const char* name = NULL;
-    GDir* dir;
-    struct stat stbuf;
-
+	
     if( il->dir_path && 0 == strcmp( path, il->dir_path ) )
         return TRUE;
 
     image_list_close( il );
-
-    if( stat( path, &stbuf ) == -1 )
-        return FALSE;
-
-    dir = g_dir_open( path, 0, error );
-    if( ! dir )
-        return FALSE;
-
-    il->dir_path = g_strdup( path );
-    il->mtime = stbuf.st_mtime;
-
-    while( ( name = g_dir_read_name ( dir ) ) )
-    {
-        if( image_list_is_file_supported( name ) )
-            il->list = g_list_prepend( il->list, g_strdup(name) );
-    }
 	
-    g_dir_close( dir );
-    
-	il->list = g_list_reverse( il->list );
-    il->current = il->list;
-    
+	GFile* file = g_file_new_for_path (path);
+    GFileEnumerator* enumerator;
+    GFileInfo *info;
+	
+	const char* file_path;
+	const char* mime;
+	
+	il->dir_path = g_strdup( path );
+	
+    enumerator = g_file_enumerate_children(file,"standard::name,standard::content-type",
+	   		                               G_FILE_QUERY_INFO_NONE,generator_cancellable, NULL);
+	
+	if (enumerator == NULL)
+	{
+	   g_object_unref (file);
+	   g_object_unref (enumerator);
+	   g_object_unref (info);
+		
+	   return FALSE;
+	}
+	
+	while ((info = g_file_enumerator_next_file (enumerator, generator_cancellable, error)) != NULL)
+	{
+        mime = g_file_info_get_content_type(info);
+		 
+		if (image_list_is_file_supported(mime))
+		{
+		   g_static_mutex_lock (&il->mutex);
+		   file_path = g_file_info_get_name (info);
+		   il->list = g_list_insert_sorted( il->list, g_strdup(file_path), (GCompareFunc)comp_by_name);
+		   g_static_mutex_unlock (&il->mutex);
+		}
+
+		g_object_unref(info);
+	}
+	
+	il->current = il->list;
+	
+	g_object_unref (file);
+	g_object_unref (enumerator);
+	
 	return TRUE;
 }
 
@@ -186,12 +225,13 @@ void image_list_close( ImageList* il )
 
 static gboolean image_list_is_file_supported( const char* name )
 {
-    const char* ext = strrchr( name, '.' );
+    const char* ext = name;
+
     if( ! ext )
         return FALSE;
     ++ext;
 
-    return !!g_slist_find_custom ( supported_formats, ext,  (GCompareFunc)g_ascii_strcasecmp);
+    return !!g_slist_find_custom ( supported_formats, name,  (GCompareFunc)g_ascii_strcasecmp);
 }
 
 char* image_list_get_current_file_path( ImageList* il )
@@ -208,26 +248,6 @@ char* image_list_get_first_file_path( ImageList* il)
 	if( il->dir_path && (name = image_list_get_first( il )) )
         return g_build_filename( il->dir_path, name, NULL );
     return NULL;	
-}
-
-static int comp_by_name( char* name1, char* name2, GtkSortType type )
-{
-    // According to the glib API doc, UTF-8 should be considered here,
-    // So the simple strcmp couldn't be used here. What a pity!
-
-    char* utf8;
-
-    utf8 = g_filename_display_name(name1);
-    name1 = g_utf8_casefold( utf8, -1 );
-    g_free( utf8 );
-
-    utf8 = g_filename_display_name(name2);
-    name2 = g_utf8_casefold( utf8, -1 );
-    g_free( utf8 );
-    int ret = g_utf8_collate( name1, name2 );
-    g_free( name1 );
-    g_free( name2 );
-    return type == GTK_SORT_ASCENDING ? -ret : ret;
 }
 
 void image_list_sort_by_name(  ImageList* il, GtkSortType type )
