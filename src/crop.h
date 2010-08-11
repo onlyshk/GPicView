@@ -64,6 +64,8 @@ struct _Win
     GtkSpinButton *spin_y;
     GtkSpinButton *spin_width;
     GtkSpinButton *spin_height;
+	GtkAdjustment* adj;
+	GtkAdjustment* adj1;
     gdouble sub_x;
     gdouble sub_y;
     gdouble sub_width;

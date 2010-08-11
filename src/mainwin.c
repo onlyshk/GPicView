@@ -484,7 +484,7 @@ void load_thumbnails(JobParam* param)
 	GInputStream* input_stream = NULL;
 	GtkTreeIter iter;
 	GFile* file = NULL;
-		
+	
 	int i = 0;
 	int n = g_list_length((GList*)param->mw->img_list) - 1;
 	
@@ -494,7 +494,7 @@ void load_thumbnails(JobParam* param)
 
 	  if (i == 0)
 	      file =  g_file_new_for_path (image_list_get_first_file_path( param->mw->img_list ));
-
+      
 	  thumbnail_loaded_list = g_list_append(thumbnail_loaded_list,
 											 image_list_get_current_file_path( param->mw->img_list ));
 		
@@ -693,6 +693,8 @@ void load_list(MainWin* mw)
 void on_open( GtkWidget* widget, MainWin* mw )
 {	
 	char* file = NULL; 
+	
+	mw->loaded == FALSE;
 	
 	if ((file = get_open_filename( GTK_WINDOW(mw))) == NULL)  	
 	     return;

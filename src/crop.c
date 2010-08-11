@@ -22,8 +22,54 @@
  ***************************************************************************/
 
 #include "crop.h"
+#include <gdk/gdkkeysyms.h>
 
 G_DEFINE_TYPE (Win, win_crop, G_TYPE_OBJECT);
+
+static 
+void scroll_up(GtkWidget* widget, Win* win)
+{
+    win->adj = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(win->scroll));
+    gtk_adjustment_set_value (GTK_ADJUSTMENT(win->adj), win->adj->value - 30);
+}
+
+static 
+void scroll_down(GtkWidget* widget, Win* win)
+{
+    win->adj = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(win->scroll));
+    gtk_adjustment_set_value (GTK_ADJUSTMENT(win->adj), win->adj->value + 30);
+}
+
+static 
+void scroll_left(GtkWidget* widget, Win* win)
+{
+    win->adj1 = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(win->scroll));
+    gtk_adjustment_set_value (GTK_ADJUSTMENT(win->adj1), win->adj1->value  + 10);
+}
+
+static 
+void scroll_right(GtkWidget* widget, Win* win)
+{
+    win->adj1 = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(win->scroll));
+    gtk_adjustment_set_value (GTK_ADJUSTMENT(win->adj1), win->adj1->value + 30);
+}
+
+static gboolean key_pressed (GtkWidget   *widget, GdkEventKey *event, gpointer     user_data)
+{
+  Win* win = CROP_WIN(user_data);
+	
+  switch( event->keyval )
+  {
+	  case GDK_Up: scroll_up(widget, win);
+	      break;
+	  case GDK_Down: scroll_down(widget, win);
+		  break;
+	  case GDK_Right: scroll_right(widget, win);
+	      break;
+	  case GDK_Left: scroll_left(widget, win);
+		  break;
+  }
+}
 
 void show_window(GtkWidget* widget, Win *win)
 {
@@ -55,7 +101,7 @@ void show_window(GtkWidget* widget, Win *win)
 	win->box = (GtkVBox*)gtk_vbox_new (FALSE,0);
 	win->hbox = (GtkHBox*)gtk_hbox_new (FALSE, 0);
 	
-	win->scroll = gtk_scrolled_window_new(NULL,NULL);
+	win->scroll = gtk_scrolled_window_new(NULL, NULL);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (win->scroll),GTK_POLICY_AUTOMATIC, 
                                     GTK_POLICY_AUTOMATIC);
 
@@ -103,6 +149,7 @@ void show_window(GtkWidget* widget, Win *win)
 	g_signal_connect (win->image, "expose-event", G_CALLBACK (drawable_expose_cb), win);
 	g_signal_connect (win->image, "button-press-event", G_CALLBACK (drawable_button_press_cb), win);
 	g_signal_connect (win->image, "button-release-event", G_CALLBACK (drawable_button_release_cb), win);
+	g_signal_connect (win->crop_window, "key-press-event", G_CALLBACK(key_pressed), win);
 	
 	g_signal_connect (win->crop_button, "clicked", G_CALLBACK(crop_click), win);
 	g_signal_connect (win->cancel_button, "clicked", G_CALLBACK(cancel_click), win);
@@ -110,8 +157,6 @@ void show_window(GtkWidget* widget, Win *win)
 	gtk_container_add (GTK_CONTAINER(win->crop_window), (GtkWidget*)win->box);
 	gtk_widget_show_all((GtkWidget*)win->crop_window);
 }
-
-
 
 void
 cancel_click(GtkWidget* widget, Win* win)
@@ -364,7 +409,6 @@ drawable_motion_cb (GtkWidget *widget, GdkEventMotion *event, Win *win)
     draw_rectangle (NULL, win);
 
     return FALSE;
-    
 }
 
 /*************/
