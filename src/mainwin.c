@@ -608,6 +608,7 @@ gboolean job_func2(GIOSchedulerJob *job, GCancellable *cancellable, gpointer use
 	MainWin* mw = MAIN_WIN(user_data);
 	
 	list_load(mw);
+	
 	g_io_scheduler_job_send_to_mainloop(job, (GSourceFunc)load_list, mw, NULL);
 	
 	return FALSE;
@@ -654,9 +655,9 @@ gboolean set_thumbnails(JobParam* param)
   gtk_icon_view_select_path(GTK_ICON_VIEW(param->mw->view),path); 
   gtk_tree_path_free(path);
 	
-  param->mw   = NULL;
-  param->generator_cancellable = NULL;
-  param->file = NULL;
+  //param->mw   = NULL;
+  //param->generator_cancellable = NULL;
+  //param->file = NULL;
 
   g_free(param);
 }
@@ -674,12 +675,29 @@ gboolean set_image_by_click(GtkWidget* widget, MainWin* mw)
 void list_load(MainWin* mw)
 {	
 	char* file =  g_file_get_path(mw->loading_file);
+	
   	mw->dir_path = g_path_get_dirname( file );
 	image_list_open_dir(mw->img_list, mw->dir_path, mw->generator_cancellable, NULL );
 	
 	g_free(file);
 	
-	mw->loaded == TRUE;
+	mw->loaded = TRUE;
+}
+
+static void
+directory_monitor_changed (GFileMonitor      *monitor,
+                           GFile             *file,
+                           GFile             *other_file,
+                           GFileMonitorEvent  event,
+                           gpointer           data)
+{
+  MainWin* mw = MAIN_WIN(data);
+	
+  switch (event)
+  {
+	  G_FILE_MONITOR_EVENT_DELETED:
+		break;
+  }
 }
 
 void load_list(MainWin* mw)
@@ -694,7 +712,7 @@ void on_open( GtkWidget* widget, MainWin* mw )
 {	
 	char* file = NULL; 
 	
-	mw->loaded == FALSE;
+	mw->loaded = FALSE;
 	
 	if ((file = get_open_filename( GTK_WINDOW(mw))) == NULL)  	
 	     return;
@@ -724,7 +742,7 @@ void on_open( GtkWidget* widget, MainWin* mw )
  		{ 		 
 		    mw->animation = gdk_pixbuf_animation_new_from_file(file_path, NULL);
             set_image_by_click(NULL, mw);
-			
+			mw->loaded = TRUE;
 		}
 		else
 		{
@@ -909,9 +927,14 @@ void on_prev( GtkWidget* widget, MainWin* mw )
 	if( name )
     {
 	    g_cancellable_cancel(mw->generator_cancellable);
+			
+		//GFile* file = g_file_new_for_path (image_list_get_current_file_path (mw->img_list));
+	    //mw->monitor = g_file_monitor_directory(NULL,G_FILE_MONITOR_NONE,NULL,NULL);
+	
+	    //g_signal_connect (mw->monitor, "changed", G_CALLBACK (directory_monitor_changed), mw);
+        //g_object_unref (file);
 		
         char* file_path = image_list_get_current_file_path( mw->img_list );
-		//gtk_image_view_set_pixbuf(mw->aview,g_list_nth_data(mw->disp_list,0),NULL);
 		
 		select_prev_item(GTK_ICON_VIEW(mw->view), mw);
 				    

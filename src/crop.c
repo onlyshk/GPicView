@@ -304,7 +304,11 @@ drawable_expose_cb (GtkWidget *widget, GdkEventExpose *event, Win* win)
 	
 	fit_to_size_double (&width, &height, width, height);
 	gtk_widget_set_size_request(win->image, width, height);
-
+    
+	// ??
+	if (width < 453 || height  < 380)
+		gtk_widget_set_size_request(win->scroll, width + 100, height + 100);
+	
 	win->preview_pixbuf = gdk_pixbuf_scale_simple( win->preview_pixbuf, width, height, GDK_INTERP_TILES);
     
 	gdk_draw_pixbuf (GDK_DRAWABLE(widget->window), win->gc, win->preview_pixbuf,

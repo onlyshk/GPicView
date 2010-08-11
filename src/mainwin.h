@@ -92,7 +92,7 @@ typedef struct _MainWin
 	char* dir_path;
 	GtkAdjustment* adj;
 	GdkPixbuf* pixbuf;
-	
+	GFileMonitor* monitor;
 	GtkAnimView* aview;
     GdkPixbufAnimation* animation;
 
