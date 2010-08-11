@@ -38,8 +38,8 @@ void show_window(GtkWidget* widget, Win *win)
     win->sub_y = -1;
     win->sub_height = -1;
     win->sub_width = -1;
-    win->height = -1;
-    win->width = -1;
+    win->height = 100;
+    win->width = 100;
     win->gc = NULL;
 	
 	if (image_list_get_current(win->mw->img_list) == NULL)
@@ -55,6 +55,10 @@ void show_window(GtkWidget* widget, Win *win)
 	win->box = (GtkVBox*)gtk_vbox_new (FALSE,0);
 	win->hbox = (GtkHBox*)gtk_hbox_new (FALSE, 0);
 	
+	win->scroll = gtk_scrolled_window_new(NULL,NULL);
+	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (win->scroll),GTK_POLICY_AUTOMATIC, 
+                                    GTK_POLICY_AUTOMATIC);
+
 	win->image = gtk_drawing_area_new();
 	gtk_widget_set_events (win->image, GDK_BUTTON_PRESS_MASK|GDK_BUTTON_RELEASE_MASK|GDK_BUTTON_MOTION_MASK);
 	
@@ -65,10 +69,10 @@ void show_window(GtkWidget* widget, Win *win)
 	
 	win->original = gtk_image_view_get_pixbuf(GTK_IMAGE_VIEW(win->mw->aview));
 		
-    width = gdk_pixbuf_get_width(  gtk_image_view_get_pixbuf (GTK_IMAGE_VIEW(win->mw->aview)) );
-    height = gdk_pixbuf_get_height( gtk_image_view_get_pixbuf ( GTK_IMAGE_VIEW(win->mw->aview)) );
+	fit_to_size_double(&height, &width, 1000, 1000);	
+    width = gdk_pixbuf_get_width(gtk_image_view_get_pixbuf (GTK_IMAGE_VIEW(win->mw->aview)) );
+    height = gdk_pixbuf_get_height(gtk_image_view_get_pixbuf ( GTK_IMAGE_VIEW(win->mw->aview)) );
 	
-   	fit_to_size_double(&height, &width, 450,450);	
 	win->width = width;
 	win->height = height;
 	win->zoom = (width/gdk_pixbuf_get_width(  gtk_image_view_get_pixbuf (GTK_IMAGE_VIEW(win->mw->aview)))
@@ -82,12 +86,14 @@ void show_window(GtkWidget* widget, Win *win)
 	gtk_pixbuf_scale_blend(win->original, win->preview, 0, 0, width, height, 0, 0,
                         win->zoom, GDK_INTERP_BILINEAR, 0, 0);
 		
-	win->preview_pixbuf = win->preview;
+	win->preview_pixbuf = win->original;
 		
+	gtk_widget_set_size_request(win->scroll, 453, 380);
+    gtk_widget_set_size_request(win->image, width, height);
 	
-	gtk_widget_set_size_request(win->image, width, height);
-	gtk_box_pack_start((GtkBox*)win->box, (GtkWidget*)win->image, TRUE, TRUE, 1);
-	
+	gtk_box_pack_start((GtkBox*)win->box, (GtkWidget*)win->scroll, TRUE, TRUE, 0);
+	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(win->scroll), GTK_WIDGET(win->image));
+
 	GtkHBox* vbox = (GtkHBox*)gtk_hbox_new(FALSE, 0);
 	gtk_box_pack_start((GtkBox*)win->box, (GtkWidget*)vbox, TRUE, TRUE, 0);
 	gtk_box_pack_end((GtkBox*)vbox, (GtkWidget*)win->cancel_button, FALSE, FALSE, 0);
@@ -219,7 +225,7 @@ clear_rectangle(GtkWidget* widget, Win* win)
 
 static void
 draw_rectangle(GtkWidget* widget, Win* win)
-{		
+{	
     if(win->do_redraw)
         gdk_draw_rectangle (GDK_DRAWABLE(win->image->window), win->gc, FALSE,
                             win->sub_x, win->sub_y,
@@ -240,8 +246,24 @@ drawable_button_release_cb (GtkWidget *widget, GdkEventButton *event, Win* win)
 gboolean
 drawable_expose_cb (GtkWidget *widget, GdkEventExpose *event, Win* win)
 {	
-    gdk_draw_pixbuf (GDK_DRAWABLE(widget->window), NULL, win->preview_pixbuf,
-                     0, 0, 0, 0, -1, -1, GDK_RGB_DITHER_NORMAL, 0, 0);
+	gdouble zoom_level = gtk_image_view_get_zoom(GTK_IMAGE_VIEW(win->mw->aview));
+	
+	gdouble width = gdk_pixbuf_get_width (gtk_image_view_get_pixbuf(GTK_IMAGE_VIEW(win->mw->aview)));
+	gdouble height = gdk_pixbuf_get_height (gtk_image_view_get_pixbuf(GTK_IMAGE_VIEW(win->mw->aview)));
+
+	if (zoom_level != 1.0)
+	{
+	   width = width * zoom_level;
+	   height = height * zoom_level;
+	}
+	
+	fit_to_size_double (&width, &height, width, height);
+	gtk_widget_set_size_request(win->image, width, height);
+
+	win->preview_pixbuf = gdk_pixbuf_scale_simple( win->preview_pixbuf, width, height, GDK_INTERP_TILES);
+    
+	gdk_draw_pixbuf (GDK_DRAWABLE(widget->window), win->gc, win->preview_pixbuf,
+                     0, 0, 0, 0, width, height, GDK_RGB_DITHER_NORMAL, 0, 0);
     
     win->gc = gdk_gc_new(GDK_DRAWABLE(widget->window));
 	
@@ -281,12 +303,23 @@ drawable_motion_cb (GtkWidget *widget, GdkEventMotion *event, Win *win)
     if(!win->drawing_rectangle)
         return FALSE;
 	
+	gdouble zoom_level = gtk_image_view_get_zoom(GTK_IMAGE_VIEW(win->mw->aview));
+	
+	gdouble width = gdk_pixbuf_get_width (gtk_image_view_get_pixbuf(GTK_IMAGE_VIEW(win->mw->aview)));
+	gdouble height = gdk_pixbuf_get_height (gtk_image_view_get_pixbuf(GTK_IMAGE_VIEW(win->mw->aview)));
+
+	if (zoom_level != 1.0)
+	{
+	   width = width * zoom_level;
+	   height = height * zoom_level;
+	}
+	
     gdouble x, y;
     x = event->x;
     y = event->y;
 
-    x = CLAMP(x, 0, 100000);
-    y = CLAMP(y, 0, 100000);
+    x = CLAMP(x, 0, width);
+    y = CLAMP(y, 0, height);
 	
 	clear_rectangle (NULL, win);
 
@@ -406,6 +439,3 @@ win_crop_init (Win *win)
     win->spin_width = NULL;
     win->spin_height = NULL;
 }
-
-// drawable_motion_cb - 1 click
-// drawable_button_release_cb - 2 click

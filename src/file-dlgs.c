@@ -40,7 +40,7 @@ static void on_update_preview( GtkFileChooser *chooser, GtkImage* img )
     }
 }
 
-char* get_open_filename( GtkWindow* parent, const char* cwd )
+char* get_open_filename( GtkWindow* parent )
 {
     char* file = NULL;
     GtkFileChooser* dlg = (GtkFileChooser*)gtk_file_chooser_dialog_new( NULL, parent,
@@ -49,9 +49,6 @@ char* get_open_filename( GtkWindow* parent, const char* cwd )
 	
     GtkWidget* img;
     GtkFileFilter *filter;
-
-    if( cwd )
-        gtk_file_chooser_set_current_folder( dlg, cwd );
 
     img = gtk_image_new();
     gtk_widget_set_size_request( img, 128, 128 );

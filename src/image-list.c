@@ -48,7 +48,7 @@ ImageList* image_list_new()
             g_free( exts );
         }
     }
-	//printf(g_list_nth_data(supported_formats, 6));
+
 	g_static_mutex_init(&il->mutex);
 
     return il;
@@ -82,9 +82,6 @@ gboolean image_list_has_multiple_files( ImageList* il )
 
 static int comp_by_name( char* name1, char* name2, GtkSortType type )
 {
-    // According to the glib API doc, UTF-8 should be considered here,
-    // So the simple strcmp couldn't be used here. What a pity!
-
     char* utf8;
 
     utf8 = g_filename_display_name(name1);
@@ -116,7 +113,7 @@ gboolean image_list_open_dir( ImageList* il, const char* path,
 	
 	const char* file_path;
 	const char* mime;
-	
+			  
 	il->dir_path = g_strdup( path );
 	
     enumerator = g_file_enumerate_children(file,"standard::name,standard::content-type",
@@ -137,7 +134,7 @@ gboolean image_list_open_dir( ImageList* il, const char* path,
 		 
 		if (image_list_is_file_supported(mime))
 		{
-		   g_static_mutex_lock (&il->mutex);
+           g_static_mutex_lock (&il->mutex);
 		   file_path = g_file_info_get_name (info);
 		   il->list = g_list_insert_sorted( il->list, g_strdup(file_path), (GCompareFunc)comp_by_name);
 		   g_static_mutex_unlock (&il->mutex);
@@ -147,7 +144,7 @@ gboolean image_list_open_dir( ImageList* il, const char* path,
 	}
 	
 	il->current = il->list;
-	
+
 	g_object_unref (file);
 	g_object_unref (enumerator);
 	
@@ -175,6 +172,36 @@ const char* image_list_get_first( ImageList* il )
     return image_list_get_current( il );
 }
 
+const char* image_list_get_first_current_path( ImageList* il )
+{
+	g_static_mutex_lock (&il->mutex);
+    il->current = il->list;
+	g_static_mutex_unlock (&il->mutex);
+	
+    return image_list_get_current_file_path ( il );
+}
+
+guint image_list_get_num_of_current_path( ImageList* il )
+{
+    il->current = il->list;
+
+	int i = 0;
+	int l = g_list_length (il->current);
+	int num =  0;
+	
+	for (i; i < l; i++)
+	{		
+	   if (strcmp(g_list_nth_data(il->current,i), image_list_get_current(il)) == 0)
+	   {
+	      return num;
+	   }
+	   else
+	   {
+		  num++;
+	   }
+	}
+}
+
 const char* image_list_get_next( ImageList* il )
 {
 	g_static_mutex_lock (&il->mutex);
@@ -183,6 +210,20 @@ const char* image_list_get_next( ImageList* il )
         il->current = il->current->next;
 		g_static_mutex_unlock (&il->mutex);
         return image_list_get_current( il );
+    }
+	
+	g_static_mutex_unlock (&il->mutex);
+    return NULL;
+}
+
+const char* image_list_get_next_file_path( ImageList* il )
+{
+	g_static_mutex_lock (&il->mutex);
+    if( il->current && il->current->next )
+    {
+        il->current = il->current->next;
+		g_static_mutex_unlock (&il->mutex);
+        return image_list_get_current_file_path( il );
     }
 	
 	g_static_mutex_unlock (&il->mutex);
@@ -218,7 +259,7 @@ void image_list_close( ImageList* il )
     g_list_free( il->list );
     il->list = NULL;
     il->mtime = 0;
-
+    
     g_free( il->dir_path );
     il->dir_path = NULL;
 }

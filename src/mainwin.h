@@ -90,7 +90,7 @@ typedef struct _MainWin
 	ImageList* img_list;
 	guint      rotation_angle;
 	char* dir_path;
-	
+	GtkAdjustment* adj;
 	GdkPixbuf* pixbuf;
 	
 	GtkAnimView* aview;
@@ -121,6 +121,8 @@ typedef struct _MainWin
     gdouble start_x;
     gdouble start_y;
 	
+	gboolean loaded;
+	
 	GdkGC *gc;
 	
 	GFile* loading_file;
@@ -133,7 +135,6 @@ typedef struct _JobParam
 {
   GFile* file;
   GCancellable* generator_cancellable;
-  GdkPixbufAnimation* animation;
   MainWin* mw;
 }JobParam;
 
@@ -162,6 +163,8 @@ gboolean main_win_scale_image(  MainWin* mw, double new_scale, GdkInterpType typ
 void build_thumbnails(GtkWidget* widget, MainWin *mw);
 
 void gtk_view_set_static (GtkAnimView *aview, GdkPixbuf *pixbuf);
+
+void on_scroll_wheel(GtkImageView *view,GdkScrollDirection direction, gpointer user_data);
 
 void list_load(MainWin* mw);
 
