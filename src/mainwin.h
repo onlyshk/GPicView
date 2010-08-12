@@ -124,7 +124,7 @@ typedef struct _MainWin
     gdouble start_y;
 	
 	gboolean loaded;
-	guint loaded_thumb;
+	guint l;
 	
 	GdkGC *gc;
 	
