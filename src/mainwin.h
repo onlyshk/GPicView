@@ -95,6 +95,7 @@ typedef struct _MainWin
 	GFileMonitor* monitor;
 	GtkAnimView* aview;
     GdkPixbufAnimation* animation;
+	guint loaded_img;
 
 	//Thumbnail
 	GtkIconView*  view;
