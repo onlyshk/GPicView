@@ -488,6 +488,7 @@ void load_thumbnails(JobParam* param)
 	for (i; i < n; i++)
 	{		
 	  GdkPixbuf* thumb_pixbuf;
+	  GdkPixbuf* thumb_pixbuf1;
 
 	  if (i == 0)
 	      file =  g_file_new_for_path (image_list_get_first_file_path( param->mw->img_list ));
@@ -498,6 +499,7 @@ void load_thumbnails(JobParam* param)
 	  input_stream = G_INPUT_STREAM(g_file_read((GFile*)file, (GCancellable*)param->generator_cancellable, NULL));
 	  
 	  thumb_pixbuf = load_image_from_stream(G_INPUT_STREAM(input_stream), param->mw->thumbnail_cancellable);
+
 	  thumb_pixbuf = scale_pix(thumb_pixbuf,128);
       
 	  param->mw->disp_list = g_list_append(param->mw->disp_list, thumb_pixbuf);
@@ -516,7 +518,7 @@ void load_thumbnails(JobParam* param)
 
 gboolean main_win_open(MainWin* mw)
 {        		
-	mw->disp_list                  = NULL;
+	//mw->disp_list                  = NULL;
 	thumbnail_loaded_list          = NULL;	
 	thumbnail_selected_list        = NULL;
 	thumbnail_path_list            = NULL;
@@ -709,9 +711,7 @@ void on_open( GtkWidget* widget, MainWin* mw )
 	else
 	{
 		if (strcmp (dir, mw->dir_path) == 0)
- 		{ 		 
-		    mw->animation = gdk_pixbuf_animation_new_from_file(file_path, NULL);
-            set_image_by_click(NULL, mw);
+ 		{ 		
 			mw->loaded = TRUE;
 			
 			GtkTreeIter iter;
@@ -726,6 +726,11 @@ void on_open( GtkWidget* widget, MainWin* mw )
 			   if ((strcmp(paths, g_file_get_basename (mw->loading_file))) == 0)
 			   {
 		          c = i;
+				  			
+				  GdkPixbuf* pixbuf = gdk_pixbuf_new_from_file(g_list_nth_data(thumbnail_loaded_list,c), NULL);
+			      gtk_image_view_set_pixbuf(mw->aview,  pixbuf, NULL);
+				   
+				  g_object_unref(pixbuf);
 				  g_free(paths);
 	           }
              }
@@ -924,12 +929,11 @@ void on_prev( GtkWidget* widget, MainWin* mw )
     {	
         char* file_path = image_list_get_current_file_path( mw->img_list );
 		
-		select_prev_item(GTK_ICON_VIEW(mw->view), mw);
-				    
-		mw->animation = gdk_pixbuf_animation_new_from_file(file_path, NULL);
-        set_image_by_click(NULL, mw);
+		gtk_image_view_set_pixbuf(mw->aview,g_list_nth_data(mw->disp_list,0),NULL);
 		
-		update_title(name, mw);
+		update_title(file_path, mw);
+				
+		select_prev_item(GTK_ICON_VIEW(mw->view), mw);
 		
 		g_object_unref(mw->animation);
 		g_free(file_path);
@@ -964,13 +968,12 @@ void on_next( GtkWidget* widget, MainWin* mw )
     if( name )
 	{		
         char* file_path = image_list_get_current_file_path( mw->img_list );
+						    
+		gtk_image_view_set_pixbuf(mw->aview,g_list_nth_data(mw->disp_list,0),NULL);
+		
+		update_title(file_path, mw);
 		
 		select_next_item(GTK_ICON_VIEW(mw->view), mw);
-				    
-		mw->animation = gdk_pixbuf_animation_new_from_file(file_path, NULL);
-        set_image_by_click(NULL, mw);
-		
-		update_title(name, mw);
 		
 		g_object_unref(mw->animation);
 		g_free(file_path);
