@@ -38,6 +38,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <wchar.h>
 
 #include "pref.h"
 #include "image-list.h"
@@ -483,14 +484,14 @@ void load_thumbnails(JobParam* param)
 	thumbnail_loaded_list = NULL;
 	param->mw->disp_list = NULL;
 	thumbnail_path_list = NULL;
+	
+    GdkPixbuf* thumb_pixbuf;
+	
 	int i = 0;
 	int n = g_list_length((GList*)param->mw->img_list) - 1;
-	
+		
 	for (i; i < n; i++)
 	{		
-	  GdkPixbuf* thumb_pixbuf;
-	  GdkPixbuf* thumb_pixbuf1;
-
 	  if (i == 0)
 	      file =  g_file_new_for_path (image_list_get_first_file_path( param->mw->img_list ));
       
@@ -504,8 +505,10 @@ void load_thumbnails(JobParam* param)
 	  thumb_pixbuf = scale_pix(thumb_pixbuf,128);
       
 	  param->mw->disp_list = g_list_append(param->mw->disp_list, thumb_pixbuf);
-	  thumbnail_path_list = g_list_append(thumbnail_path_list,g_file_get_basename (file));
-	  
+	  thumbnail_path_list = g_list_append(thumbnail_path_list,g_file_get_basename (file));	
+	
+	  g_io_scheduler_job_send_to_mainloop(param->job, (GSourceFunc)set_thumbnails, param->mw, NULL);
+		
       if (!param->mw->img_list->current->next )
 	      image_list_get_first(param->mw->img_list);
 	  else
@@ -570,8 +573,9 @@ gboolean job_func(GIOSchedulerJob *job, GCancellable *cancellable, gpointer user
 {
 	JobParam* param = (JobParam*)user_data;
 	
+	param->job = job;
+	
 	load_thumbnails(param);
-	g_io_scheduler_job_send_to_mainloop(job, (GSourceFunc)set_thumbnails, param->mw, NULL);
 	
 	return FALSE;
 }
@@ -622,13 +626,13 @@ gboolean set_thumbnails(MainWin* mw)
 	
   int n = g_list_length(mw->disp_list);
   
-  for (i; i < n; ++i)
+  for (i; i < n; i++)
   {
 	char* paths = g_list_nth_data(thumbnail_path_list,i);
 
-	if ((strcmp(paths,  g_file_get_basename (mw->loading_file)) == 0))
+	if (((strcmp(paths, g_file_get_basename (mw->loading_file))) == 0))
 	{
-		  c = i;
+    	  c = i;
 	}
 	    
 	pixbuf =  (GdkPixbuf*)g_list_nth_data(mw->disp_list, i);
@@ -637,18 +641,20 @@ gboolean set_thumbnails(MainWin* mw)
 	gtk_list_store_set(mw->model, (GtkTreeIter*)&iter, COL_DISPLAY_NAME, paths, 
 					   COL_PIXBUF, (GdkPixbuf*)pixbuf, -1);
 	  
-	g_free(paths);
   }
-         
-  char tmp[32];
-  g_sprintf(tmp, "%d", c);
+
+  if (c > 0)
+  {
+    char tmp[32];
+    g_sprintf(tmp, "%d", c);
   
-  gtk_tree_model_get_iter_from_string ((GtkTreeModel*)mw->model, (GtkTreeIter*)&iter, tmp );
+    gtk_tree_model_get_iter_from_string ((GtkTreeModel*)mw->model, (GtkTreeIter*)&iter, tmp );
 	
-  GtkTreePath *path =  gtk_tree_model_get_path (GTK_TREE_MODEL(mw->model), (GtkTreeIter*)&iter);
-  gtk_icon_view_select_path(GTK_ICON_VIEW(mw->view),path); 
+    GtkTreePath *path =  gtk_tree_model_get_path (GTK_TREE_MODEL(mw->model), (GtkTreeIter*)&iter);
+    gtk_icon_view_select_path(GTK_ICON_VIEW(mw->view),path); 
 	
-  gtk_tree_path_free(path);
+    gtk_tree_path_free(path); 
+  }
 }
 
 gboolean set_image(JobParam* param)

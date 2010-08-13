@@ -124,7 +124,7 @@ typedef struct _MainWin
     gdouble start_y;
 	
 	gboolean loaded;
-	guint l;
+ 	guint l;
 	
 	GdkGC *gc;
 	
@@ -139,6 +139,7 @@ typedef struct _JobParam
   GFile* file;
   GCancellable* generator_cancellable;
   MainWin* mw;
+  GIOSchedulerJob* job;
 }JobParam;
 
 GtkWidget* main_win_new();
