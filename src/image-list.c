@@ -151,7 +151,7 @@ gboolean image_list_open_dir( ImageList* il, const char* path,
 	return TRUE;
 }
 
-gboolean image_list_set_current(  ImageList* il,const char* name )
+char* image_list_set_current(  ImageList* il,const char* name )
 {
     if( ! il->list || !name )
         return FALSE;
@@ -160,7 +160,7 @@ gboolean image_list_set_current(  ImageList* il,const char* name )
     if( ! cur )
         return FALSE;
     il->current = cur;
-    return TRUE;
+    return il->current->data;
 }
 
 const char* image_list_get_first( ImageList* il )

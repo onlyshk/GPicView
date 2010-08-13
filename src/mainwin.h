@@ -174,6 +174,8 @@ void list_load(MainWin* mw);
 
 void load_list(MainWin* mw);
 
+void selecting(MainWin* mw);
+
 GType main_win_get_type();
 
 #endif
