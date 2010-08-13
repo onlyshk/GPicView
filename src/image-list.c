@@ -114,7 +114,7 @@ gboolean image_list_open_dir( ImageList* il, const char* path,
 	const char* file_path;
 	const char* mime;
 			  
-	il->dir_path = g_strdup( path );
+	il->dir_path =  path;
 	
     enumerator = g_file_enumerate_children(file,"standard::name,standard::content-type",
 	   		                               G_FILE_QUERY_INFO_NONE,generator_cancellable, NULL);
@@ -142,7 +142,7 @@ gboolean image_list_open_dir( ImageList* il, const char* path,
 
 		g_object_unref(info);
 	}
-	
+
 	il->current = il->list;
 
 	g_object_unref (file);
