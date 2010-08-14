@@ -484,39 +484,44 @@ void load_thumbnails(JobParam* param)
 	thumbnail_loaded_list = NULL;
 	param->mw->disp_list = NULL;
 	thumbnail_path_list = NULL;
+	
+	GList* item;
+	GdkPixbuf* pixbuf;
 		
 	int i = 0;
-	int n = g_list_length((GList*)param->mw->img_list) - 1;
 		
-	for (i; i < n; i++)
+	for (item = param->mw->img_list->list; item != NULL; item = item->next)
 	{		
 	  if (i == 0)
 	       file =  g_file_new_for_path (image_list_get_first_file_path( param->mw->img_list ));
       
 	  thumbnail_loaded_list = g_list_append(thumbnail_loaded_list,
 											 image_list_get_current_file_path( param->mw->img_list ));
-      
+
 	  input_stream = G_INPUT_STREAM(g_file_read((GFile*)file, (GCancellable*)param->generator_cancellable, NULL));
 	  
-	  param->mw->animation = load_image_from_stream(G_INPUT_STREAM(input_stream), param->mw->thumbnail_cancellable);
-	  param->mw->animation = scale_pix(param->mw->animation,128);
-      
-	  param->mw->disp_list = g_list_append(param->mw->disp_list, param->mw->animation);
+	  pixbuf = load_image_from_stream(G_INPUT_STREAM(input_stream), param->mw->thumbnail_cancellable);
+
+	  param->mw->disp_list = g_list_append(param->mw->disp_list, scale_pix(pixbuf,128));
 	  thumbnail_path_list = g_list_append(thumbnail_path_list,g_file_get_basename (file));	
-	
-	  g_io_scheduler_job_send_to_mainloop(param->job, (GSourceFunc)set_thumbnails, param->mw, NULL);
-		
-	  g_object_unref(file);
+	        		  
+	  g_io_scheduler_job_send_to_mainloop(param->job, (GSourceFunc)set_thumbnails, param->mw, NULL);	
+	  
+	 g_object_unref(file);
+	 g_object_unref(pixbuf);
 		
       if (!param->mw->img_list->current->next )
 	      image_list_get_first(param->mw->img_list);
 	  else
 	      file = g_file_new_for_path(image_list_get_next_file_path(param->mw->img_list));
-
+	
 	  g_input_stream_close(input_stream, param->mw->thumbnail_cancellable, NULL);
-	}
-
-	g_object_unref (input_stream);
+  	  g_object_unref (input_stream);
+	  
+	  i++;
+  }
+	  
+	g_list_free(item);
 }
 
 gboolean main_win_open(MainWin* mw)
@@ -608,12 +613,12 @@ gboolean set_thumbnails(MainWin* mw)
   gtk_icon_view_set_model(mw->view,GTK_TREE_MODEL(mw->model));	 
   
   int i = 0;
-
+	
   int n = g_list_length(mw->disp_list);	
 
   for (i; i < n; i++)
   {		    	
-	gtk_list_store_append(mw->model, (GtkTreeIter*)&iter);
+    gtk_list_store_append(mw->model, (GtkTreeIter*)&iter);
 	gtk_list_store_set(mw->model, (GtkTreeIter*)&iter, COL_DISPLAY_NAME, g_list_nth_data(thumbnail_path_list,i), 
 					   COL_PIXBUF, (GdkPixbuf*)g_list_nth_data(mw->disp_list, i), -1);
   }
@@ -720,7 +725,6 @@ void on_open( GtkWidget* widget, MainWin* mw )
 	if (mw->dir_path == NULL)
 	{
 		mw->loaded = FALSE;
-        mw->animation = NULL;
 		
 	    g_io_scheduler_push_job (job_func2, mw, NULL, G_PRIORITY_DEFAULT, mw->thumbnail_cancellable);
 		update_title(file_path, mw);
@@ -763,20 +767,6 @@ void on_open( GtkWidget* widget, MainWin* mw )
 		}
 		else
 		{
-		  mw->loaded = FALSE;
-		  mw->animation = NULL;
-	      mw->disp_list = NULL;
-			
-		  g_list_free(mw->disp_list);
-		  g_list_free(thumbnail_selected_list);
-		  g_list_free(thumbnail_path_list);
-		  g_list_free(thumbnail_loaded_list);
-
-		  mw->disp_list = NULL;
-	      thumbnail_selected_list= NULL;
-          thumbnail_path_list= NULL;
-          thumbnail_loaded_list = NULL;
-
 	      g_io_scheduler_push_job (job_func2, mw, NULL, G_PRIORITY_DEFAULT, mw->thumbnail_cancellable);
 		  update_title(file_path, mw);
 		}
@@ -944,7 +934,7 @@ void on_prev( GtkWidget* widget, MainWin* mw )
       
 	if( name )
     {	
-        char* file_path = image_list_get_current_file_path( mw->img_list );
+        const char* file_path = image_list_get_current_file_path( mw->img_list );
 	
 		GtkTreeIter iter;
 		int i = 0;
@@ -970,8 +960,6 @@ void on_prev( GtkWidget* widget, MainWin* mw )
 		update_title(file_path, mw);
 				
 		select_prev_item(GTK_ICON_VIEW(mw->view), mw);
-		
-		g_free(file_path);
     }
 }
 
