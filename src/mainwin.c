@@ -500,27 +500,39 @@ void load_thumbnails(JobParam* param)
 
 	  input_stream = G_INPUT_STREAM(g_file_read((GFile*)file, (GCancellable*)param->generator_cancellable, NULL));
 	  
-	  pixbuf = load_image_from_stream(G_INPUT_STREAM(input_stream), param->mw->thumbnail_cancellable);
+	  if (input_stream != NULL)
+	  {
+	    pixbuf = load_image_from_stream(G_INPUT_STREAM(input_stream), param->mw->thumbnail_cancellable);
 
-	  param->mw->disp_list = g_list_append(param->mw->disp_list, scale_pix(pixbuf,128));
-	  thumbnail_path_list = g_list_append(thumbnail_path_list,g_file_get_basename (file));	
+	    param->mw->disp_list = g_list_append(param->mw->disp_list, scale_pix(pixbuf,128));
+	    thumbnail_path_list = g_list_append(thumbnail_path_list,g_file_get_basename (file));	
 	        		  
-	  g_io_scheduler_job_send_to_mainloop(param->job, (GSourceFunc)set_thumbnails, param->mw, NULL);	
-	  
-	 g_object_unref(file);
-	 g_object_unref(pixbuf);
-		
-      if (!param->mw->img_list->current->next )
-	      image_list_get_first(param->mw->img_list);
+	    g_object_unref(file);
+	    g_object_unref(pixbuf);
+			  
+		g_io_scheduler_job_send_to_mainloop(param->job, (GSourceFunc)set_thumbnails, param->mw, NULL);	
+		  
+        if (!param->mw->img_list->current->next )
+	        image_list_get_first(param->mw->img_list);
+	    else
+  	        file = g_file_new_for_path(image_list_get_next_file_path(param->mw->img_list));
+	  }
 	  else
-	      file = g_file_new_for_path(image_list_get_next_file_path(param->mw->img_list));
-	
+	  {
+	    g_object_unref(file);
+	    g_object_unref(pixbuf);
+		
+        if (!param->mw->img_list->current->next )
+	        image_list_get_first(param->mw->img_list);
+	    else
+  	        file = g_file_new_for_path(image_list_get_next_file_path(param->mw->img_list));
+	  }
+	  
 	  g_input_stream_close(input_stream, param->mw->thumbnail_cancellable, NULL);
   	  g_object_unref (input_stream);
 	  
 	  i++;
   }
-	  
 	g_list_free(item);
 }
 
@@ -608,20 +620,20 @@ gboolean job_func2(GIOSchedulerJob *job, GCancellable *cancellable, gpointer use
 gboolean set_thumbnails(MainWin* mw)
 {  	
   GtkTreeIter iter;
-
-  gtk_list_store_clear(mw->model);
-  gtk_icon_view_set_model(mw->view,GTK_TREE_MODEL(mw->model));	 
-  
-  int i = 0;
 	
+  gtk_icon_view_set_model(mw->view,GTK_TREE_MODEL(mw->model));	 
+     	
   int n = g_list_length(mw->disp_list);	
-
-  for (i; i < n; i++)
-  {		    	
-    gtk_list_store_append(mw->model, (GtkTreeIter*)&iter);
-	gtk_list_store_set(mw->model, (GtkTreeIter*)&iter, COL_DISPLAY_NAME, g_list_nth_data(thumbnail_path_list,i), 
-					   COL_PIXBUF, (GdkPixbuf*)g_list_nth_data(mw->disp_list, i), -1);
-  }
+    
+  GdkPixbuf* pixbuf = g_list_nth_data(mw->disp_list, n - 1);
+  char* thumbnail_title = g_list_nth_data(thumbnail_path_list, n - 1);
+	
+  gtk_list_store_append(mw->model, (GtkTreeIter*)&iter);
+  gtk_list_store_set(mw->model, (GtkTreeIter*)&iter, COL_DISPLAY_NAME, thumbnail_title, 
+					   COL_PIXBUF, (GdkPixbuf*)pixbuf, -1);
+	
+  g_free(thumbnail_title);
+  g_object_unref (pixbuf);
 }
 
 void selecting(MainWin* mw)
@@ -632,19 +644,20 @@ void selecting(MainWin* mw)
 	
 	int n = g_list_length (thumbnail_path_list);
 	
-    for (i; i < n; ++i)
+    for (i; i < n; i++)
     {	
-	    char* paths = g_list_nth_data(thumbnail_path_list,i);
-    
-	    if (((strcmp(paths, g_file_get_basename (mw->loading_file))) == 0))
+	    const char* paths = g_list_nth_data(thumbnail_loaded_list, i);
+    	
+	    if ((strcmp(g_path_get_basename (paths), g_file_get_basename (mw->loading_file))) == 0)
 	    {
     	  c = i;
+		  break;
 	    }
     }
 	
     char tmp[32];
     g_sprintf(tmp, "%d", c);
-
+ 
     gtk_tree_model_get_iter_from_string ((GtkTreeModel*)mw->model, (GtkTreeIter*)&iter, tmp);
 	
     GtkTreePath *path =  gtk_tree_model_get_path (GTK_TREE_MODEL(mw->model), (GtkTreeIter*)&iter);
@@ -1232,8 +1245,8 @@ void on_delete( GtkWidget* btn, MainWin* mw )
 		int i = atoi(gtk_tree_path_to_string(elements->data));
         const char* del_path = g_list_nth_data(thumbnail_path_list, i);
 		
-		const char* name = image_list_get_current(mw->loading_file);
-		printf(name);
+		const char* name = image_list_get_current(mw->img_list);
+
 		const char* next_name = image_list_get_next( mw->img_list );
   
 	    if( ! next_name )

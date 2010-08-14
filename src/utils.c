@@ -101,7 +101,7 @@ GdkPixbuf* scale_pix(GdkPixbuf* ori_pix, int size)
       if((new_width == width && new_height == height) ||
          (size > width && size > height )) 
       {
-          scaled_pix = ori_pix;//(GdkPixbuf*)g_object_ref(ori_pix);
+          scaled_pix = ori_pix;
       }
       else
          scaled_pix = gdk_pixbuf_scale_simple(ori_pix, new_width, new_height, GDK_INTERP_BILINEAR);
