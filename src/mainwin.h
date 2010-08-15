@@ -92,6 +92,7 @@ typedef struct _MainWin
 	char* dir_path;
 	GtkAdjustment* adj;
 	GdkPixbuf* pixbuf;
+	char*      thumbnail_title;
 	GFileMonitor* monitor;
 	GtkAnimView* aview;
     GdkPixbufAnimation* animation;
@@ -124,8 +125,6 @@ typedef struct _MainWin
     gdouble start_y;
 	
 	gboolean loaded;
- 	guint l;
-	
 	GdkGC *gc;
 	
 	GFile* loading_file;
@@ -174,7 +173,7 @@ void list_load(MainWin* mw);
 
 void load_list(MainWin* mw);
 
-void selecting(MainWin* mw);
+int selecting(MainWin* mw);
 
 GType main_win_get_type();
 
