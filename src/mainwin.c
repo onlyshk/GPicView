@@ -467,10 +467,13 @@ void loading(JobParam* param)
 {	
 	GInputStream* input_stream = NULL;
 	input_stream = G_INPUT_STREAM(g_file_read(param->file, param->generator_cancellable, NULL));
-	param->mw->animation = load_animation_from_stream(G_INPUT_STREAM(input_stream), param->generator_cancellable);	
 	
-	g_input_stream_close(input_stream, param->generator_cancellable, NULL);
-	g_object_unref (input_stream);
+	if (input_stream != NULL)
+	{
+	  	param->mw->animation = load_animation_from_stream(G_INPUT_STREAM(input_stream), param->generator_cancellable);	
+	    g_input_stream_close(input_stream, param->generator_cancellable, NULL);
+	    g_object_unref (input_stream);
+	}
 }
 
 //
@@ -523,7 +526,6 @@ void load_thumbnails(JobParam* param)
 	  else
 	  {
 	    g_object_unref(file);
-	    g_object_unref(pixbuf);
 		
         if (!param->mw->img_list->current->next )
 	        image_list_get_first(param->mw->img_list);
@@ -705,6 +707,7 @@ directory_monitor_changed (GFileMonitor      *monitor,
 
 void load_list(MainWin* mw)
 {
+	gtk_list_store_clear (mw->model);
 	main_win_open (mw);	
 }
 
@@ -736,7 +739,6 @@ void on_open( GtkWidget* widget, MainWin* mw )
     
 	if (mw->dir_path == NULL)
 	{
-		
 	    gtk_list_store_clear (mw->model);
 		
 		if (mw->disp_list)
@@ -762,6 +764,7 @@ void on_open( GtkWidget* widget, MainWin* mw )
 		{
 			
 	       gtk_list_store_clear (mw->model);
+			
 		   if (mw->disp_list)
 		      g_list_free(mw->disp_list);
 			
@@ -931,7 +934,7 @@ void on_prev( GtkWidget* widget, MainWin* mw )
       
 	if( name )
     {	
-        const char* file_path = image_list_get_current_file_path( mw->img_list );
+        const char* file_path = image_list_get_prev(mw->img_list );
 		
 		GtkTreeIter iter;
 		int i = 0;
@@ -1227,32 +1230,26 @@ void on_delete( GtkWidget* btn, MainWin* mw )
             gtk_widget_destroy( dlg );
         }
    
-	if( resp == GTK_RESPONSE_YES )
-    {
-	    GList* elements = gtk_icon_view_get_selected_items (mw->view);
-		int i = atoi(gtk_tree_path_to_string(elements->data));
-        const char* del_path = g_list_nth_data(thumbnail_path_list, i);
-		
+	if( resp == GTK_RESPONSE_YES)
+    {		
 		const char* name = image_list_get_current(mw->img_list);
 
 		const char* next_name = image_list_get_next( mw->img_list );
   
+		g_unlink (file_path);
+		
 	    if( ! next_name )
 		     next_name = image_list_get_first( mw->img_list );
 
 		if( next_name )
-		{ 					
-		    image_list_remove (mw->img_list, g_path_get_basename (file_path) );
+		{ 	
+			image_list_close (mw->img_list);
+			g_list_free(thumbnail_path_list);
+			g_list_free(thumbnail_loaded_list);
+			g_list_free(mw->disp_list);
 			
-			GtkTreeIter iter;
-			GtkTreePath* path = g_list_nth_data(elements,0);
-			gtk_tree_model_get_iter((GtkTreeModel*)mw->model, &iter, path);
-            gtk_list_store_remove(mw->model, &iter);
-						
-			gtk_tree_path_free(path);
-			g_list_free(elements);
-			
-			int a = selecting(mw);
+			list_load(mw);
+			load_list(mw);
 		}
 		
 		if ( ! next_name )

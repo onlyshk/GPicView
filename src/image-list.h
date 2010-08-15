@@ -34,7 +34,7 @@
 */
 typedef struct _ImageList
 {
-    gchar* dir_path;
+    const char* dir_path;
     GList* list;
     GList* current;
 	GStaticMutex mutex;

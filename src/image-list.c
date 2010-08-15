@@ -259,8 +259,7 @@ void image_list_close( ImageList* il )
     g_list_free( il->list );
     il->list = NULL;
     il->mtime = 0;
-    
-    g_free( il->dir_path );
+
     il->dir_path = NULL;
 }
 
