@@ -47,8 +47,11 @@ ImageList* image_list_new()
                 supported_formats = g_slist_prepend( supported_formats, *ext );
             g_free( exts );
         }
+		
+	    g_slist_free(formats);
+		g_slist_free(format);
     }
-
+	
 	g_static_mutex_init(&il->mutex);
 
     return il;

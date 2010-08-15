@@ -100,8 +100,6 @@ typedef struct _MainWin
 
 	//Thumbnail
 	GtkIconView*  view;
-	GList*        disp_list;
-	GList*        disp_list1;
 	ImageList* thmb_list;
     GtkWidget* thumb_box;
 	GtkWidget* thumbnail_scroll;
