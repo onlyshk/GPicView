@@ -147,7 +147,7 @@ gboolean image_list_open_dir( ImageList* il, const char* path,
 	}
 
 	il->current = il->list;
-
+	
 	g_object_unref (file);
 	g_object_unref (enumerator);
 	

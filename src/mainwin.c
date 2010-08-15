@@ -468,6 +468,9 @@ void loading(JobParam* param)
 	
 	if (input_stream != NULL)
 	{
+		if (param->mw->animation)
+			g_object_unref (param->mw->animation);
+		
 	  	param->mw->animation = load_animation_from_stream(G_INPUT_STREAM(input_stream), param->generator_cancellable);	
 	    g_input_stream_close(input_stream, param->generator_cancellable, NULL);
 	    g_object_unref (input_stream);
@@ -502,6 +505,9 @@ void load_thumbnails(JobParam* param)
 	  
 	  if (input_stream != NULL)
 	  {
+		if (param->mw->pixbuf)
+			  g_object_unref (param->mw->pixbuf);
+		  
 	    param->mw->pixbuf = load_image_from_stream(G_INPUT_STREAM(input_stream), param->mw->thumbnail_cancellable);
         param->mw->pixbuf = scale_pix(param->mw->pixbuf, 128);
 		  
@@ -510,7 +516,7 @@ void load_thumbnails(JobParam* param)
 	    g_object_unref(file);
 	    
 		g_io_scheduler_job_send_to_mainloop(param->job, (GSourceFunc)set_thumbnails, param, NULL);	
-		
+		 
         if (!param->mw->img_list->current->next )
 	        image_list_get_first(param->mw->img_list);
 	    else
@@ -620,8 +626,6 @@ gboolean set_thumbnails(JobParam* param)
   gtk_list_store_append(param->mw->model, (GtkTreeIter*)&iter);
   gtk_list_store_set(param->mw->model, (GtkTreeIter*)&iter, COL_DISPLAY_NAME, param->mw->thumbnail_title, 
 					   COL_PIXBUF, (GdkPixbuf*)param->mw->pixbuf, -1);
-	
-  g_object_unref(param->mw->pixbuf);
 }
 
 int selecting(MainWin* mw)
@@ -724,6 +728,8 @@ void on_open( GtkWidget* widget, MainWin* mw )
 	char* file_path =  g_file_get_path(mw->loading_file);
 	char* dir       =  g_path_get_dirname( file_path );
 	        	
+	g_cancellable_cancel (mw->generator_cancellable);
+	g_cancellable_reset (mw->generator_cancellable);
 	g_cancellable_cancel(mw->thumbnail_cancellable);
 	g_cancellable_reset (mw->thumbnail_cancellable);
 
@@ -752,9 +758,13 @@ void on_open( GtkWidget* widget, MainWin* mw )
 		{
 		
 	      if (thumbnail_loaded_list)
-		      g_list_free(thumbnail_loaded_list);
-			
-	      gtk_list_store_clear (mw->model);
+		  {    
+			   g_list_foreach( thumbnail_loaded_list, (GFunc)g_free, NULL );
+               g_list_free( thumbnail_loaded_list );
+               thumbnail_loaded_list = NULL;
+	      }
+	      
+		  gtk_list_store_clear (mw->model);
 			
 	      g_io_scheduler_push_job (job_func2, mw, NULL, G_PRIORITY_DEFAULT, mw->thumbnail_cancellable);
 		  update_title(file_path, mw);
@@ -778,20 +788,18 @@ void thumbnail_selected( GtkWidget* widget, MainWin* mw)
  
   gchar* path_to_string = gtk_tree_path_to_string(thumbnail_selected_list->data); 
   int n = atoi(path_to_string); 
-  char* selecting_path = g_list_nth_data(thumbnail_loaded_list, n);
 
-
-  if (strcmp(selecting_path , g_file_get_path(mw->loading_file)) == 0)	
+  if (strcmp(g_list_nth_data(thumbnail_loaded_list, n) , g_file_get_path(mw->loading_file)) == 0)	
 	  return;
   
   image_list_set_current (mw->img_list, g_path_get_basename(g_list_nth_data(thumbnail_loaded_list, n )));
-  mw->loading_file = g_file_new_for_path (selecting_path);
+  mw->loading_file = g_file_new_for_path (g_list_nth_data(thumbnail_loaded_list, n));
 	
-  GdkPixbuf* pixbuf = gdk_pixbuf_new_from_file(selecting_path, NULL);
+  GdkPixbuf* pixbuf = gdk_pixbuf_new_from_file(g_list_nth_data(thumbnail_loaded_list, n), NULL);
   gtk_image_view_set_pixbuf(GTK_IMAGE_VIEW(mw->aview),  pixbuf, 0);
  	
-  g_free(path_to_string);
-  g_list_free(thumbnail_selected_list);
+  g_free(path_to_string);	 
+  g_list_free( thumbnail_selected_list );
   g_object_unref (pixbuf);
 
 }
