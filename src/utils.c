@@ -76,6 +76,7 @@ gtk_view_set_static (GtkAnimView *aview, GdkPixbuf *pixbuf)
 GdkPixbuf* scale_pix(GdkPixbuf* ori_pix, int size)
 {
       GdkPixbuf* scaled_pix;
+      /* keep aspect ratio and scale to thumbnail size: 128 or 256 */
       int width = gdk_pixbuf_get_width(ori_pix);
       int height = gdk_pixbuf_get_height(ori_pix);
       int new_width;
@@ -99,15 +100,17 @@ GdkPixbuf* scale_pix(GdkPixbuf* ori_pix, int size)
       }
   
       if((new_width == width && new_height == height) ||
-         (size > width && size > height )) 
+         (size > width && size > height )) /* don't scale up */
       {
-          scaled_pix = ori_pix;
+          /* if size is not changed or original size is smaller, use original size. */
+          scaled_pix = (GdkPixbuf*)g_object_ref(ori_pix);
       }
       else
-         scaled_pix = gdk_pixbuf_scale_simple(ori_pix, new_width, new_height, GDK_INTERP_BILINEAR);
+          scaled_pix = gdk_pixbuf_scale_simple(ori_pix, new_width, new_height, GDK_INTERP_BILINEAR);
   
       return scaled_pix;
 }
+  
 
 void open_url( GtkAboutDialog *dlg, const gchar *url, gpointer data)
 {

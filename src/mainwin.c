@@ -504,19 +504,26 @@ void load_thumbnails(JobParam* param)
 	  input_stream = G_INPUT_STREAM(g_file_read((GFile*)file, (GCancellable*)param->generator_cancellable, NULL));
 	  
 	  if (input_stream != NULL)
-	  {
-		if (param->mw->pixbuf)
-			  g_object_unref (param->mw->pixbuf);
-		  
+	  {		
 	    param->mw->pixbuf = load_image_from_stream(G_INPUT_STREAM(input_stream), param->mw->thumbnail_cancellable);
-        param->mw->pixbuf = scale_pix(param->mw->pixbuf, 128);
-		  
+      	   
+		int width = gdk_pixbuf_get_width(param->mw->pixbuf);
+		int height = gdk_pixbuf_get_height(param->mw->pixbuf);
+		
+		if(width <=128 && height <= 128)
+            param->mw->normal_pix = (GdkPixbuf*)g_object_ref(param->mw->pixbuf);
+        else
+            param->mw->normal_pix = scale_pix(param->mw->pixbuf, 128);
+                     
 		param->mw->thumbnail_title = g_file_get_basename(file);  
 		  
 	    g_object_unref(file);
 	    
-		g_io_scheduler_job_send_to_mainloop(param->job, (GSourceFunc)set_thumbnails, param, NULL);	
-		 
+		g_io_scheduler_job_send_to_mainloop(param->job, (GSourceFunc)set_thumbnails, param, NULL);
+		  
+		g_object_unref (param->mw->pixbuf);
+		g_object_unref(param->mw->normal_pix);
+		  
         if (!param->mw->img_list->current->next )
 	        image_list_get_first(param->mw->img_list);
 	    else
@@ -625,7 +632,7 @@ gboolean set_thumbnails(JobParam* param)
 	     	 	
   gtk_list_store_append(param->mw->model, (GtkTreeIter*)&iter);
   gtk_list_store_set(param->mw->model, (GtkTreeIter*)&iter, COL_DISPLAY_NAME, param->mw->thumbnail_title, 
-					   COL_PIXBUF, (GdkPixbuf*)param->mw->pixbuf, -1);
+					   COL_PIXBUF, (GdkPixbuf*)param->mw->normal_pix, -1);
 }
 
 int selecting(MainWin* mw)
