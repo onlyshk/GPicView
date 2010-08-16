@@ -559,9 +559,9 @@ gboolean main_win_open(MainWin* mw)
 	
 	if (param)
 	{
-	  g_free(param->file);
-	  g_free(param->generator_cancellable);
-	  g_free(param->mw);
+	  g_object_unref(param->file);
+	  g_object_unref(param->generator_cancellable);
+	  g_object_unref(param->mw);
 	  g_free(param);   
 	}
 		
