@@ -28,8 +28,6 @@ gpicview_SOURCES = \
 	jpeg-tran.h   \
 	tran-supp.h   \
 	tran-supp.c   \
-	ptk-menu.c   \
-	ptk-menu.h   \
 	exif.h   \
 	crop.c   \
 	crop.h   \

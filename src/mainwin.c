@@ -42,7 +42,6 @@
 
 #include "pref.h"
 #include "image-list.h"
-#include "ptk-menu.h"
 #include "file-dlgs.h"
 #include "jpeg-tran.h"
 #include "crop.h"
